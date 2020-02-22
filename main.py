@@ -19,6 +19,13 @@ def main():
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
 
+    from antlr4.tree.Trees import Trees
+    # import your parser & lexer here
+
+    # setup your lexer, stream, parser and tree like normal
+
+    print(Trees.toStringTree(tree, None, parser))
+
 
 if __name__ == '__main__':
     main()

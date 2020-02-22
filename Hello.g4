@@ -1,11 +1,29 @@
 // Define a grammar called Hello
 grammar Hello;                          // defines how the output code will be named
 prog : assignment* EOF;                 // accept zero or more assignment items followed by EOF
-assignment : Type ID '=' expr ';' ;       // match type followed by an identifier, then an '=' , an expression and ending with a ';'
-expr : val expr2 ;                      // match expression as a value followed by an expr2
-val : (ID | Int| Float);                       // match values
-expr2 : ( | (opp (val | val expr2)));   // match second part of an expression [val (this part wtih the opperation and stuff)]
-opp: '-' | '+' | '/' | '*';             // match opperations
+//assignment : Type ID '=' expr ';' ;       // match type followed by an identifier, then an '=' , an expression and ending with a ';'
+assignment : PLUS?  expr ';' ;
+//expr : expr opp expr | '('expr')' | val;                      // match expression as a value followed by an expr2
+
+expr:  add_expr ((AND | OR) add_expr)*;
+add_expr: mult_expr ((PLUS | MINUS) mult_expr)*;
+mult_expr:  atom ((STAR | SLASH ) atom)* ;
+
+atom: val | '(' PLUS?  expr')' ;
+
+val : (MINUS)? (ID | Int| Float);           // match values
+
+MINUS : '-';
+PLUS : '+';
+
+STAR : '*';
+SLASH: '/';
+
+AND : '&&';
+OR : '||';
+
+Double_opp: (PLUS PLUS | MINUS MINUS);
+
 Type: 'int' | 'float' | 'string' | 'double';    // match value types
 Int : [0-9]+ ;                      // match integers
 Float: [0-9]* '.' [0-9]+;
