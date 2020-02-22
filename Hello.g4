@@ -9,7 +9,7 @@ expr:  add_expr ((AND | OR) add_expr)*;
 add_expr: mult_expr ((PLUS | MINUS) mult_expr)*;
 mult_expr:  atom ((STAR | SLASH ) atom)* ;
 
-atom: val | '(' PLUS?  expr')' ;
+atom: val | LB PLUS?  expr RB ;
 
 val : (MINUS)? (ID | Int| Float);           // match values
 
@@ -19,10 +19,14 @@ PLUS : '+';
 STAR : '*';
 SLASH: '/';
 
-AND : '&&';
-OR : '||';
+AND : '&&' | '&';
+OR : '||' | '|';
 
-Double_opp: (PLUS PLUS | MINUS MINUS);
+LB : '(';
+RB : ')';
+
+INCREMENT: PLUS PLUS;
+DECREMENT: MINUS MINUS;
 
 Type: 'int' | 'float' | 'string' | 'double';    // match value types
 Int : [0-9]+ ;                      // match integers
