@@ -1,5 +1,5 @@
 grammar C;
-Type: ('int' | 'char'| 'void') ('*' | Indexer)?;
+Type: ('int' | 'char') ('*' | Indexer)?;
 Int: [0-9]+;
 ID: [a-zA-Z][a-zA-Z0-9]*;
 Indexer: '[' Int ']';
@@ -33,7 +33,7 @@ BinOp: '+'
 
 
 library: function* EOF;
-function: Type ID '(' params ')' compound_statement;
+function: (Type | 'void') ID '(' params ')' compound_statement;
 
 params: | param (',' param)*;
 param: Type ID;
@@ -68,7 +68,7 @@ expression: ('(' expression ')')
 
 literal_expression: ID | Int;
 indexing_expression: ID '[' expression ']';
-function_call_expression: ID '(' (() | (expression (',' expression)*)) ')';
+function_call_expression: ID '(' ((expression (',' expression)*))? ')';
 binary_expression: literal_expression BinOp expression;
 unary_expression: (('&' | '*' | '-' | '!' | '~' | '--' | '++') expression)
     | (ID ('++' | '--'));
