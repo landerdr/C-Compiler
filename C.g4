@@ -33,9 +33,9 @@ BinOp: '+'
 
 
 library: function* EOF;
-function: (Type | 'void') ID '(' params ')' compound_statement;
+function: (Type | 'void') ID '(' (params)? ')' compound_statement;
 
-params: | param (',' param)*;
+params: param (',' param)*;
 param: Type ID;
 
 statement: compound_statement
