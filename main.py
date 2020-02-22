@@ -6,11 +6,8 @@ import sys
 
 
 class HelloPrintListener(HelloListener):
-    def enterHi(self, ctx):
-        print("Hello: %s" % ctx.ID())
-
     def enterAssignment(self, ctx):
-        print(ctx.tt(), ctx.ID())
+        print(ctx.ID(), "is of type", ctx.Type())
 
 
 def main():
