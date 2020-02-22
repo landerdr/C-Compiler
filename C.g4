@@ -60,7 +60,7 @@ expression_statement: expression ';';
 expression: ('(' expression ')')
     | literal_expression
     | indexing_expression
-    | fucntion_call_expression
+    | function_call_expression
     | binary_expression
     | unary_expression;
 //    | ternary_expression;
@@ -68,7 +68,7 @@ expression: ('(' expression ')')
 
 literal_expression: ID | Int;
 indexing_expression: ID '[' expression ']';
-fucntion_call_expression: ID '(' (() | (expression (',' expression)*)) ')';
+function_call_expression: ID '(' (() | (expression (',' expression)*)) ')';
 binary_expression: literal_expression BinOp expression;
 unary_expression: (('&' | '*' | '-' | '!' | '~' | '--' | '++') expression)
     | (ID ('++' | '--'));
