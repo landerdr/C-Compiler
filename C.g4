@@ -1,6 +1,5 @@
 grammar C;
-Type: 'int' | 'char';
-Types: Type ('*' | Indexer)? ;
+Type: ('int' | 'char') ('*' | Indexer)?;
 Int: [0-9]+;
 ID: [a-zA-Z][a-zA-Z0-9]*;
 Indexer: '[' Int ']';
@@ -34,44 +33,43 @@ BinOp: '+'
 
 
 library: function* EOF;
-function: Types ID '(' params? ')' compound_statement;
+function: Type ID '(' params ')' compound_statement;
 
 params: param (',' param)*;
-param: Types ID;
+param: Type ID;
 
-statement: (compound_statement
+statement: compound_statement
     | conditional_statement
     | loop_statement
     | return_statement
     | break_statement
     | continue_statement
     | variable_definition
-    | expression_statement)?
-    ';';
+    | expression_statement;
 
 compound_statement: '{' statement* '}';
 conditional_statement: 'if' '(' expression ')' compound_statement;
 loop_statement: ('while' '(' expression ')' compound_statement)
-    | ('for' '(' variable_definition ';' expression ';' expression ')' compound_statement);
-return_statement: 'return' expression;
-break_statement: 'break';
-continue_statement: 'continue';
-variable_definition: Types ID ('=' expression)?;
-expression_statement: expression;
+    | ('for' '(' variable_definition expression ';' expression ')' compound_statement);
+return_statement: 'return' expression ';';
+break_statement: 'break' ';';
+continue_statement: 'continue' ';';
+variable_definition: Type ID ('=' expression)? ';';
+expression_statement: expression ';';
 
 expression: ('(' expression ')')
     | literal_expression
     | indexing_expression
     | fucntion_call_expression
     | binary_expression
-    | unary_expression
-    | ternary_expression;
+    | unary_expression;
+//    | ternary_expression;
 
 
 literal_expression: ID | Int;
 indexing_expression: ID '[' expression ']';
 fucntion_call_expression: ID '(' expression (',' expression)* ')';
-binary_expression: expression BinOp expression;
+binary_expression: literal_expression BinOp expression;
 unary_expression: (('&' | '*' | '-' | '!' | '~' | '--' | '++') expression)
-    | (expression ('++' | '--'));
+    | (ID ('++' | '--'));
 ternary_expression: expression '?' expression ':' expression;
