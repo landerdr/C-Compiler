@@ -25,7 +25,7 @@ compound_statement: '{' statement* '}';
 conditional_statement: 'if' '(' expression ')' statement;
 loop_statement: ('while' '(' expression ')' statement)
     | ('for' '(' variable_definition expression ';' expression ')' statement);
-return_statement: 'return' expression ';';
+return_statement: 'return' expression? ';';
 break_statement: 'break' ';';
 continue_statement: 'continue' ';';
 variable_definition: Type ID ('=' expression)? ';';
