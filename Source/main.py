@@ -4,6 +4,8 @@ from HelloListener import HelloListener
 from HelloParser import HelloParser
 import sys
 
+from Source.AST import ASTNode, AST
+
 
 class HelloPrintListener(HelloListener):
     def enterAssignment(self, ctx):
