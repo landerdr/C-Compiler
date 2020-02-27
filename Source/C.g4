@@ -31,15 +31,14 @@ continue_statement: 'continue' ';';
 variable_definition: Type ID ('=' expression)? ';';
 expression_statement: expression ';';
 
-expression: increment
-    | decrement
-    | indexing_expression
+expression: indexing_expression
     | function_call_expression
     | equality_expression
     | ternary_expression;
 
 
 negative: '-' expression;
+positive: '+' expression;
 inverse: '!' expression;
 increment: ('++' ID) | (ID '++');
 decrement: ('--' ID) | (ID '--');
@@ -52,7 +51,12 @@ ternary_expression: conditional_expression ('?' conditional_expression ':' condi
 conditional_expression: additional_expression (('==' | '!=' | '<' | '<=' | '>' | '>=' | '&&' | '&' | '||' | '|') additional_expression)*;
 additional_expression: multiplicational_expression (('+' | '-') multiplicational_expression)*;
 multiplicational_expression: unary_expression (('*' | '/' | '%') unary_expression)*;
-unary_expression: bracket_expression | inverse | negative;
+unary_expression: bracket_expression
+    | inverse
+    | negative
+    | positive
+    | increment
+    | decrement;
 
 bracket_expression: literal_expression | ('(' expression ')');
 literal_expression: ID | Int;
