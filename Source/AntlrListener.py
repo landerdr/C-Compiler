@@ -29,8 +29,9 @@ class CPrintListener(CListener):
 
         # from antlr4.tree.Trees import Trees
         # print(Trees.toStringTree(tree, None, parser))
-        # self.tt.simplify()
-        self.tt.print_tree()
+        self.tt.simplify()
+        _file = open('Source/out.txt', 'w+')
+        self.tt.print_tree(_file)
 
     '''Rules'''
 
@@ -61,7 +62,11 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
-        expr = ASTNodeLiteral(ctx.Int())
+        expr = None
+        if ctx.ID():
+            expr = ASTNodeLiteral(ctx.ID())
+        else:
+            expr = ASTNodeLiteral(ctx.Int())
         self.add_node(expr)
 
     def enterExpression_statement(self, ctx: CParser.Expression_statementContext):
@@ -98,62 +103,65 @@ class CPrintListener(CListener):
         expr = ASTNodeIf()
         self.add_node(expr)
 
-    # ToDo: alles hier onder heeft nog een juiste node class nodig
-
     def enterContinue_statement(self, ctx: CParser.Continue_statementContext):
-        expr = ASTNode()
+        expr = ASTNodeContinue()
         self.add_node(expr)
 
     def enterDecrement(self, ctx: CParser.DecrementContext):
-        expr = ASTNode()
+        expr = ASTNodeDecrement()
         self.add_node(expr)
 
     def enterEquality_expression(self, ctx: CParser.Equality_expressionContext):
-        expr = ASTNode()
+        expr = ASTNodeEqualityExpr()
+        expr.id = ctx.ID()
+        expr.equality = ctx.equality_symbol().getText()
         self.add_node(expr)
 
+    def enterEquality_symbol(self, ctx: CParser.Equality_symbolContext):
+        self.skip_node()
+
     def enterFunction(self, ctx: CParser.FunctionContext):
-        expr = ASTNode()
+        expr = ASTNodeFunction()
         self.add_node(expr)
 
     def enterFunction_call_expression(self, ctx: CParser.Function_call_expressionContext):
-        expr = ASTNode()
+        expr = ASTNodeFunctionCallExpr()
         self.add_node(expr)
 
     def enterIncrement(self, ctx: CParser.IncrementContext):
-        expr = ASTNode()
+        expr = ASTNodeIncrement()
         self.add_node(expr)
 
     def enterIndexing_expression(self, ctx: CParser.Indexing_expressionContext):
-        expr = ASTNode()
+        expr = ASTNodeIndexingExpr()
         self.add_node(expr)
 
     def enterInverse(self, ctx: CParser.InverseContext):
-        expr = ASTNode()
+        expr = ASTNodeInverseExpr()
         self.add_node(expr)
 
     def enterLoop_statement(self, ctx: CParser.Loop_statementContext):
-        expr = ASTNode()
+        expr = ASTNodeLoopStatement()
         self.add_node(expr)
 
     def enterNegative(self, ctx: CParser.NegativeContext):
-        expr = ASTNode()
+        expr = ASTNodeNegativeExpr()
         self.add_node(expr)
 
     def enterParam(self, ctx: CParser.ParamContext):
-        expr = ASTNode()
+        expr = ASTNodeParam()
         self.add_node(expr)
 
     def enterParams(self, ctx: CParser.ParamsContext):
-        expr = ASTNode()
+        expr = ASTNodeParams()
         self.add_node(expr)
 
     def enterPositive(self, ctx: CParser.PositiveContext):
-        expr = ASTNode()
+        expr = ASTNodePositiveExpr()
         self.add_node(expr)
 
     def enterReturn_statement(self, ctx: CParser.Return_statementContext):
-        expr = ASTNode()
+        expr = ASTNodeReturn()
         self.add_node(expr)
 
     def enterStatement(self, ctx: CParser.StatementContext):

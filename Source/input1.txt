@@ -1,0 +1,18 @@
+
+
+int f(int i, int j){
+
+    break;
+    return i + j;
+}
+
+
+int main(){
+
+    int j = 7*7+8;
+
+    j = 9/9*2 + f(i, 0)*2;
+
+    return 0;
+
+}

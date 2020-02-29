@@ -94,8 +94,8 @@ increment: (INCREMENT ID) | (ID INCREMENT);
 decrement: (DECREMENT ID) | (ID DECREMENT);
 indexing_expression: ID LSB expression RSB;
 function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
-equality_expression: ID (EQUALS | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ) expression;
-
+equality_expression: ID equality_symbol expression;
+equality_symbol:(EQUALS | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
 
 ternary_expression: conditional_expression (QUESTION conditional_expression COLON conditional_expression)?;
 conditional_expression: additional_expression ((EQ | NEQ | LT | LTE | GT | GTE | AND | BINAND | OR | BINOR) additional_expression)*;
