@@ -55,7 +55,9 @@ Int: [0-9]+;
 ID: [a-zA-Z][a-zA-Z0-9]*;
 Indexer: '[' Int ']';
 WS: [ \t\r\n]+ -> skip;
-
+BLOCK_COMMENT: '/*' .*? '*/' -> skip;
+LINE_COMMENT: '//' ~[\r\n]* -> skip
+    ;
 
 library: (function
     | expression_statement

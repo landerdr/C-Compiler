@@ -62,7 +62,6 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
-        expr = None
         if ctx.ID():
             expr = ASTNodeLiteral(ctx.ID())
         else:
@@ -81,7 +80,29 @@ class CPrintListener(CListener):
         expr = ASTNodeTernaryExpr()
         self.add_node(expr)
 
-    def enterConditional_expression(self, ctx: CParser.Conditional_expressionContext):
+    # ToDo: fix bitwise expressions
+    def enterBitwise_and_expression(self, ctx: CParser.Bitwise_and_expressionContext):
+        self.skip_node()
+
+    def enterBitwise_or_expression(self, ctx: CParser.Bitwise_or_expressionContext):
+        self.skip_node()
+
+    def enterBitwise_xor_expression(self, ctx: CParser.Bitwise_xor_expressionContext):
+        self.skip_node()
+
+    # ToDo: fix logical expressions
+    def enterLogical_and_expression(self, ctx: CParser.Logical_and_expressionContext):
+        self.skip_node()
+
+    def enterLogical_or_expression(self, ctx: CParser.Logical_or_expressionContext):
+        self.skip_node()
+
+    # ToDo: fix relational expressions
+    def enterRelational_comparison_expression(self, ctx: CParser.Relational_comparison_expressionContext):
+        expr = ASTNodeConditional()
+        self.add_node(expr)
+
+    def enterRelational_equality_expression(self, ctx: CParser.Relational_equality_expressionContext):
         expr = ASTNodeConditional()
         self.add_node(expr)
 

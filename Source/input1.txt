@@ -1,4 +1,9 @@
 
+// text
+
+/*
+comment
+*/
 
 int f(int i, int j){
 
