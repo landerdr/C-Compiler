@@ -16,7 +16,7 @@ STAR: '*';
 DIV: '/';
 MODULO: '%';
 
-EQUALS: '=';
+ASSIGNMENT: '=';
 EQ: '==';
 NEQ: '!=';
 GT: '>';
@@ -36,6 +36,7 @@ EXCLAMANTION: '!';
 QUESTION: '?';
 BINAND: '&';
 BINOR: '|';
+BINXOR: '^';
 AND: '&&';
 OR: '||';
 
@@ -60,11 +61,12 @@ library: (function
     | expression_statement
     | variable_definition)* EOF;
 
+// Functions
 function: (Type | Void) ID LB (params)? RB compound_statement;
-
 params: param (COMMA param)*;
 param: Type ID;
 
+// Statements
 statement: compound_statement
     | conditional_statement
     | loop_statement
@@ -81,26 +83,31 @@ loop_statement: (While LB expression RB statement)
 return_statement: Return expression? TERMINUS;
 break_statement: Break TERMINUS;
 continue_statement: Continue TERMINUS;
-variable_definition: Type ID (EQUALS expression)? TERMINUS;
+variable_definition: Type ID (ASSIGNMENT expression)? TERMINUS;
 expression_statement: expression TERMINUS;
 
+// Expressions
 expression: ternary_expression;
 
+// Ternary expression
+ternary_expression: logical_or_expression (QUESTION logical_or_expression COLON logical_or_expression)?;
 
-negative: MINUS expression;
-positive: PLUS expression;
-inverse: EXCLAMANTION expression;
-increment: (INCREMENT ID) | (ID INCREMENT);
-decrement: (DECREMENT ID) | (ID DECREMENT);
-indexing_expression: ID LSB expression RSB;
-function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
-equality_expression: ID equality_symbol expression;
-equality_symbol:(EQUALS | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
+// Conditional expressions
+logical_or_expression: logical_and_expression (OR logical_and_expression)*;
+logical_and_expression: bitwise_or_expression (AND bitwise_or_expression)*;
+bitwise_or_expression: bitwise_xor_expression (BINOR bitwise_xor_expression)*;
+bitwise_xor_expression: bitwise_and_expression (BINXOR bitwise_and_expression)*;
+bitwise_and_expression: relational_equality_expression (BINAND relational_equality_expression)*;
+relational_equality_expression: relational_comparison_expression ((EQ | NEQ) relational_comparison_expression)*;
+relational_comparison_expression: additional_expression ((LT | GT | LTE | GTE) additional_expression)*;
 
-ternary_expression: conditional_expression (QUESTION conditional_expression COLON conditional_expression)?;
-conditional_expression: additional_expression ((EQ | NEQ | LT | LTE | GT | GTE | AND | BINAND | OR | BINOR) additional_expression)*;
+// Addition
 additional_expression: multiplicational_expression ((PLUS | MINUS) multiplicational_expression)*;
+
+// Multiplication
 multiplicational_expression: unary_expression ((STAR | DIV | MODULO) unary_expression)*;
+
+// Unary
 unary_expression: bracket_expression
     | inverse
     | negative
@@ -111,6 +118,18 @@ unary_expression: bracket_expression
     | function_call_expression
     | equality_expression;
 
+// Unary expressions
+negative: MINUS expression;
+positive: PLUS expression;
+inverse: EXCLAMANTION expression;
+increment: (INCREMENT ID) | (ID INCREMENT);
+decrement: (DECREMENT ID) | (ID DECREMENT);
+indexing_expression: ID LSB expression RSB;
+function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
+equality_expression: ID equality_symbol expression;
+equality_symbol:(ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
 bracket_expression: literal_expression | (LB expression RB);
+
+// Literal
 literal_expression: ID | Int;
 
