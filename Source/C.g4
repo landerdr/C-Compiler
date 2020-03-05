@@ -50,10 +50,9 @@ COMMA: ',';
 TERMINUS: ';';
 COLON: ':';
 
-Type: ('int' | 'char') (STAR | Indexer)?;
+Type: ('int' | 'char') (STAR | LSB Int RSB)?;
 Int: [0-9]+;
 ID: [a-zA-Z][a-zA-Z0-9]*;
-Indexer: '[' Int ']';
 WS: [ \t\r\n]+ -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip
@@ -129,7 +128,7 @@ decrement: (DECREMENT ID) | (ID DECREMENT);
 indexing_expression: ID LSB expression RSB;
 function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
 equality_expression: ID equality_symbol expression;
-equality_symbol:(ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
+equality_symbol: (ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
 bracket_expression: literal_expression | (LB expression RB);
 
 // Literal
