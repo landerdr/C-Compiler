@@ -103,10 +103,16 @@ relational_equality_expression: relational_comparison_expression ((EQ | NEQ) rel
 relational_comparison_expression: additional_expression ((LT | GT | LTE | GTE) additional_expression)*;
 
 // Addition
-additional_expression: multiplicational_expression ((PLUS | MINUS) multiplicational_expression)*;
+additional_expression: multiplicational_expression (addopp multiplicational_expression)*;
+//additional_expression: multiplicational_expression addtemp;
+//addtemp: (addopp multiplicational_expression addtemp) | ;
+addopp: (PLUS | MINUS);
 
 // Multiplication
-multiplicational_expression: unary_expression ((STAR | DIV | MODULO) unary_expression)*;
+multiplicational_expression: unary_expression (multopp unary_expression)*;
+//multiplicational_expression: unary_expression multtemp;
+//multtemp: (multopp unary_expression multtemp) | ;
+multopp: (STAR | DIV | MODULO);
 
 // Unary
 unary_expression: bracket_expression
