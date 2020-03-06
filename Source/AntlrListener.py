@@ -38,6 +38,8 @@ class CPrintListener(CListener):
     def exitEveryRule(self, ctx: ParserRuleContext):
         if self.depthStack:
             self.depthStack.pop()
+        else:
+            print("!!Tried popping")
 
     def enterEveryRule(self, ctx: ParserRuleContext):
         pass
@@ -139,7 +141,7 @@ class CPrintListener(CListener):
 
     def enterEquality_expression(self, ctx: CParser.Equality_expressionContext):
         expr = ASTNodeEqualityExpr()
-        expr.id = ctx.ID()
+        expr.id = ctx.left_value()
         expr.equality = ctx.equality_symbol().getText()
         self.add_node(expr)
 
@@ -183,8 +185,7 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterPositive(self, ctx: CParser.PositiveContext):
-        expr = ASTNodePositiveExpr()
-        self.add_node(expr)
+        self.skip_node()
 
     def enterReturn_statement(self, ctx: CParser.Return_statementContext):
         expr = ASTNodeReturn()
@@ -205,6 +206,15 @@ class CPrintListener(CListener):
         x.opperators.append(ctx.getText())
         self.skip_node()
         #self.add_node(ASTNodeOpp(ctx.getText()))
+
+    def enterLeft_value(self, ctx:CParser.Left_valueContext):
+        self.skip_node()
+
+    def enterDereference(self, ctx:CParser.DereferenceContext):
+        self.skip_node()
+
+    def enterReference(self, ctx:CParser.ReferenceContext):
+        self.skip_node()
 
     '''
     def enterMulttemp(self, ctx:CParser.MulttempContext):
