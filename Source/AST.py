@@ -19,13 +19,19 @@ class AST:
             for i in reversed(item.children):
                 self.depthStack.append(i)
 
+        temp = [self.root]
         self.depthStack = [self.root]
         while len(self.depthStack) > 0:
             item = self.depthStack.pop()
-            item.simplify()
+            # item.simplify()
 
             for i in reversed(item.children):
                 self.depthStack.append(i)
+                temp.append(i)
+
+        while len(temp) > 0:
+            item = temp.pop()
+            item.simplify()
 
     def print_tree(self, _file=None):
 
@@ -256,15 +262,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
             if self.children[0].isConst:
                 self.children[0].value *= -1
                 self.parent.children[:] = [self.children[0] if x == self else x for x in self.parent.children]
-                #self.parent.replace_child(self, self.children[0])
-
-
-
-class ASTNodePositiveExpr(ASTNodeUnaryExpr):
-
-    def __init__(self):
-        super().__init__("Positive expression")
-
+                # self.parent.replace_child(self, self.children[0])
 
 '''Opperations'''
 
@@ -284,11 +282,13 @@ class ASTNodeAddition(ASTNodeOpp):
 
         leftovers = []
         tot = self.children[0]
-        if not isinstance(tot, float):
+        if not isinstance(tot, ASTNodeLiteral):
             leftovers.append(tot)
+        else:
+            tot = tot.value
 
         for i in range(len(self.opperators)):
-            right = self.children[i+1]
+            right = self.children[i + 1]
 
             if isinstance(right, ASTNodeLiteral):
                 if isinstance(tot, float):
@@ -322,6 +322,44 @@ class ASTNodeMult(ASTNodeOpp):
         super().__init__("Multiplication")
 
     def simplify(self):
+
+        leftovers = []
+        tot = self.children[0]
+        if not isinstance(tot, ASTNodeLiteral):
+            leftovers.append(tot)
+        else:
+            tot = tot.value
+
+        for i in range(len(self.opperators)):
+            right = self.children[i + 1]
+
+            if isinstance(right, ASTNodeLiteral):
+                if isinstance(tot, float):
+                    if right.isConst:
+                        if self.opperators[i] == "*":
+                            tot *= right.value
+                        elif self.opperators[i] == "/":
+                            tot /= right.value
+
+                    else:
+                        leftovers.append(right)
+                else:
+                    if right.isConst:
+                        tot = right.value
+                    else:
+                        leftovers.append(right)
+            else:
+                leftovers.append(right)
+
+        if len(leftovers) > 0:
+            self.children = leftovers
+            if isinstance(tot, float) or isinstance(tot, int):
+                self.add_child(ASTNodeLiteral(tot))
+        else:
+            self.parent.replace_child(self.index, ASTNodeLiteral(tot))
+
+    '''
+    def simplify(self):
         return
         leftovers = []
         tot = 1
@@ -336,5 +374,4 @@ class ASTNodeMult(ASTNodeOpp):
             self.children = leftovers
             self.add_child(ASTNodeLiteral(tot))
         else:
-            self.parent.replace_child(self.index, ASTNodeLiteral(tot))
-
+            self.parent.replace_child(self.index, ASTNodeLiteral(tot))'''

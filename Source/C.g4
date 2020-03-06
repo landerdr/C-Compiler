@@ -132,8 +132,8 @@ unary_expression: bracket_expression
 negative: MINUS expression;
 positive: PLUS expression;
 inverse: EXCLAMANTION expression;
-increment: (INCREMENT ID) | (ID INCREMENT);
-decrement: (DECREMENT ID) | (ID DECREMENT);
+increment: (INCREMENT left_value) | (left_value INCREMENT);
+decrement: (DECREMENT left_value) | (left_value DECREMENT);
 indexing_expression: ID LSB expression RSB;
 function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
 equality_expression: left_value equality_symbol expression;
@@ -141,7 +141,7 @@ equality_symbol: (ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BI
 bracket_expression: literal_expression | (LB expression RB);
 dereference: (STAR ID) | (STAR LB expression RB);
 reference: BINAND ID;
-left_value: ID | dereference;
+left_value: ID | dereference | indexing_expression;
 
 // Literal
 literal_expression: ID | Int | Char;
