@@ -1,7 +1,7 @@
 from antlr4 import *
-from Source.CLexer import CLexer
-from Source.CListener import CListener
-from Source.CParser import CParser
+from gen.CLexer import CLexer
+from gen.CListener import CListener
+from gen.CParser import CParser
 
 from Source.AST import *
 
