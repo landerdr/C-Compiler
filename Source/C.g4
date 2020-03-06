@@ -50,7 +50,7 @@ COMMA: ',';
 TERMINUS: ';';
 COLON: ':';
 
-Type: ('int' | 'char') (STAR | LSB Int RSB)?;
+Type: ('int' | 'char' | 'float') (STAR | LSB Int RSB)?;
 Int: [0-9]+;
 Char: '\''.?'\'';
 ID: [a-zA-Z][a-zA-Z0-9]*;

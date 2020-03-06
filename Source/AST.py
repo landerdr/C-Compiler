@@ -265,6 +265,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 # self.parent.replace_child(self, self.children[0])
 
 '''Opperations'''
+# ToDo: fix loss of opperators
 
 
 class ASTNodeOpp(ASTNodeExpression):
