@@ -50,23 +50,26 @@ COMMA: ',';
 TERMINUS: ';';
 COLON: ':';
 
-Type: ('int' | 'char') (STAR | LSB Int RSB)?;
+Type: ('int' | 'char' | 'float');
+CONST: 'const';
 Int: [0-9]+;
 Char: '\''.?'\'';
 ID: [a-zA-Z][a-zA-Z0-9]*;
 WS: [ \t\r\n]+ -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
-LINE_COMMENT: '//' ~[\r\n]* -> skip
-    ;
+LINE_COMMENT: '//' ~[\r\n]* -> skip;
+
 
 library: (function
     | expression_statement
     | variable_definition)* EOF;
 
+type: CONST? Type (STAR | LSB Int RSB)?;
+
 // Functions
-function: (Type | Void) ID LB (params)? RB compound_statement;
+function: (type | Void) ID LB (params)? RB compound_statement;
 params: param (COMMA param)*;
-param: Type ID;
+param: type ID;
 
 // Statements
 statement: compound_statement
@@ -85,7 +88,7 @@ loop_statement: (While LB expression RB statement)
 return_statement: Return expression? TERMINUS;
 break_statement: Break TERMINUS;
 continue_statement: Continue TERMINUS;
-variable_definition: Type ID (ASSIGNMENT expression)? TERMINUS;
+variable_definition: type ID (ASSIGNMENT expression)? TERMINUS;
 expression_statement: expression TERMINUS;
 
 // Expressions
@@ -129,19 +132,28 @@ unary_expression: bracket_expression
     | reference;
 
 // Unary expressions
+// Signs
 negative: MINUS expression;
 positive: PLUS expression;
+// Logical inverse
 inverse: EXCLAMANTION expression;
-increment: (INCREMENT ID) | (ID INCREMENT);
-decrement: (DECREMENT ID) | (ID DECREMENT);
-indexing_expression: ID LSB expression RSB;
+// Increment/decrement
+increment: (INCREMENT left_value) | (left_value INCREMENT);
+decrement: (DECREMENT left_value) | (left_value DECREMENT);
+// Indexing/fucntions
+indexing_expression: (left_value | function_call_expression) (LSB expression RSB)+;
 function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
+// Assignment
 equality_expression: left_value equality_symbol expression;
 equality_symbol: (ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
+// Brackets
 bracket_expression: literal_expression | (LB expression RB);
+// Pointer operations
 dereference: (STAR ID) | (STAR LB expression RB);
 reference: BINAND ID;
-left_value: ID | dereference;
+// Left value
+left_value: ID | dereference | l_indexing_expression;
+l_indexing_expression: ID (LSB expression RSB)+;
 
 // Literal
 literal_expression: ID | Int | Char;
