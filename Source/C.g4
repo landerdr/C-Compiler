@@ -52,6 +52,7 @@ COLON: ':';
 
 Type: ('int' | 'char') (STAR | LSB Int RSB)?;
 Int: [0-9]+;
+Char: '\''.?'\'';
 ID: [a-zA-Z][a-zA-Z0-9]*;
 WS: [ \t\r\n]+ -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
@@ -123,7 +124,9 @@ unary_expression: bracket_expression
     | decrement
     | indexing_expression
     | function_call_expression
-    | equality_expression;
+    | equality_expression
+    | dereference
+    | reference;
 
 // Unary expressions
 negative: MINUS expression;
@@ -133,10 +136,13 @@ increment: (INCREMENT ID) | (ID INCREMENT);
 decrement: (DECREMENT ID) | (ID DECREMENT);
 indexing_expression: ID LSB expression RSB;
 function_call_expression: ID LB ((expression (COMMA expression)*))? RB;
-equality_expression: ID equality_symbol expression;
+equality_expression: left_value equality_symbol expression;
 equality_symbol: (ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BINOREQ | BINANDEQ | BINXOREQ);
 bracket_expression: literal_expression | (LB expression RB);
+dereference: (STAR ID) | (STAR LB expression RB);
+reference: BINAND ID;
+left_value: ID | dereference;
 
 // Literal
-literal_expression: ID | Int;
+literal_expression: ID | Int | Char;
 

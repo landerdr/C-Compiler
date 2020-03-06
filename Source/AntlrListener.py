@@ -36,7 +36,8 @@ class CPrintListener(CListener):
     '''Rules'''
 
     def exitEveryRule(self, ctx: ParserRuleContext):
-        self.depthStack.pop()
+        if self.depthStack:
+            self.depthStack.pop()
 
     def enterEveryRule(self, ctx: ParserRuleContext):
         pass
@@ -48,6 +49,7 @@ class CPrintListener(CListener):
 
     def enterAdditional_expression(self, ctx: CParser.Additional_expressionContext):
         expr = ASTNodeAddition()
+        expr.opperators = []
         self.add_node(expr)
 
     def enterBracket_expression(self, ctx: CParser.Bracket_expressionContext):
@@ -62,10 +64,12 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
-        if ctx.ID():
-            expr = ASTNodeLiteral(ctx.ID())
-        else:
-            expr = ASTNodeLiteral(ctx.Int())
+        txt = (ctx.ID() or ctx.Int())
+
+        expr = ASTNodeLiteral(txt)
+        if ctx.Int():
+            expr.isConst = True
+            expr.value = float(txt.getText())
         self.add_node(expr)
 
     def enterExpression_statement(self, ctx: CParser.Expression_statementContext):
@@ -108,6 +112,7 @@ class CPrintListener(CListener):
 
     def enterMultiplicational_expression(self, ctx: CParser.Multiplicational_expressionContext):
         expr = ASTNodeMult()
+        expr.opperators = []
         self.add_node(expr)
 
     def enterUnary_expression(self, ctx: CParser.Unary_expressionContext):
@@ -189,13 +194,40 @@ class CPrintListener(CListener):
         expr = ASTNodeStatement()
         self.add_node(expr)
 
+    def enterAddopp(self, ctx:CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.opperators.append(ctx.getText())
+        self.skip_node()
+        #self.add_node(ASTNodeOpp(ctx.getText()))
+
+    def enterMultopp(self, ctx:CParser.MultoppContext):
+        x = self.depthStack[-1]
+        x.opperators.append(ctx.getText())
+        self.skip_node()
+        #self.add_node(ASTNodeOpp(ctx.getText()))
+
+    '''
+    def enterMulttemp(self, ctx:CParser.MulttempContext):
+        if ctx.children:
+            self.add_node(ASTNodeMult())
+        else:
+            self.skip_node()
+
+    def enterAddtemp(self, ctx:CParser.AddtempContext):
+        if ctx.children:
+            self.add_node(ASTNodeAddition())
+        else:
+            self.skip_node()
+    '''
+
     def visitErrorNode(self, node: ErrorNode):
         print("Error")
 
     '''helper functions'''
 
     def add_node(self, node):
-        self.depthStack[-1].add_child(node)
+        if self.depthStack:
+            self.depthStack[-1].add_child(node)
         self.depthStack.append(node)
 
     def skip_node(self):
