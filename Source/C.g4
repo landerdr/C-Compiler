@@ -64,12 +64,12 @@ library: (function
     | expression_statement
     | variable_definition)* EOF;
 
-type: CONST? Type (STAR | LSB Int RSB)?;
+value_type: CONST? Type (STAR | LSB Int RSB)?;
 
 // Functions
-function: (type | Void) ID LB (params)? RB compound_statement;
+function: (value_type | Void) ID LB (params)? RB compound_statement;
 params: param (COMMA param)*;
-param: type ID;
+param: value_type ID;
 
 // Statements
 statement: compound_statement
@@ -88,7 +88,7 @@ loop_statement: (While LB expression RB statement)
 return_statement: Return expression? TERMINUS;
 break_statement: Break TERMINUS;
 continue_statement: Continue TERMINUS;
-variable_definition: type ID (ASSIGNMENT expression)? TERMINUS;
+variable_definition: value_type ID (ASSIGNMENT expression)? TERMINUS;
 expression_statement: expression TERMINUS;
 
 // Expressions

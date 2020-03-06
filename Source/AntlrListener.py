@@ -1,9 +1,9 @@
 from antlr4 import *
-
-from Source.AST import *
 from Source.CLexer import CLexer
 from Source.CListener import CListener
 from Source.CParser import CParser
+
+from Source.AST import *
 
 
 class CPrintListener(CListener):
@@ -124,7 +124,7 @@ class CPrintListener(CListener):
     def enterVariable_definition(self, ctx: CParser.Variable_definitionContext):
         expr = ASTNodeDefinition()
         expr.type = ctx.ID()
-        expr.name = ctx.Type()
+        expr.name = ctx.value_type().getText()
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
@@ -207,15 +207,25 @@ class CPrintListener(CListener):
         self.skip_node()
         #self.add_node(ASTNodeOpp(ctx.getText()))
 
+    # ToDo: fix
     def enterLeft_value(self, ctx:CParser.Left_valueContext):
         self.skip_node()
 
+    # ToDo: fix
     def enterDereference(self, ctx:CParser.DereferenceContext):
         self.skip_node()
 
+    # ToDo: fix
     def enterReference(self, ctx:CParser.ReferenceContext):
         self.skip_node()
 
+    # ToDo: fix
+    def enterL_indexing_expression(self, ctx:CParser.L_indexing_expressionContext):
+        self.skip_node()
+
+    # ToDo: fix
+    def enterValue_type(self, ctx:CParser.Value_typeContext):
+        self.skip_node()
     '''
     def enterMulttemp(self, ctx:CParser.MulttempContext):
         if ctx.children:

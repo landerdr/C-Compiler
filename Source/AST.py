@@ -157,7 +157,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.name = None
 
     def print_dot(self, _file=None):
-        print('"', self, '"', '[label = "', self.value, ":", self.type, self.name, '"]', file=_file)
+        print('"', self, '"', '[label = "', self.value, ":",  self.name, self.type, '"]', file=_file)
 
 
 class ASTNodeIf(ASTNodeStatement):
@@ -324,6 +324,7 @@ class ASTNodeMult(ASTNodeOpp):
 
     def simplify(self):
 
+        leftoveropps = []
         leftovers = []
         tot = self.children[0]
         if not isinstance(tot, ASTNodeLiteral):
@@ -344,13 +345,16 @@ class ASTNodeMult(ASTNodeOpp):
 
                     else:
                         leftovers.append(right)
+                        leftoveropps.append(self.opperators[i])
                 else:
                     if right.isConst:
                         tot = right.value
                     else:
                         leftovers.append(right)
+                        leftoveropps.append(self.opperators[i])
             else:
                 leftovers.append(right)
+                leftoveropps.append(self.opperators[i])
 
         if len(leftovers) > 0:
             self.children = leftovers
