@@ -12,7 +12,14 @@ class TypeTable:
     def insert_variable(self, name, value_type, value, attribute):
         if name in self.tables[-1]:
             return False
-        self.tables[-1][name] = Entry(value_type, value, attribute)
+        if value_type == "char":
+            self.tables[-1][name] = Entry(chr, value, attribute)
+        elif value_type == "int":
+            self.tables[-1][name] = Entry(int, value, attribute)
+        elif value_type == "float":
+            self.tables[-1][name] = Entry(float, value, attribute)
+        else:
+            self.tables[-1][name] = Entry(value_type, value, attribute)
         return True
 
     def lookup_variable(self, name):
