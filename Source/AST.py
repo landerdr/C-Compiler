@@ -401,7 +401,7 @@ class ASTNodeMult(ASTNodeOpp):
             opp = self.operators[i]
             left = self.children[0]
             right = self.children[1]
-            self.children = self.children[2:]
+            self.children = self.children[2:] if len(self.children) > 2 else []
 
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
