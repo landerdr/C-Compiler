@@ -1,4 +1,5 @@
 """Abstract Syntax Tree"""
+import Source.TypeTable
 
 
 class AST:
@@ -51,6 +52,16 @@ class AST:
                 self.depthStack.append(i)
 
         print("}", file=_file)
+
+    def build_symbol_table(self):
+
+        self.depthStack = [self.root]
+
+        while len(self.depthStack) > 0:
+            item = self.depthStack.pop()
+
+            for i in reversed(item.children):
+                self.depthStack.append(i)
 
 
 '''Core'''
@@ -157,7 +168,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.name = None
 
     def print_dot(self, _file=None):
-        print('"', self, '"', '[label = "', self.value, ":",  self.name, self.type, '"]', file=_file)
+        print('"', self, '"', '[label = "', self.value, ":", self.name, self.type, '"]', file=_file)
 
 
 class ASTNodeIf(ASTNodeStatement):
@@ -264,7 +275,10 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 self.parent.children[:] = [self.children[0] if x == self else x for x in self.parent.children]
                 # self.parent.replace_child(self, self.children[0])
 
+
 '''Opperations'''
+
+
 # ToDo: fix loss of opperators
 
 
@@ -324,37 +338,51 @@ class ASTNodeMult(ASTNodeOpp):
 
     def simplify(self):
 
-        leftoveropps = []
+        ctype = ord
+
+        leftover_opps = []
         leftovers = []
         tot = self.children[0]
         if not isinstance(tot, ASTNodeLiteral):
             leftovers.append(tot)
+            tot = 1
         else:
-            tot = tot.value
+            if isinstance(tot.value, int):
+                ctype = int
+
+            if isinstance(tot.value, float):
+                ctype = float
+            if tot.isConst:
+                tot = ctype(tot.value)
+            else:
+                tot = 1
 
         for i in range(len(self.opperators)):
             right = self.children[i + 1]
 
             if isinstance(right, ASTNodeLiteral):
-                if isinstance(tot, float):
-                    if right.isConst:
-                        if self.opperators[i] == "*":
-                            tot *= right.value
-                        elif self.opperators[i] == "/":
-                            tot /= right.value
+                if right.isConst:
+                    if isinstance(right.value, int):
+                        ctype = int
+                    if isinstance(right.value, float):
+                        ctype = float
 
-                    else:
-                        leftovers.append(right)
-                        leftoveropps.append(self.opperators[i])
+                    tot = ctype(tot)
+
+                    if self.opperators[i] == "*":
+                        tot *= ctype(right.value)
+                    elif self.opperators[i] == "/":
+                        tot /= ctype(right.value)
+
+                    tot = ctype(tot)
+
                 else:
-                    if right.isConst:
-                        tot = right.value
-                    else:
-                        leftovers.append(right)
-                        leftoveropps.append(self.opperators[i])
+                    leftovers.append(right)
+                    leftover_opps.append(self.opperators[i])
+
             else:
                 leftovers.append(right)
-                leftoveropps.append(self.opperators[i])
+                leftover_opps.append(self.opperators[i])
 
         if len(leftovers) > 0:
             self.children = leftovers
@@ -362,21 +390,3 @@ class ASTNodeMult(ASTNodeOpp):
                 self.add_child(ASTNodeLiteral(tot))
         else:
             self.parent.replace_child(self.index, ASTNodeLiteral(tot))
-
-    '''
-    def simplify(self):
-        return
-        leftovers = []
-        tot = 1
-        for i in self.children:
-            if isinstance(i, ASTNodeLiteral):
-                if i.isConst:
-                    tot = tot * i.value
-                else:
-                    leftovers.append(i)
-
-        if leftovers:
-            self.children = leftovers
-            self.add_child(ASTNodeLiteral(tot))
-        else:
-            self.parent.replace_child(self.index, ASTNodeLiteral(tot))'''

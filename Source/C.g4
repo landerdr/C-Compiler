@@ -53,8 +53,9 @@ COLON: ':';
 Type: ('int' | 'char' | 'float');
 CONST: 'const';
 Int: [0-9]+;
-Char: '\''.?'\'';
-ID: [a-zA-Z][a-zA-Z0-9]*;
+Float: [0-9]+'.'[0-9]+;
+Char: '\''.'\'';
+ID: [_a-zA-Z][_a-zA-Z0-9]*;
 WS: [ \t\r\n]+ -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
@@ -107,13 +108,13 @@ relational_equality_expression: relational_comparison_expression ((EQ | NEQ) rel
 relational_comparison_expression: additional_expression ((LT | GT | LTE | GTE) additional_expression)*;
 
 // Addition
-additional_expression: multiplicational_expression (addopp multiplicational_expression)*;
+additional_expression: multiplication_expression (addopp multiplication_expression)*;
 //additional_expression: multiplicational_expression addtemp;
 //addtemp: (addopp multiplicational_expression addtemp) | ;
 addopp: (PLUS | MINUS);
 
 // Multiplication
-multiplicational_expression: unary_expression (multopp unary_expression)*;
+multiplication_expression: unary_expression (multopp unary_expression)*;
 //multiplicational_expression: unary_expression multtemp;
 //multtemp: (multopp unary_expression multtemp) | ;
 multopp: (STAR | DIV | MODULO);
@@ -156,5 +157,5 @@ left_value: ID | dereference | l_indexing_expression;
 l_indexing_expression: ID (LSB expression RSB)+;
 
 // Literal
-literal_expression: ID | Int | Char;
+literal_expression: ID | Int | Char | Float;
 

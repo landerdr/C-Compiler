@@ -4,12 +4,14 @@ from gen.CListener import CListener
 from gen.CParser import CParser
 
 from Source.AST import *
-
+from Source.TypeTable import TypeTable
 
 class CPrintListener(CListener):
 
     def __init__(self):
         super(CPrintListener, self).__init__()
+        self.typeTable = TypeTable()
+        self.typeTable.enter_scope()
         self.depthStack = []
         self.tt = AST()
 
@@ -66,11 +68,18 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
-        txt = (ctx.ID() or ctx.Int())
+        txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char())
 
         expr = ASTNodeLiteral(txt)
         if ctx.Int():
             expr.isConst = True
+            expr.value = int(txt.getText())
+        if ctx.Char():
+            expr.isConst = True
+            expr.value = ord(txt.getText()[1])
+        if ctx.Float():
+            expr.isConst = True
+            print(txt)
             expr.value = float(txt.getText())
         self.add_node(expr)
 
@@ -112,7 +121,7 @@ class CPrintListener(CListener):
         expr = ASTNodeConditional()
         self.add_node(expr)
 
-    def enterMultiplicational_expression(self, ctx: CParser.Multiplicational_expressionContext):
+    def enterMultiplication_expression(self, ctx: CParser.Multiplication_expressionContext):
         expr = ASTNodeMult()
         expr.opperators = []
         self.add_node(expr)
@@ -124,7 +133,10 @@ class CPrintListener(CListener):
     def enterVariable_definition(self, ctx: CParser.Variable_definitionContext):
         expr = ASTNodeDefinition()
         expr.type = ctx.ID()
-        expr.name = ctx.value_type().getText()
+        expr.name = ctx.value_type().Type().getText()
+
+        self.typeTable.insert_variable(expr.name, expr.type, None, None)
+
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
@@ -141,7 +153,7 @@ class CPrintListener(CListener):
 
     def enterEquality_expression(self, ctx: CParser.Equality_expressionContext):
         expr = ASTNodeEqualityExpr()
-        expr.id = ctx.left_value()
+        expr.id = ctx.left_value().getText()
         expr.equality = ctx.equality_symbol().getText()
         self.add_node(expr)
 
@@ -205,7 +217,7 @@ class CPrintListener(CListener):
         x = self.depthStack[-1]
         x.opperators.append(ctx.getText())
         self.skip_node()
-        #self.add_node(ASTNodeOpp(ctx.getText()))
+        # self.add_node(ASTNodeOpp(ctx.getText()))
 
     # ToDo: fix
     def enterLeft_value(self, ctx:CParser.Left_valueContext):
@@ -226,22 +238,9 @@ class CPrintListener(CListener):
     # ToDo: fix
     def enterValue_type(self, ctx:CParser.Value_typeContext):
         self.skip_node()
-    '''
-    def enterMulttemp(self, ctx:CParser.MulttempContext):
-        if ctx.children:
-            self.add_node(ASTNodeMult())
-        else:
-            self.skip_node()
-
-    def enterAddtemp(self, ctx:CParser.AddtempContext):
-        if ctx.children:
-            self.add_node(ASTNodeAddition())
-        else:
-            self.skip_node()
-    '''
 
     def visitErrorNode(self, node: ErrorNode):
-        print("Error")
+        print("Error", node.getText())
 
     '''helper functions'''
 
