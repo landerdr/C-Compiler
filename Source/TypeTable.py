@@ -13,7 +13,7 @@ class TypeTable:
         if name in self.tables[-1]:
             return False
         if value_type == "char":
-            self.tables[-1][name] = Entry(chr, value, attribute)
+            self.tables[-1][name] = Entry(str, value, attribute)
         elif value_type == "int":
             self.tables[-1][name] = Entry(int, value, attribute)
         elif value_type == "float":

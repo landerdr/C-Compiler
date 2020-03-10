@@ -17,7 +17,7 @@ int main(){
 
     j = 9/9*2 + f(i, 0)*2;
 
-    int i = 'c';
+    int i = 'c'/0;
 
     return 0;
 

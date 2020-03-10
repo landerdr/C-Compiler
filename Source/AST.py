@@ -8,7 +8,7 @@ class AST:
         self.root = None
         self.depthStack = []
 
-    def simplify(self):
+    def _simplify(self):
         self.depthStack = [self.root]
         while len(self.depthStack) > 0:
             item = self.depthStack.pop()
@@ -33,6 +33,12 @@ class AST:
         while len(temp) > 0:
             item = temp.pop()
             item.simplify()
+
+    def simplify(self):
+        try:
+            self._simplify()
+        except Exception as e:
+            print("Error: ", e)
 
     def print_tree(self, _file=None):
 
