@@ -33,28 +33,22 @@ class CPrintListener(CListener):
         # from antlr4.tree.Trees import Trees
         # print(Trees.toStringTree(tree, None, parser))
         # self.tt.simplify()
-        _file = open('Source/out.txt', 'w+')
+        _file = open('Source/Test/out.txt', 'w+')
         self.tt.print_tree(_file)
         print(self.typeTable)
 
     '''Rules'''
 
     def exitEveryRule(self, ctx: ParserRuleContext):
-
         if self.depthStack:
-            try:
-                item = self.depthStack.pop()
-                if not item.simplified:
-                    if len(item.children) == 1:
-                        if (isinstance(item, ASTNodeExpression) or isinstance(item,
-                                                                              ASTNodeStatement)) and item.canReplace:
-                            # print("replacing:", item.value, "at pos:", item.index)
-                            item.parent.replace_child(item.index, item.children[0])
-                    item.simplify()
-                    item.simplified = True
+            # try:
+            # Get current node
+            item = self.depthStack.pop()
+            if item not in self.depthStack:
+                item.simplify()
 
-            except Exception as e:
-                print("failed on", item, e.__str__())
+        # except Exception as e:
+        #     print("failed on", item, e.__str__())
         else:
             print("!!Tried popping")
 
@@ -68,7 +62,7 @@ class CPrintListener(CListener):
 
     def enterAdditional_expression(self, ctx: CParser.Additional_expressionContext):
         expr = ASTNodeAddition()
-        expr.opperators = []
+        expr.operators = []
         self.add_node(expr)
 
     def enterBracket_expression(self, ctx: CParser.Bracket_expressionContext):
@@ -88,6 +82,7 @@ class CPrintListener(CListener):
         pass
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
+        # Get txt
         txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char())
 
         expr = ASTNodeLiteral(txt)
@@ -99,7 +94,6 @@ class CPrintListener(CListener):
             expr.value = ord(txt.getText()[1])
         if ctx.Float():
             expr.isConst = True
-            print(txt)
             expr.value = float(txt.getText())
         self.add_node(expr)
 
@@ -143,7 +137,7 @@ class CPrintListener(CListener):
 
     def enterMultiplication_expression(self, ctx: CParser.Multiplication_expressionContext):
         expr = ASTNodeMult()
-        expr.opperators = []
+        expr.operators = []
         self.add_node(expr)
 
     def enterUnary_expression(self, ctx: CParser.Unary_expressionContext):
@@ -229,13 +223,13 @@ class CPrintListener(CListener):
 
     def enterAddopp(self, ctx: CParser.AddoppContext):
         x = self.depthStack[-1]
-        x.opperators.append(ctx.getText())
+        x.operators.append(ctx.getText())
         self.skip_node()
         # self.add_node(ASTNodeOpp(ctx.getText()))
 
     def enterMultopp(self, ctx: CParser.MultoppContext):
         x = self.depthStack[-1]
-        x.opperators.append(ctx.getText())
+        x.operators.append(ctx.getText())
         self.skip_node()
         # self.add_node(ASTNodeOpp(ctx.getText()))
 

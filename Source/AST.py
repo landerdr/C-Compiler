@@ -1,5 +1,5 @@
 """Abstract Syntax Tree"""
-import Source.TypeTable
+from Source.TypeTable import *
 
 
 class AST:
@@ -78,12 +78,10 @@ class ASTNode:
     def __init__(self, _val='Undefined'):
         # print("created:", _val)
         self.canReplace = True
-        self.simplified = False
         self.parent = None
         self.index = 0
         self.children = []
         self.value = _val
-
 
     def add_child(self, child):
         # print("added: ", child.value, "to:", self.value)
@@ -93,6 +91,9 @@ class ASTNode:
 
     def remove_child(self, child):
         self.children.remove(child)
+        # Update children index
+        for i in range(len(self.children)):
+            self.children[i].index = i
 
     def remove_child_at_pos(self, index):
         pass
@@ -105,8 +106,21 @@ class ASTNode:
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, '"]', file=_file)
 
-    def simplify(self):
+    def _simplify(self):
         pass
+
+    def simplify(self):
+        if len(self.children) == 1 and self.canReplace and self.parent is not None:
+            self.delete()
+        else:
+            self._simplify()
+
+    def delete(self):
+        # Put child in parent
+        self.parent.replace_child(self.index, self.children[0])
+        # Remove parent and children from node
+        self.parent = None
+        self.children = []
 
 
 class ASTNodeLib(ASTNode):
@@ -276,7 +290,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         super().__init__("Negative expression")
         self.canReplace = False
 
-    def simplify(self):
+    def _simplify(self):
 
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
@@ -285,16 +299,16 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 # self.parent.replace_child(self, self.children[0])
 
 
-'''Opperations'''
+'''Operations'''
 
 
-# ToDo: fix loss of opperators
+# ToDo: fix loss of operators
 
 
 class ASTNodeOpp(ASTNodeExpression):
     def __init__(self, tt="opp"):
         super().__init__(tt)
-        self.opperators = []
+        self.operators = []
 
 
 class ASTNodeAddition(ASTNodeOpp):
@@ -302,7 +316,41 @@ class ASTNodeAddition(ASTNodeOpp):
     def __init__(self):
         super().__init__("Addition")
 
-    def simplify(self):
+    def _simplify(self):
+        # Run over all operators
+        for i in range(len(self.operators)):
+            # Get relevant children and operator
+            opp = self.operators[i]
+            left = self.children[0]
+            right = self.children[1]
+            self.children = self.children[2:] if len(self.children) > 2 else []
+
+            # Simplify if possible
+            if isinstance(left, ASTNodeLiteral) and isinstance(right,
+                                                               ASTNodeLiteral) and left.isConst and right.isConst:
+                if opp == "+":
+                    new_val = left.value + right.value
+                else:
+                    new_val = left.value - right.value
+
+                new_child = ASTNodeLiteral(new_val)
+                new_child.isConst = True
+            # Create binary AST if we can't simplify
+            else:
+                new_child = ASTNodeAddition()
+                new_child.add_child(left)
+                new_child.add_child(right)
+                new_child.operators = [opp]
+
+            # Give child temporary values
+            new_child.parent = self
+            new_child.index = 0
+            # Insert child at front of children
+            self.children.insert(0, new_child)
+
+        self.delete()
+
+    def __simplify(self):
 
         leftovers = []
         tot = self.children[0]
@@ -311,14 +359,14 @@ class ASTNodeAddition(ASTNodeOpp):
         else:
             tot = tot.value
 
-        for i in range(len(self.opperators)):
+        for i in range(len(self.operators)):
 
             right = self.children[i + 1]
 
             if isinstance(right, ASTNodeLiteral):
                 if isinstance(tot, float):
                     if right.isConst:
-                        if self.opperators[i] == "+":
+                        if self.operators[i] == "+":
                             tot += right.value
                         else:
                             tot -= right.value
@@ -346,7 +394,46 @@ class ASTNodeMult(ASTNodeOpp):
     def __init__(self):
         super().__init__("Multiplication")
 
-    def simplify(self):
+    def _simplify(self):
+        # Run over all operators
+        for i in range(len(self.operators)):
+            # Get relevant children and operator
+            opp = self.operators[i]
+            left = self.children[0]
+            right = self.children[1]
+            self.children = self.children[2:]
+
+            # Simplify if possible
+            if isinstance(left, ASTNodeLiteral) and isinstance(right,
+                                                               ASTNodeLiteral) and left.isConst and right.isConst:
+                type = get_type(left.value, right.value)
+                if opp == "*":
+                    new_val = left.value * right.value
+                elif opp == "/":
+                    new_val = left.value / right.value
+                    if not isinstance(float, type):
+                        new_val = int(new_val)
+                else:
+                    new_val = left.value % right.value
+
+                new_child = ASTNodeLiteral(new_val)
+                new_child.isConst = True
+            # Create binary AST if we can't simplify
+            else:
+                new_child = ASTNodeMult()
+                new_child.add_child(left)
+                new_child.add_child(right)
+                new_child.operators = [opp]
+
+            # Give child temporary values
+            new_child.parent = self
+            new_child.index = 0
+            # Insert child at front of children
+            self.children.insert(0, new_child)
+
+        self.delete()
+
+    def __simplify(self):
 
         ctype = ord
 
@@ -367,7 +454,7 @@ class ASTNodeMult(ASTNodeOpp):
             else:
                 tot = 1
 
-        for i in range(len(self.opperators)):
+        for i in range(len(self.operators)):
             right = self.children[i + 1]
 
             if isinstance(right, ASTNodeLiteral):
@@ -379,20 +466,20 @@ class ASTNodeMult(ASTNodeOpp):
 
                     tot = ctype(tot)
 
-                    if self.opperators[i] == "*":
+                    if self.operators[i] == "*":
                         tot *= ctype(right.value)
-                    elif self.opperators[i] == "/":
+                    elif self.operators[i] == "/":
                         tot /= ctype(right.value)
 
                     tot = ctype(tot)
 
                 else:
                     leftovers.append(right)
-                    leftover_opps.append(self.opperators[i])
+                    leftover_opps.append(self.operators[i])
 
             else:
                 leftovers.append(right)
-                leftover_opps.append(self.opperators[i])
+                leftover_opps.append(self.operators[i])
 
         if len(leftovers) > 0:
             self.children = leftovers

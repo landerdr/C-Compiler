@@ -53,6 +53,10 @@ class Entry:
         self.type = value_type
         self.value = value
         self.attribute = attribute
+        # Location of variable in the register
+        self.register = None
+        # Location of variable on the stack (if applicable)
+        self.location = None
 
     def update_value(self, new_value):
         if not isinstance(new_value, self.type):
@@ -64,6 +68,16 @@ class Entry:
 
     def __repr__(self):
         return str(self.type) + str(self.value)
+
+
+def get_type(val1, val2):
+    if isinstance(val1, float) or isinstance(val2, float):
+        return float
+    if isinstance(val1, int) or isinstance(val2, int):
+        return int
+    if isinstance(val1, str) or isinstance(val2, str):
+        return str
+
 
 if __name__ == "__main__":
     table = TypeTable()

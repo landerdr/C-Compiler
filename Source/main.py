@@ -8,7 +8,7 @@ def main():
 
     #input = fileinput.input()
 
-    text = FileStream("Source/input1.txt")
+    text = FileStream("Source/Test/input1.txt")
     print(text)
     listener.parse_string(text)
 
