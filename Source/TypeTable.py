@@ -9,10 +9,10 @@ class TypeTable:
         if len(self.tables) != 0:
             self.tables.pop()
 
-    def insert_variable(self, name, value_type, attribute):
+    def insert_variable(self, name, value_type, value, attribute):
         if name in self.tables[-1]:
             return False
-        self.tables[-1][name] = Entry(value_type, attribute)
+        self.tables[-1][name] = Entry(value_type, value, attribute)
         return True
 
     def lookup_variable(self, name):
@@ -21,23 +21,48 @@ class TypeTable:
                 return self.tables[-i][name]
         return None
 
+    def insert_function(self, name, parameters, value_type):
+        key = tuple(name) + tuple(parameters)
+        if len(self.tables) != 1:
+            return False
+        if key in self.tables[-1]:
+            return False
+        self.tables[-1][key] = Entry(value_type, None, None)
+        return True
+
+    def lookup_function(self, name, parameters):
+        key = tuple(name) + tuple(parameters)
+        return self.lookup_variable(key)
+
 
 class Entry:
-    def __init__(self, value_type, attribute):
-        self.type = value_type
+    def __init__(self, value_type, value, attribute):
+        self.type = int
+        self.value = value
         self.attribute = attribute
+
+    def update_value(self, new_value):
+        if isinstance(new_value, self.type):
+            self.value = new_value
+            return True
+        return False
 
 
 if __name__ == "__main__":
-    from Source.Types import *
-
     table = TypeTable()
     table.enter_scope()
-    table.insert_variable("i", Int(5), None)
+    table.insert_variable("i", int, 5, None)
     print(table.lookup_variable("i"))
     print(table.lookup_variable("b"))
     table.enter_scope()
-    table.insert_variable("b", Float(5.0), None)
+    table.insert_variable("b", float, 3.0, None)
     print(table.lookup_variable("i"))
-    print(table.lookup_variable("b"))
+    b = table.lookup_variable("b")
+    print(b, b.value)
+    b.update_value(5)
+    print(table.lookup_variable("b").value)
+
+    table.leave_scope()
+    table.insert_function("f", [int, int, chr], int)
+    print(table.lookup_function("f", [int, int, chr]))
     table.leave_scope()
