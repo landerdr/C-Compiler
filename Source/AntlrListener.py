@@ -6,6 +6,7 @@ from gen.CParser import CParser
 from Source.AST import *
 from Source.TypeTable import TypeTable
 
+
 class CPrintListener(CListener):
 
     def __init__(self):
@@ -31,15 +32,29 @@ class CPrintListener(CListener):
 
         # from antlr4.tree.Trees import Trees
         # print(Trees.toStringTree(tree, None, parser))
-        self.tt.simplify()
+        # self.tt.simplify()
         _file = open('Source/out.txt', 'w+')
         self.tt.print_tree(_file)
+        print(self.typeTable)
 
     '''Rules'''
 
     def exitEveryRule(self, ctx: ParserRuleContext):
+
         if self.depthStack:
-            self.depthStack.pop()
+            try:
+                item = self.depthStack.pop()
+                if not item.simplified:
+                    if len(item.children) == 1:
+                        if (isinstance(item, ASTNodeExpression) or isinstance(item,
+                                                                              ASTNodeStatement)) and item.canReplace:
+                            # print("replacing:", item.value, "at pos:", item.index)
+                            item.parent.replace_child(item.index, item.children[0])
+                    item.simplify()
+                    item.simplified = True
+
+            except Exception as e:
+                print("failed on", item, e.__str__())
         else:
             print("!!Tried popping")
 
@@ -65,7 +80,12 @@ class CPrintListener(CListener):
 
     def enterCompound_statement(self, ctx: CParser.Compound_statementContext):
         expr = ASTNodeCompound()
+        self.typeTable.enter_scope()
         self.add_node(expr)
+
+    def exitCompound_statement(self, ctx: CParser.Compound_statementContext):
+        self.typeTable.leave_scope()
+        pass
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
         txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char())
@@ -132,8 +152,8 @@ class CPrintListener(CListener):
 
     def enterVariable_definition(self, ctx: CParser.Variable_definitionContext):
         expr = ASTNodeDefinition()
-        expr.type = ctx.ID()
-        expr.name = ctx.value_type().Type().getText()
+        expr.name = ctx.ID().getText()
+        expr.type = ctx.value_type().Type().getText()
 
         self.typeTable.insert_variable(expr.name, expr.type, None, None)
 
@@ -207,36 +227,36 @@ class CPrintListener(CListener):
         expr = ASTNodeStatement()
         self.add_node(expr)
 
-    def enterAddopp(self, ctx:CParser.AddoppContext):
+    def enterAddopp(self, ctx: CParser.AddoppContext):
         x = self.depthStack[-1]
         x.opperators.append(ctx.getText())
         self.skip_node()
-        #self.add_node(ASTNodeOpp(ctx.getText()))
+        # self.add_node(ASTNodeOpp(ctx.getText()))
 
-    def enterMultopp(self, ctx:CParser.MultoppContext):
+    def enterMultopp(self, ctx: CParser.MultoppContext):
         x = self.depthStack[-1]
         x.opperators.append(ctx.getText())
         self.skip_node()
         # self.add_node(ASTNodeOpp(ctx.getText()))
 
     # ToDo: fix
-    def enterLeft_value(self, ctx:CParser.Left_valueContext):
+    def enterLeft_value(self, ctx: CParser.Left_valueContext):
         self.skip_node()
 
     # ToDo: fix
-    def enterDereference(self, ctx:CParser.DereferenceContext):
+    def enterDereference(self, ctx: CParser.DereferenceContext):
         self.skip_node()
 
     # ToDo: fix
-    def enterReference(self, ctx:CParser.ReferenceContext):
+    def enterReference(self, ctx: CParser.ReferenceContext):
         self.skip_node()
 
     # ToDo: fix
-    def enterL_indexing_expression(self, ctx:CParser.L_indexing_expressionContext):
+    def enterL_indexing_expression(self, ctx: CParser.L_indexing_expressionContext):
         self.skip_node()
 
     # ToDo: fix
-    def enterValue_type(self, ctx:CParser.Value_typeContext):
+    def enterValue_type(self, ctx: CParser.Value_typeContext):
         self.skip_node()
 
     def visitErrorNode(self, node: ErrorNode):

@@ -6,6 +6,7 @@ comment
 */
 
 int f(int i, int j){
+    int i = 5 + 5;
     break;
     return i + j;
 }
@@ -13,11 +14,12 @@ int f(int i, int j){
 
 int main(){
 
-    int j = 7+7/j*7+8+8-(-1);
+    int j = 7+7*7+8+8-(-1) + 1;
 
     j = 9/9*2 + f(i, 0)*2;
 
-    int i = 'c'/0;
+    int i = 'c';
+    char x = 'x';
 
     return 0;
 

@@ -78,10 +78,12 @@ class ASTNode:
     def __init__(self, _val='Undefined'):
         # print("created:", _val)
         self.canReplace = True
+        self.simplified = False
         self.parent = None
         self.index = 0
         self.children = []
         self.value = _val
+
 
     def add_child(self, child):
         # print("added: ", child.value, "to:", self.value)
@@ -229,6 +231,7 @@ class ASTNodeLiteral(ASTNode):
     def __init__(self, value="Value"):
         super().__init__(value)
         self.isConst = False
+        self.canReplace = False
 
 
 class ASTNodeDecrement(ASTNodeUnaryExpr):
@@ -309,6 +312,7 @@ class ASTNodeAddition(ASTNodeOpp):
             tot = tot.value
 
         for i in range(len(self.opperators)):
+
             right = self.children[i + 1]
 
             if isinstance(right, ASTNodeLiteral):

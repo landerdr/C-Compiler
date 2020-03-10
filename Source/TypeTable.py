@@ -41,6 +41,12 @@ class TypeTable:
         key = tuple(name) + tuple(parameters)
         return self.lookup_variable(key)
 
+    def __str__(self):
+        str = ''
+        for i in self.tables:
+            str += i.__str__()
+        return str
+
 
 class Entry:
     def __init__(self, value_type, value, attribute):
@@ -53,6 +59,11 @@ class Entry:
             print("Mismatched types")
         self.value = new_value
 
+    def __str__(self):
+        return str(self.type) + str(self.value)
+
+    def __repr__(self):
+        return str(self.type) + str(self.value)
 
 if __name__ == "__main__":
     table = TypeTable()
