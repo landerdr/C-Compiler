@@ -37,15 +37,14 @@ class TypeTable:
 
 class Entry:
     def __init__(self, value_type, value, attribute):
-        self.type = int
+        self.type = value_type
         self.value = value
         self.attribute = attribute
 
     def update_value(self, new_value):
-        if isinstance(new_value, self.type):
-            self.value = new_value
-            return True
-        return False
+        if not isinstance(new_value, self.type):
+            print("Mismatched types")
+        self.value = new_value
 
 
 if __name__ == "__main__":
