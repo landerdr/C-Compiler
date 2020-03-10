@@ -41,14 +41,14 @@ class CPrintListener(CListener):
 
     def exitEveryRule(self, ctx: ParserRuleContext):
         if self.depthStack:
-            # try:
-            # Get current node
-            item = self.depthStack.pop()
-            if item not in self.depthStack:
-                item.simplify()
+            try:
+                # Get current node
+                item = self.depthStack.pop()
+                if item not in self.depthStack:
+                    item.simplify()
 
-        # except Exception as e:
-        #     print("failed on", item, e.__str__())
+            except Exception as e:
+                print("failed on", item, e.__str__())
         else:
             print("!!Tried popping")
 
