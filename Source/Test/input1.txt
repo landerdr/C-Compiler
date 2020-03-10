@@ -21,7 +21,7 @@ int main(){
     int i = 'c';
     char x = 'x';
 
-    int NON_ZERO = 4*2/5;
+    int NON_ZERO = 4*2/5.0;
 
     return 0;
 

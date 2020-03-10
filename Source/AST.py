@@ -411,7 +411,7 @@ class ASTNodeMult(ASTNodeOpp):
                     new_val = left.value * right.value
                 elif opp == "/":
                     new_val = left.value / right.value
-                    if not isinstance(float, type):
+                    if type != float:
                         new_val = int(new_val)
                 else:
                     new_val = left.value % right.value
