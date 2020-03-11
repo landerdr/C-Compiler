@@ -100,13 +100,20 @@ expression: ternary_expression;
 ternary_expression: logical_or_expression (QUESTION logical_or_expression COLON logical_or_expression)?;
 
 // Conditional expressions
-logical_or_expression: logical_and_expression (OR logical_and_expression)*;
-logical_and_expression: bitwise_or_expression (AND bitwise_or_expression)*;
-bitwise_or_expression: bitwise_xor_expression (BINOR bitwise_xor_expression)*;
-bitwise_xor_expression: bitwise_and_expression (BINXOR bitwise_and_expression)*;
-bitwise_and_expression: relational_equality_expression (BINAND relational_equality_expression)*;
-relational_equality_expression: relational_comparison_expression ((EQ | NEQ) relational_comparison_expression)*;
-relational_comparison_expression: additional_expression ((LT | GT | LTE | GTE) additional_expression)*;
+logical_or_expression: logical_and_expression (log_or logical_and_expression)*;
+log_or: OR;
+logical_and_expression: bitwise_or_expression (log_and bitwise_or_expression)*;
+log_and: AND;
+bitwise_or_expression: bitwise_xor_expression (binor bitwise_xor_expression)*;
+binor: BINOR;
+bitwise_xor_expression: bitwise_and_expression (binxor bitwise_and_expression)*;
+binxor: BINXOR;
+bitwise_and_expression: relational_equality_expression (binand relational_equality_expression)*;
+binand: BINAND;
+relational_equality_expression: relational_comparison_expression (log_eq relational_comparison_expression)*;
+log_eq: (EQ | NEQ);
+relational_comparison_expression: additional_expression (rel_com additional_expression)*;
+rel_com: (LT | GT | LTE | GTE);
 
 // Addition
 additional_expression: multiplication_expression (addopp multiplication_expression)*;

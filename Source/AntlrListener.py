@@ -121,10 +121,12 @@ class CPrintListener(CListener):
 
     # ToDo: fix logical expressions
     def enterLogical_and_expression(self, ctx: CParser.Logical_and_expressionContext):
-        self.skip_node()
+        expr = ASTNodeStatement()
+        self.add_node(expr)
 
     def enterLogical_or_expression(self, ctx: CParser.Logical_or_expressionContext):
-        self.skip_node()
+        expr = ASTNodeStatement()
+        self.add_node(expr)
 
     # ToDo: fix relational expressions
     def enterRelational_comparison_expression(self, ctx: CParser.Relational_comparison_expressionContext):
@@ -232,6 +234,41 @@ class CPrintListener(CListener):
         x.operators.append(ctx.getText())
         self.skip_node()
         # self.add_node(ASTNodeOpp(ctx.getText()))
+
+    def enterLog_or(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
+
+    def enterLog_and(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
+
+    def enterBinor(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
+
+    def enterBinxor(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
+
+    def enterBinand(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
+
+    def enterLog_eq(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
+
+    def enterRel_com(self, ctx: CParser.AddoppContext):
+        x = self.depthStack[-1]
+        x.operators.append(ctx.getText())
+        self.skip_node()
 
     # ToDo: fix
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
