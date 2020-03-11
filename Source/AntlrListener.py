@@ -274,17 +274,14 @@ class CPrintListener(CListener):
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
         self.skip_node()
 
-    # ToDo: fix
     def enterDereference(self, ctx: CParser.DereferenceContext):
-        self.skip_node()
+        self.add_node(ASTNodeDereference())
 
-    # ToDo: fix
     def enterReference(self, ctx: CParser.ReferenceContext):
-        self.skip_node()
+        self.add_node(ASTNodeReference())
 
-    # ToDo: fix
     def enterL_indexing_expression(self, ctx: CParser.L_indexing_expressionContext):
-        self.skip_node()
+        self.add_node(ASTNodeIndexingExpr)
 
     # ToDo: fix
     def enterValue_type(self, ctx: CParser.Value_typeContext):

@@ -269,6 +269,14 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
 class ASTNodeInverseExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Inverse expression")
+        self.canReplace = False
+
+    def _simplify(self):
+
+        if isinstance(self.children[0], ASTNodeLiteral):
+            if self.children[0].isConst:
+                self.children[0].value = not self.children[0].value
+                self.parent.replace_child(self.index, self.children[0])
 
 
 class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
@@ -282,8 +290,18 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value *= -1
-                self.parent.children[:] = [self.children[0] if x == self else x for x in self.parent.children]
-                # self.parent.replace_child(self, self.children[0])
+                self.parent.replace_child(self.index, self.children[0])
+
+
+class ASTNodeReference(ASTNodeUnaryExpr):
+    def __init__(self):
+        super().__init__("Reference expression")
+
+
+class ASTNodeDereference(ASTNodeUnaryExpr):
+    def __init__(self):
+        super().__init__("Dereference expression")
+
 
 
 '''Operations'''

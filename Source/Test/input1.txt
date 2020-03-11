@@ -26,6 +26,9 @@ int main(){
 
     int z = (1 < 0) * 55;
 
+    int k = 1*2*(2 + !1);
+    j = &k;
+
     return 0;
 
 }
