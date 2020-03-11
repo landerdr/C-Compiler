@@ -22,7 +22,9 @@ int main(){
     char x = 'x';
 
     int NON_ZERO = 4*2/5;
-    int Error = 1/0;
+    //int Error = 1/0;
+
+    int z = (1 < 0) * 55;
 
     return 0;
 

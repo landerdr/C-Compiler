@@ -156,13 +156,11 @@ class ASTNodeStatement(ASTNode):
 
 
 class ASTNodeBreak(ASTNodeStatement):
-
     def __init__(self):
         super().__init__("Break")
 
 
 class ASTNodeContinue(ASTNodeStatement):
-
     def __init__(self):
         super().__init__("Continue")
 
@@ -182,7 +180,6 @@ class ASTNodeCompound(ASTNodeStatement):
 
 
 class ASTNodeDefinition(ASTNodeStatement):
-
     def __init__(self):
         super().__init__("Definition")
         self.canReplace = False
@@ -194,7 +191,6 @@ class ASTNodeDefinition(ASTNodeStatement):
 
 
 class ASTNodeIf(ASTNodeStatement):
-
     def __init__(self):
         super().__init__("If statement")
         self.Condition = None
@@ -202,7 +198,6 @@ class ASTNodeIf(ASTNodeStatement):
 
 
 class ASTNodeLoopStatement(ASTNodeStatement):
-
     def __init__(self):
         super().__init__("Loop statement")
         self.Condition = None
@@ -210,7 +205,6 @@ class ASTNodeLoopStatement(ASTNodeStatement):
 
 
 class ASTNodeReturn(ASTNodeStatement):
-
     def __init__(self):
         super().__init__("Return statement")
         self.canReplace = False
@@ -220,14 +214,8 @@ class ASTNodeReturn(ASTNodeStatement):
 
 
 class ASTNodeExpression(ASTNode):
-
     def __init__(self, val="Expression"):
         super().__init__(val)
-
-
-class ASTNodeConditional(ASTNodeExpression):
-    def __init__(self):
-        super().__init__("Conditional expression")
 
 
 class ASTNodeUnaryExpr(ASTNodeExpression):
@@ -241,7 +229,6 @@ class ASTNodeTernaryExpr(ASTNodeExpression):
 
 
 class ASTNodeLiteral(ASTNode):
-
     def __init__(self, value="Value"):
         super().__init__(value)
         self.isConst = False
@@ -312,7 +299,6 @@ class ASTNodeOpp(ASTNodeExpression):
 
 
 class ASTNodeAddition(ASTNodeOpp):
-
     def __init__(self):
         super().__init__("Addition")
 
@@ -390,7 +376,6 @@ class ASTNodeAddition(ASTNodeOpp):
 
 
 class ASTNodeMult(ASTNodeOpp):
-
     def __init__(self):
         super().__init__("Multiplication")
 
@@ -487,3 +472,57 @@ class ASTNodeMult(ASTNodeOpp):
                 self.add_child(ASTNodeLiteral(tot))
         else:
             self.parent.replace_child(self.index, ASTNodeLiteral(tot))
+
+
+class ASTNodeConditional(ASTNodeOpp):
+    def __init__(self):
+        super().__init__("Conditional expression")
+
+    def _simplify(self):
+        # Run over all operators
+        for i in range(len(self.operators)):
+            # Get relevant children and operator
+            opp = self.operators[i]
+            left = self.children[0]
+            right = self.children[1]
+            self.children = self.children[2:] if len(self.children) > 2 else []
+
+            # Simplify if possible
+            if isinstance(left, ASTNodeLiteral) and isinstance(right,
+                                                               ASTNodeLiteral) and left.isConst and right.isConst:
+                if opp == "==":
+                    new_val = left.value == right.value
+                elif opp == "<":
+                    new_val = left.value < right.value
+                elif opp == ">":
+                    new_val = left.value > right.value
+                elif opp == "&&":
+                    new_val = left.value and right.value
+                elif opp == "||":
+                    new_val = left.value or right.value
+                elif opp == "!=":
+                    new_val = left.value != right.value
+                elif opp == "<=":
+                    new_val = left.value <= right.value
+                elif opp == ">=":
+                    new_val = left.value >= right.value
+                else:
+                    print("Not implemented yet")
+                    raise Exception
+
+                new_child = ASTNodeLiteral(new_val)
+                new_child.isConst = True
+            # Create binary AST if we can't simplify
+            else:
+                new_child = ASTNodeConditional()
+                new_child.add_child(left)
+                new_child.add_child(right)
+                new_child.operators = [opp]
+
+            # Give child temporary values
+            new_child.parent = self
+            new_child.index = 0
+            # Insert child at front of children
+            self.children.insert(0, new_child)
+
+        self.delete()
