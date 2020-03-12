@@ -276,7 +276,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value = not self.children[0].value
-                self.parent.replace_child(self.index, self.children[0])
+                self.delete()
 
 
 class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
@@ -290,7 +290,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value *= -1
-                self.parent.replace_child(self.index, self.children[0])
+                self.delete()
 
 
 class ASTNodeReference(ASTNodeUnaryExpr):
@@ -303,11 +303,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         super().__init__("Dereference expression")
 
 
-
 '''Operations'''
-
-
-# ToDo: fix loss of operators
 
 
 class ASTNodeOpp(ASTNodeExpression):
@@ -354,43 +350,43 @@ class ASTNodeAddition(ASTNodeOpp):
 
         self.delete()
 
-    def __simplify(self):
-
-        leftovers = []
-        tot = self.children[0]
-        if not isinstance(tot, ASTNodeLiteral):
-            leftovers.append(tot)
-        else:
-            tot = tot.value
-
-        for i in range(len(self.operators)):
-
-            right = self.children[i + 1]
-
-            if isinstance(right, ASTNodeLiteral):
-                if isinstance(tot, float):
-                    if right.isConst:
-                        if self.operators[i] == "+":
-                            tot += right.value
-                        else:
-                            tot -= right.value
-
-                    else:
-                        leftovers.append(right)
-                else:
-                    if right.isConst:
-                        tot = right.value
-                    else:
-                        leftovers.append(right)
-            else:
-                leftovers.append(right)
-
-        if len(leftovers) > 0:
-            self.children = leftovers
-            if isinstance(tot, float) or isinstance(tot, int):
-                self.add_child(ASTNodeLiteral(tot))
-        else:
-            self.parent.replace_child(self.index, ASTNodeLiteral(tot))
+    # def __simplify(self):
+    #
+    #     leftovers = []
+    #     tot = self.children[0]
+    #     if not isinstance(tot, ASTNodeLiteral):
+    #         leftovers.append(tot)
+    #     else:
+    #         tot = tot.value
+    #
+    #     for i in range(len(self.operators)):
+    #
+    #         right = self.children[i + 1]
+    #
+    #         if isinstance(right, ASTNodeLiteral):
+    #             if isinstance(tot, float):
+    #                 if right.isConst:
+    #                     if self.operators[i] == "+":
+    #                         tot += right.value
+    #                     else:
+    #                         tot -= right.value
+    #
+    #                 else:
+    #                     leftovers.append(right)
+    #             else:
+    #                 if right.isConst:
+    #                     tot = right.value
+    #                 else:
+    #                     leftovers.append(right)
+    #         else:
+    #             leftovers.append(right)
+    #
+    #     if len(leftovers) > 0:
+    #         self.children = leftovers
+    #         if isinstance(tot, float) or isinstance(tot, int):
+    #             self.add_child(ASTNodeLiteral(tot))
+    #     else:
+    #         self.parent.replace_child(self.index, ASTNodeLiteral(tot))
 
 
 class ASTNodeMult(ASTNodeOpp):
@@ -436,60 +432,60 @@ class ASTNodeMult(ASTNodeOpp):
 
         self.delete()
 
-    def __simplify(self):
-
-        ctype = ord
-
-        leftover_opps = []
-        leftovers = []
-        tot = self.children[0]
-        if not isinstance(tot, ASTNodeLiteral):
-            leftovers.append(tot)
-            tot = 1
-        else:
-            if isinstance(tot.value, int):
-                ctype = int
-
-            if isinstance(tot.value, float):
-                ctype = float
-            if tot.isConst:
-                tot = ctype(tot.value)
-            else:
-                tot = 1
-
-        for i in range(len(self.operators)):
-            right = self.children[i + 1]
-
-            if isinstance(right, ASTNodeLiteral):
-                if right.isConst:
-                    if isinstance(right.value, int):
-                        ctype = int
-                    if isinstance(right.value, float):
-                        ctype = float
-
-                    tot = ctype(tot)
-
-                    if self.operators[i] == "*":
-                        tot *= ctype(right.value)
-                    elif self.operators[i] == "/":
-                        tot /= ctype(right.value)
-
-                    tot = ctype(tot)
-
-                else:
-                    leftovers.append(right)
-                    leftover_opps.append(self.operators[i])
-
-            else:
-                leftovers.append(right)
-                leftover_opps.append(self.operators[i])
-
-        if len(leftovers) > 0:
-            self.children = leftovers
-            if isinstance(tot, float) or isinstance(tot, int):
-                self.add_child(ASTNodeLiteral(tot))
-        else:
-            self.parent.replace_child(self.index, ASTNodeLiteral(tot))
+    # def __simplify(self):
+    #
+    #     ctype = ord
+    #
+    #     leftover_opps = []
+    #     leftovers = []
+    #     tot = self.children[0]
+    #     if not isinstance(tot, ASTNodeLiteral):
+    #         leftovers.append(tot)
+    #         tot = 1
+    #     else:
+    #         if isinstance(tot.value, int):
+    #             ctype = int
+    #
+    #         if isinstance(tot.value, float):
+    #             ctype = float
+    #         if tot.isConst:
+    #             tot = ctype(tot.value)
+    #         else:
+    #             tot = 1
+    #
+    #     for i in range(len(self.operators)):
+    #         right = self.children[i + 1]
+    #
+    #         if isinstance(right, ASTNodeLiteral):
+    #             if right.isConst:
+    #                 if isinstance(right.value, int):
+    #                     ctype = int
+    #                 if isinstance(right.value, float):
+    #                     ctype = float
+    #
+    #                 tot = ctype(tot)
+    #
+    #                 if self.operators[i] == "*":
+    #                     tot *= ctype(right.value)
+    #                 elif self.operators[i] == "/":
+    #                     tot /= ctype(right.value)
+    #
+    #                 tot = ctype(tot)
+    #
+    #             else:
+    #                 leftovers.append(right)
+    #                 leftover_opps.append(self.operators[i])
+    #
+    #         else:
+    #             leftovers.append(right)
+    #             leftover_opps.append(self.operators[i])
+    #
+    #     if len(leftovers) > 0:
+    #         self.children = leftovers
+    #         if isinstance(tot, float) or isinstance(tot, int):
+    #             self.add_child(ASTNodeLiteral(tot))
+    #     else:
+    #         self.parent.replace_child(self.index, ASTNodeLiteral(tot))
 
 
 class ASTNodeConditional(ASTNodeOpp):
