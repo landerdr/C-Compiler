@@ -11,6 +11,7 @@ class AST:
         self.root = None
         self.depthStack = []
 
+    # Deprecated function
     def simplify(self):
         self.depthStack = [self.root]
         while len(self.depthStack) > 0:
@@ -37,6 +38,7 @@ class AST:
             item = temp.pop()
             item.simplify()
 
+    # Prints the tree in dot format to a specified file (terminal if no file was given.)
     def print_tree(self, _file=None):
 
         print("digraph G {", file=_file)
@@ -56,6 +58,7 @@ class AST:
 
         print("}", file=_file)
 
+    # Builds the symbol table
     def build_symbol_table(self):
 
         self.depthStack = [self.root]
@@ -70,6 +73,7 @@ class AST:
 '''Core'''
 
 
+# Base node class
 class ASTNode:
     def __init__(self, _val='Undefined'):
         # print("created:", _val)
@@ -80,38 +84,42 @@ class ASTNode:
         self.value = _val
         self.line_num = ""
 
+    # Adds a child to it's list of children
     def add_child(self, child):
         # print("added: ", child.value, "to:", self.value)
         child.parent = self
         child.index = len(self.children)
         self.children.append(child)
 
+    # Remove a child from it's list of children
     def remove_child(self, child):
         self.children.remove(child)
         # Update children index
         for i in range(len(self.children)):
             self.children[i].index = i
 
-    def remove_child_at_pos(self, index):
-        pass
-
+    # Replace child at a certain position with the given new child
     def replace_child(self, index, new_child):
         new_child.parent = self
         new_child.index = index
         self.children[index] = new_child
 
+    # Print dot format name and label
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, '"]', file=_file)
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         pass
 
+    # Simplify this node structure if possible
     def simplify(self, typetable):
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
             self._simplify(typetable)
 
+    # Deletes a node and connects it's first child to the former parent of this node
     def delete(self):
         # Put child in parent
         self.parent.replace_child(self.index, self.children[0])
@@ -119,22 +127,30 @@ class ASTNode:
         self.parent = None
         self.children = []
 
+    # Prints it's equivalent as llvm IR code
+    def print_LLVM_IR(self):
+        pass
 
+
+# Base Library node
 class ASTNodeLib(ASTNode):
     def __init__(self):
         super().__init__("Lib")
 
 
+# Base function declaration node
 class ASTNodeFunction(ASTNode):
     def __init__(self):
         super().__init__("Function")
 
 
+# Base list of parameters node
 class ASTNodeParams(ASTNode):
     def __init__(self):
         super().__init__("Params")
 
 
+# Single parameter node
 class ASTNodeParam(ASTNode):
     def __init__(self):
         super().__init__("Param")
@@ -148,37 +164,37 @@ class ASTNodeParam(ASTNode):
 '''Statements'''
 
 
+# Base statement node
 class ASTNodeStatement(ASTNode):
     def __init__(self, _val="Statement"):
         super().__init__(_val)
 
-    pass
 
-
+# Break statement node
 class ASTNodeBreak(ASTNodeStatement):
     def __init__(self):
         super().__init__("Break")
 
 
+# Continue statement node
 class ASTNodeContinue(ASTNodeStatement):
     def __init__(self):
         super().__init__("Continue")
 
 
+# Base expression statement node
 class ASTNodeExpressionStatement(ASTNodeStatement):
     def __init__(self, _val="Expression statement"):
         super().__init__(_val)
 
-    pass
 
-
+# Compound statement node
 class ASTNodeCompound(ASTNodeStatement):
     def __init__(self, _val="Compound statement"):
         super().__init__(_val)
 
-    pass
 
-
+# Definition statement node
 class ASTNodeDefinition(ASTNodeStatement):
     def __init__(self):
         super().__init__("Definition")
@@ -186,6 +202,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.type = None
         self.name = None
 
+    # Print dot format name and label
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, self.type, '"]', file=_file)
 
@@ -199,6 +216,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
 
+# If statement node
 class ASTNodeIf(ASTNodeStatement):
     def __init__(self):
         super().__init__("If statement")
@@ -206,6 +224,7 @@ class ASTNodeIf(ASTNodeStatement):
         self.body = None
 
 
+# Loop statement node
 class ASTNodeLoopStatement(ASTNodeStatement):
     def __init__(self):
         super().__init__("Loop statement")
@@ -213,6 +232,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         self.body = None
 
 
+# Return statement node
 class ASTNodeReturn(ASTNodeStatement):
     def __init__(self):
         super().__init__("Return statement")
@@ -222,27 +242,32 @@ class ASTNodeReturn(ASTNodeStatement):
 '''Expressions'''
 
 
+# Base expression node
 class ASTNodeExpression(ASTNode):
     def __init__(self, val="Expression"):
         super().__init__(val)
 
 
+# Unary expression node
 class ASTNodeUnaryExpr(ASTNodeExpression):
     def __init__(self, _val="Unary expression"):
         super().__init__(_val)
 
 
+# Ternary expression node
 class ASTNodeTernaryExpr(ASTNodeExpression):
     def __init__(self):
         super().__init__("Ternary expression")
 
 
+# Node literal
 class ASTNodeLiteral(ASTNode):
     def __init__(self, value="Value"):
         super().__init__(value)
         self.isConst = False
         self.canReplace = False
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         # Check if literal is variable
         if not self.isConst:
@@ -265,16 +290,19 @@ class ASTNodeLiteral(ASTNode):
             self.delete()
 
 
+# Decrement expression node
 class ASTNodeDecrement(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Decrement")
 
 
+# Increment expression node
 class ASTNodeIncrement(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Increment")
 
 
+# Equality expression node
 class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Equality expression")
@@ -282,6 +310,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         self.name = None
         self.equality = None
 
+    # Print dot format name and label
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, self.equality, '"]', file=_file)
 
@@ -296,21 +325,25 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         entry.value = value
 
 
+# Function call expression node
 class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Function call expression")
 
 
+# Indexing expression node
 class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Indexing expression")
 
 
+# Inverse expression node
 class ASTNodeInverseExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Inverse expression")
         self.canReplace = False
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
@@ -318,11 +351,13 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
                 self.delete()
 
 
+# Negative expression node
 class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Negative expression")
         self.canReplace = False
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
@@ -330,11 +365,13 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 self.delete()
 
 
+# Reference expression node
 class ASTNodeReference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Reference expression")
 
 
+# Dereference expression node
 class ASTNodeDereference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Dereference expression")
@@ -343,16 +380,19 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
 '''Operations'''
 
 
+# Base opperation expression node
 class ASTNodeOpp(ASTNodeExpression):
     def __init__(self, tt="opp"):
         super().__init__(tt)
         self.operators = []
 
 
+# Addition expression node
 class ASTNodeAddition(ASTNodeOpp):
     def __init__(self):
         super().__init__("Addition")
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         # Run over all operators
         for i in range(len(self.operators)):
@@ -426,10 +466,12 @@ class ASTNodeAddition(ASTNodeOpp):
     #         self.parent.replace_child(self.index, ASTNodeLiteral(tot))
 
 
+# Multiplication expression node
 class ASTNodeMult(ASTNodeOpp):
     def __init__(self):
         super().__init__("Multiplication")
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         # Run over all operators
         for i in range(len(self.operators)):
@@ -527,10 +569,12 @@ class ASTNodeMult(ASTNodeOpp):
     #         self.parent.replace_child(self.index, ASTNodeLiteral(tot))
 
 
+# Conditional expression node
 class ASTNodeConditional(ASTNodeOpp):
     def __init__(self):
         super().__init__("Conditional expression")
 
+    # Simplify this node structure if possible
     def _simplify(self, typetable):
         # Run over all operators
         for i in range(len(self.operators)):
