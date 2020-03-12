@@ -158,7 +158,7 @@ class CPrintListener(CListener):
     def exitVariable_definition(self, ctx: CParser.Variable_definitionContext):
         node = self.depthStack[-1]
         if isinstance(node, ASTNodeDefinition):
-            print("correct")
+            # print("correct")
             if len(node.children) == 1 and node.children[0].isConst:
                 value = node.children[0].value
             else:

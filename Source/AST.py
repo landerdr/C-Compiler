@@ -405,12 +405,12 @@ class ASTNodeMult(ASTNodeOpp):
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
                                                                ASTNodeLiteral) and left.isConst and right.isConst:
-                type = get_type(left.value, right.value)
+                value_type = get_type(left.value, right.value)
                 if opp == "*":
                     new_val = left.value * right.value
                 elif opp == "/":
                     new_val = left.value / right.value
-                    if type != float:
+                    if value_type != float:
                         new_val = int(new_val)
                 else:
                     new_val = left.value % right.value
