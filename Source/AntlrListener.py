@@ -33,24 +33,16 @@ class CPrintListener(CListener):
         # from antlr4.tree.Trees import Trees
         # print(Trees.toStringTree(tree, None, parser))
         # self.tt.simplify()
-        _file = open('Source/Test/out.txt', 'w+')
-        self.tt.print_tree(_file)
         print(self.typeTable)
 
     '''Rules'''
 
     def exitEveryRule(self, ctx: ParserRuleContext):
         if self.depthStack:
-            try:
-                # Get current node
-                item = self.depthStack.pop()
-                if item not in self.depthStack:
-                    item.simplify()
-
-            except Exception as e:
-                print("failed on", item, e.__str__())
-        else:
-            print("!!Tried popping")
+            # Get current node
+            item = self.depthStack.pop()
+            if item not in self.depthStack:
+                item.simplify()
 
     def enterEveryRule(self, ctx: ParserRuleContext):
         pass
@@ -140,6 +132,7 @@ class CPrintListener(CListener):
     def enterMultiplication_expression(self, ctx: CParser.Multiplication_expressionContext):
         expr = ASTNodeMult()
         expr.operators = []
+        expr.line_num = ctx.start.line
         self.add_node(expr)
 
     def enterUnary_expression(self, ctx: CParser.Unary_expressionContext):

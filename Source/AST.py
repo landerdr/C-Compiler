@@ -2,13 +2,16 @@
 from Source.TypeTable import *
 
 
-class AST:
+class ParserException(Exception):
+    pass
 
+
+class AST:
     def __init__(self):
         self.root = None
         self.depthStack = []
 
-    def _simplify(self):
+    def simplify(self):
         self.depthStack = [self.root]
         while len(self.depthStack) > 0:
             item = self.depthStack.pop()
@@ -33,12 +36,6 @@ class AST:
         while len(temp) > 0:
             item = temp.pop()
             item.simplify()
-
-    def simplify(self):
-        try:
-            self._simplify()
-        except Exception as e:
-            print("Error: ", e)
 
     def print_tree(self, _file=None):
 
@@ -74,7 +71,6 @@ class AST:
 
 
 class ASTNode:
-
     def __init__(self, _val='Undefined'):
         # print("created:", _val)
         self.canReplace = True
@@ -82,6 +78,7 @@ class ASTNode:
         self.index = 0
         self.children = []
         self.value = _val
+        self.line_num = ""
 
     def add_child(self, child):
         # print("added: ", child.value, "to:", self.value)
@@ -124,13 +121,11 @@ class ASTNode:
 
 
 class ASTNodeLib(ASTNode):
-
     def __init__(self):
         super().__init__("Lib")
 
 
 class ASTNodeFunction(ASTNode):
-
     def __init__(self):
         super().__init__("Function")
 
@@ -409,6 +404,8 @@ class ASTNodeMult(ASTNodeOpp):
                 if opp == "*":
                     new_val = left.value * right.value
                 elif opp == "/":
+                    if right.value == 0:
+                        raise ParserException("division by zero at line %s" % self.line_num)
                     new_val = left.value / right.value
                     if value_type != float:
                         new_val = int(new_val)
