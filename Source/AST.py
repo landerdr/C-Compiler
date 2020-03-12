@@ -1,6 +1,11 @@
 """Abstract Syntax Tree"""
 from Source.TypeTable import *
 
+# ToDo: add print_llvm_ir where necessary
+# ToDo: make print_llvm_ir differentiate between data types
+# ToDo: make print_llvm_it differentiate between opperator types
+# ToDo: splits simplify into Const collapse / propagation / gwn verwijdere van onnodige stuff, zoda we da zonder kunne runne
+
 
 class ParserException(Exception):
     pass
@@ -28,8 +33,6 @@ class AST:
         self.depthStack = [self.root]
         while len(self.depthStack) > 0:
             item = self.depthStack.pop()
-            # item.simplify()
-
             for i in reversed(item.children):
                 self.depthStack.append(i)
                 temp.append(i)
@@ -68,6 +71,20 @@ class AST:
 
             for i in reversed(item.children):
                 self.depthStack.append(i)
+
+    # Prints it's equivalent as llvm IR code
+    def print_llvm_ir(self):
+        temp = [self.root]
+        self.depthStack = [self.root]
+        while len(self.depthStack) > 0:
+            item = self.depthStack.pop()
+            for i in reversed(item.children):
+                self.depthStack.append(i)
+                temp.append(i)
+
+        while len(temp) > 0:
+            item = temp.pop()
+            item.print_llvm_ir()
 
 
 '''Core'''
@@ -127,8 +144,9 @@ class ASTNode:
         self.parent = None
         self.children = []
 
+    # ToDo: override where necessary
     # Prints it's equivalent as llvm IR code
-    def print_LLVM_IR(self):
+    def print_llvm_ir(self):
         pass
 
 
@@ -160,6 +178,10 @@ class ASTNodeParam(ASTNode):
     def _simplify(self, typetable):
         typetable.insert_variable(self.name, self.type, None, None)
 
+
+class ASTNodeLeftValue(ASTNode):
+    def __init__(self):
+        super().__init__("Left Value")
 
 '''Statements'''
 
@@ -294,12 +316,14 @@ class ASTNodeLiteral(ASTNode):
 class ASTNodeDecrement(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Decrement")
+        self.canReplace = False
 
 
 # Increment expression node
 class ASTNodeIncrement(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Increment")
+        self.canReplace = False
 
 
 # Equality expression node
@@ -342,6 +366,16 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         else:
             value = None
         entry.value = value
+
+    def print_llvm_ir(self):
+        v1 = "%"
+        if isinstance(self.children[1], ASTNodeLiteral):
+            v1 = str(self.children[1].value)
+        else:
+            v1 = "%temp" + str(id(self.children[1]))
+
+        print("%" + self.name + str(id(self)) + " =  alloca i32 ")
+        print("store i32 " + v1 + ", i32* %"+ self.name + str(id(self)))
 
 
 # Function call expression node
@@ -446,43 +480,19 @@ class ASTNodeAddition(ASTNodeOpp):
 
         self.delete()
 
-    # def __simplify(self):
-    #
-    #     leftovers = []
-    #     tot = self.children[0]
-    #     if not isinstance(tot, ASTNodeLiteral):
-    #         leftovers.append(tot)
-    #     else:
-    #         tot = tot.value
-    #
-    #     for i in range(len(self.operators)):
-    #
-    #         right = self.children[i + 1]
-    #
-    #         if isinstance(right, ASTNodeLiteral):
-    #             if isinstance(tot, float):
-    #                 if right.isConst:
-    #                     if self.operators[i] == "+":
-    #                         tot += right.value
-    #                     else:
-    #                         tot -= right.value
-    #
-    #                 else:
-    #                     leftovers.append(right)
-    #             else:
-    #                 if right.isConst:
-    #                     tot = right.value
-    #                 else:
-    #                     leftovers.append(right)
-    #         else:
-    #             leftovers.append(right)
-    #
-    #     if len(leftovers) > 0:
-    #         self.children = leftovers
-    #         if isinstance(tot, float) or isinstance(tot, int):
-    #             self.add_child(ASTNodeLiteral(tot))
-    #     else:
-    #         self.parent.replace_child(self.index, ASTNodeLiteral(tot))
+    def print_llvm_ir(self, _file=None):
+        v1 = "%"
+        if isinstance(self.children[0], ASTNodeLiteral):
+            v1 = str(self.children[0].value)
+        else:
+            v1 = "%temp" + str(id(self.children[0]))
+
+        v2 = "%"
+        if isinstance(self.children[1], ASTNodeLiteral):
+            v2 = str(self.children[1].value)
+        else:
+            v2 = "%temp" + str(id(self.children[1]))
+        print("%tmp" + str(id(self)) + " = add i32 " + v1 + "," + v2)
 
 
 # Multiplication expression node
@@ -531,6 +541,20 @@ class ASTNodeMult(ASTNodeOpp):
             self.children.insert(0, new_child)
 
         self.delete()
+
+    def print_llvm_ir(self, _file=None):
+        v1 = "%"
+        if isinstance(self.children[0], ASTNodeLiteral):
+            v1 = str(self.children[0].value)
+        else:
+            v1 = "%temp" + str(id(self.children[0]))
+
+        v2 = "%"
+        if isinstance(self.children[1], ASTNodeLiteral):
+            v2 = str(self.children[1].value)
+        else:
+            v2 = "%temp" + str(id(self.children[1]))
+        print("%tmp" + str(id(self)) + " = mul i32 " + v1 + ","  + v2)
 
     # def __simplify(self):
     #

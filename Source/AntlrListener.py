@@ -37,6 +37,7 @@ class CPrintListener(CListener):
         # print(Trees.toStringTree(tree, None, parser))
         # self.tt.simplify()
         print(self.typeTable)
+        self.tt.print_llvm_ir()
 
     '''Rules'''
 
@@ -272,7 +273,8 @@ class CPrintListener(CListener):
         # ToDo: fix
 
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
-        self.skip_node()
+        #self.skip_node()
+        self.add_node(ASTNodeLeftValue())
 
     def enterDereference(self, ctx: CParser.DereferenceContext):
         self.add_node(ASTNodeDereference())
