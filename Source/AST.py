@@ -1,7 +1,6 @@
 """Abstract Syntax Tree"""
 from Source.TypeTable import *
 
-
 # ToDo: add print_llvm_ir where necessary
 # ToDo: make print_llvm_ir differentiate between data types
 # ToDo: make print_llvm_it differentiate between opperator types
@@ -145,7 +144,6 @@ class ASTNode:
         self.parent = None
         self.children = []
 
-    # ToDo: override where necessary
     # Prints it's equivalent as llvm IR code
     def print_llvm_ir(self):
         pass
@@ -408,7 +406,6 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         entry.value = value
 
     def print_llvm_ir(self):
-        v1 = "%"
         if isinstance(self.children[1], ASTNodeLiteral):
             v1 = str(self.children[1].value)
         else:
@@ -521,13 +518,11 @@ class ASTNodeAddition(ASTNodeOp):
         self.delete()
 
     def print_llvm_ir(self, _file=None):
-        v1 = "%"
         if isinstance(self.children[0], ASTNodeLiteral):
             v1 = str(self.children[0].value)
         else:
             v1 = "%temp" + str(id(self.children[0]))
 
-        v2 = "%"
         if isinstance(self.children[1], ASTNodeLiteral):
             v2 = str(self.children[1].value)
         else:
@@ -583,73 +578,15 @@ class ASTNodeMult(ASTNodeOp):
         self.delete()
 
     def print_llvm_ir(self, _file=None):
-        v1 = "%"
         if isinstance(self.children[0], ASTNodeLiteral):
             v1 = str(self.children[0].value)
         else:
             v1 = "%temp" + str(id(self.children[0]))
-
-        v2 = "%"
         if isinstance(self.children[1], ASTNodeLiteral):
             v2 = str(self.children[1].value)
         else:
             v2 = "%temp" + str(id(self.children[1]))
         print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2)
-
-    # def __simplify(self):
-    #
-    #     ctype = ord
-    #
-    #     leftover_opps = []
-    #     leftovers = []
-    #     tot = self.children[0]
-    #     if not isinstance(tot, ASTNodeLiteral):
-    #         leftovers.append(tot)
-    #         tot = 1
-    #     else:
-    #         if isinstance(tot.value, int):
-    #             ctype = int
-    #
-    #         if isinstance(tot.value, float):
-    #             ctype = float
-    #         if tot.isConst:
-    #             tot = ctype(tot.value)
-    #         else:
-    #             tot = 1
-    #
-    #     for i in range(len(self.operators)):
-    #         right = self.children[i + 1]
-    #
-    #         if isinstance(right, ASTNodeLiteral):
-    #             if right.isConst:
-    #                 if isinstance(right.value, int):
-    #                     ctype = int
-    #                 if isinstance(right.value, float):
-    #                     ctype = float
-    #
-    #                 tot = ctype(tot)
-    #
-    #                 if self.operators[i] == "*":
-    #                     tot *= ctype(right.value)
-    #                 elif self.operators[i] == "/":
-    #                     tot /= ctype(right.value)
-    #
-    #                 tot = ctype(tot)
-    #
-    #             else:
-    #                 leftovers.append(right)
-    #                 leftover_opps.append(self.operators[i])
-    #
-    #         else:
-    #             leftovers.append(right)
-    #             leftover_opps.append(self.operators[i])
-    #
-    #     if len(leftovers) > 0:
-    #         self.children = leftovers
-    #         if isinstance(tot, float) or isinstance(tot, int):
-    #             self.add_child(ASTNodeLiteral(tot))
-    #     else:
-    #         self.parent.replace_child(self.index, ASTNodeLiteral(tot))
 
 
 # Conditional expression node
