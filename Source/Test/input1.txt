@@ -5,8 +5,9 @@
 comment
 */
 
-int f(int i, int j){
+int f(int i, int j) {
     int i = 5 + 5;
+    int j = 3;
     break;
     return i + j;
 }
@@ -15,10 +16,11 @@ int f(int i, int j){
 int main(){
 
     int j = 7+7*7+8+8-(-1) + 1;
+    int i = 'c';
 
     j = 9/9*2 + f(i, 0)*2;
 
-    int i = 'c';
+
     char x = 'x';
 
     int NON_ZERO = 4*2/5;

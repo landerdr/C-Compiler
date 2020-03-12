@@ -45,7 +45,7 @@ class CPrintListener(CListener):
             # Get current node
             item = self.depthStack.pop()
             if item not in self.depthStack:
-                item.simplify()
+                item.simplify(self.typeTable)
 
     def enterEveryRule(self, ctx: ParserRuleContext):
         pass
@@ -81,6 +81,7 @@ class CPrintListener(CListener):
         txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char())
 
         expr = ASTNodeLiteral(txt)
+        expr.line_num = ctx.start.line
         if ctx.Int():
             expr.isConst = True
             expr.value = int(txt.getText())
@@ -159,8 +160,9 @@ class CPrintListener(CListener):
                 value = node.children[0].value
             else:
                 value = None
-            self.typeTable.insert_variable(ctx.ID().getText(), ctx.value_type().Type().getText(),
-                                           value, None)
+            if not self.typeTable.insert_variable(node.name, node.type, value, None):
+                raise ParserException(
+                    "Trying to redeclare variable %s at line %s" % (node.name, node.type))
         # print(self.typeTable)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
@@ -185,8 +187,12 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterFunction(self, ctx: CParser.FunctionContext):
+        self.typeTable.enter_scope()
         expr = ASTNodeFunction()
         self.add_node(expr)
+
+    def exitFunction(self, ctx: CParser.FunctionContext):
+        self.typeTable.leave_scope()
 
     def enterFunction_call_expression(self, ctx: CParser.Function_call_expressionContext):
         expr = ASTNodeFunctionCallExpr()
@@ -215,6 +221,11 @@ class CPrintListener(CListener):
     def enterParam(self, ctx: CParser.ParamContext):
         expr = ASTNodeParam()
         self.add_node(expr)
+
+    def exitParam(self, ctx: CParser.ParamContext):
+        node = self.depthStack[-1]
+        if isinstance(node, ASTNodeParam):
+            self.typeTable.insert_variable(ctx.ID().getText(), ctx.value_type().Type().getText(), None, None)
 
     def enterParams(self, ctx: CParser.ParamsContext):
         expr = ASTNodeParams()
@@ -278,7 +289,8 @@ class CPrintListener(CListener):
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    # ToDo: fix
+        # ToDo: fix
+
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
         self.skip_node()
 
@@ -291,7 +303,8 @@ class CPrintListener(CListener):
     def enterL_indexing_expression(self, ctx: CParser.L_indexing_expressionContext):
         self.add_node(ASTNodeIndexingExpr)
 
-    # ToDo: fix
+        # ToDo: fix
+
     def enterValue_type(self, ctx: CParser.Value_typeContext):
         self.skip_node()
 

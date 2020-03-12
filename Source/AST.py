@@ -103,14 +103,14 @@ class ASTNode:
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, '"]', file=_file)
 
-    def _simplify(self):
+    def _simplify(self, typetable):
         pass
 
-    def simplify(self):
+    def simplify(self, typetable):
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
-            self._simplify()
+            self._simplify(typetable)
 
     def delete(self):
         # Put child in parent
@@ -229,6 +229,27 @@ class ASTNodeLiteral(ASTNode):
         self.isConst = False
         self.canReplace = False
 
+    def _simplify(self, typetable):
+        # Check if literal is variable
+        if not self.isConst:
+            # Lookup variable in type table
+            entry = typetable.lookup_variable(str(self.value))
+            if not entry:
+                raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
+            if entry.value is None:
+                print(typetable)
+                print(entry)
+                raise ParserException("Non defined variable %s at line %s" % (self.value, self.line_num))
+
+            replacement = ASTNodeLiteral(entry.value)
+            replacement.isConst = True
+            # Give child temporary values
+            replacement.parent = self
+            replacement.index = 0
+            # Insert child at front of children
+            self.children.insert(0, replacement)
+            self.delete()
+
 
 class ASTNodeDecrement(ASTNodeUnaryExpr):
     def __init__(self):
@@ -266,8 +287,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
         super().__init__("Inverse expression")
         self.canReplace = False
 
-    def _simplify(self):
-
+    def _simplify(self, typetable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value = not self.children[0].value
@@ -275,13 +295,11 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
 
 
 class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
-
     def __init__(self):
         super().__init__("Negative expression")
         self.canReplace = False
 
-    def _simplify(self):
-
+    def _simplify(self, typetable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value *= -1
@@ -311,7 +329,7 @@ class ASTNodeAddition(ASTNodeOpp):
     def __init__(self):
         super().__init__("Addition")
 
-    def _simplify(self):
+    def _simplify(self, typetable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -388,7 +406,7 @@ class ASTNodeMult(ASTNodeOpp):
     def __init__(self):
         super().__init__("Multiplication")
 
-    def _simplify(self):
+    def _simplify(self, typetable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -489,7 +507,7 @@ class ASTNodeConditional(ASTNodeOpp):
     def __init__(self):
         super().__init__("Conditional expression")
 
-    def _simplify(self):
+    def _simplify(self, typetable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator

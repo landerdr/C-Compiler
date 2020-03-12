@@ -23,7 +23,7 @@ class TypeTable:
         return True
 
     def lookup_variable(self, name):
-        for i in range(0, len(self.tables)):
+        for i in range(1, len(self.tables) + 1):
             if name in self.tables[-i]:
                 return self.tables[-i][name]
         return None
