@@ -151,9 +151,21 @@ class CPrintListener(CListener):
         expr.name = ctx.ID().getText()
         expr.type = ctx.value_type().Type().getText()
 
-        self.typeTable.insert_variable(expr.name, expr.type, None, None)
+        # self.typeTable.insert_variable(expr.name, expr.type, None, None)
 
         self.add_node(expr)
+
+    def exitVariable_definition(self, ctx: CParser.Variable_definitionContext):
+        node = self.depthStack[-1]
+        if isinstance(node, ASTNodeDefinition):
+            print("correct")
+            if len(node.children) == 1 and node.children[0].isConst:
+                value = node.children[0].value
+            else:
+                value = None
+            self.typeTable.insert_variable(ctx.ID().getText(), ctx.value_type().Type().getText(),
+                                           value, None)
+        # print(self.typeTable)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
         expr = ASTNodeIf()
