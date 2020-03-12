@@ -121,11 +121,11 @@ class CPrintListener(CListener):
 
     # ToDo: fix logical expressions
     def enterLogical_and_expression(self, ctx: CParser.Logical_and_expressionContext):
-        expr = ASTNodeStatement()
+        expr = ASTNodeConditional()
         self.add_node(expr)
 
     def enterLogical_or_expression(self, ctx: CParser.Logical_or_expressionContext):
-        expr = ASTNodeStatement()
+        expr = ASTNodeConditional()
         self.add_node(expr)
 
     # ToDo: fix relational expressions
@@ -235,37 +235,37 @@ class CPrintListener(CListener):
         self.skip_node()
         # self.add_node(ASTNodeOpp(ctx.getText()))
 
-    def enterLog_or(self, ctx: CParser.AddoppContext):
+    def enterLog_or(self, ctx: CParser.Log_orContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    def enterLog_and(self, ctx: CParser.AddoppContext):
+    def enterLog_and(self, ctx: CParser.Log_andContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    def enterBinor(self, ctx: CParser.AddoppContext):
+    def enterBinor(self, ctx: CParser.BinorContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    def enterBinxor(self, ctx: CParser.AddoppContext):
+    def enterBinxor(self, ctx: CParser.BinxorContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    def enterBinand(self, ctx: CParser.AddoppContext):
+    def enterBinand(self, ctx: CParser.BinandContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    def enterLog_eq(self, ctx: CParser.AddoppContext):
+    def enterLog_eq(self, ctx: CParser.Log_eqContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
-    def enterRel_com(self, ctx: CParser.AddoppContext):
+    def enterRel_com(self, ctx: CParser.Rel_comContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
