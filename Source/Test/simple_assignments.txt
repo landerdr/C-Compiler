@@ -1,0 +1,10 @@
+int a = 5;
+int b = 5;
+int c = a + b;
+b = c + a;
+c = c - b;
+int x = -c;
+x -= x;
+int d = 2;
+a = c - 4 + -1;
+int i = 1 < 0;

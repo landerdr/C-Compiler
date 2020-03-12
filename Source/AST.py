@@ -320,6 +320,25 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
         if len(self.children) == 1 and isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
             value = self.children[0].value
+            if self.equality == "=":
+                pass
+            elif self.equality == "+=":
+                value = entry.value + value
+            elif self.equality == "-=":
+                value = entry.value - value
+            elif self.equality == "/=":
+                value_type = get_type(entry.value, value)
+                if value == 0:
+                    raise ParserException("division by zero at line %s" % self.line_num)
+                value = entry.value / value
+                if value_type != float:
+                    value = int(value)
+            elif self.equality == "*=":
+                value = entry.value * value
+            elif self.equality == "%=":
+                value = entry.value % value
+            else:
+                raise ParserException("Not implemented yet")
         else:
             value = None
         entry.value = value

@@ -9,7 +9,7 @@ def main():
 
     # input = fileinput.input()
 
-    text = FileStream("Source/Test/input1.txt")
+    text = FileStream("Source/Test/simple_assignments.txt")
     print(text)
     try:
         listener.parse_string(text)
