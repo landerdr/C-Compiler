@@ -1,4 +1,5 @@
 import fileinput
+import sys
 import traceback
 
 from Source.AntlrListener import *
@@ -8,8 +9,11 @@ def main():
     listener = CPrintListener()
 
     # input = fileinput.input()
+    filename = "simple_assignments.txt"
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
 
-    text = FileStream("Source/Test/simple_assignments.txt")
+    text = FileStream("Source/Test/" + filename)
     print(text)
     try:
         listener.parse_string(text)
