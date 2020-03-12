@@ -138,6 +138,11 @@ class ASTNodeParams(ASTNode):
 class ASTNodeParam(ASTNode):
     def __init__(self):
         super().__init__("Param")
+        self.name = ""
+        self.type = ""
+
+    def _simplify(self, typetable):
+        typetable.insert_variable(self.name, self.type, None, None)
 
 
 '''Statements'''
@@ -183,6 +188,15 @@ class ASTNodeDefinition(ASTNodeStatement):
 
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, self.type, '"]', file=_file)
+
+    def _simplify(self, typetable):
+        # print("correct")
+        if len(self.children) == 1 and self.children[0].isConst:
+            value = self.children[0].value
+        else:
+            value = None
+        if not typetable.insert_variable(self.name, self.type, value, None):
+            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
 
 class ASTNodeIf(ASTNodeStatement):
@@ -265,11 +279,21 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Equality expression")
         self.canReplace = False
-        self.id = None
+        self.name = None
         self.equality = None
 
     def print_dot(self, _file=None):
-        print('"', self, '"', '[label = "', self.value, ":", self.id, self.equality, '"]', file=_file)
+        print('"', self, '"', '[label = "', self.value, ":", self.name, self.equality, '"]', file=_file)
+
+    def _simplify(self, typetable):
+        entry = typetable.lookup_variable(self.name)
+        if not entry:
+            raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
+        if len(self.children) == 1 and isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
+            value = self.children[0].value
+        else:
+            value = None
+        entry.value = value
 
 
 class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
@@ -536,8 +560,7 @@ class ASTNodeConditional(ASTNodeOpp):
                 elif opp == ">=":
                     new_val = left.value >= right.value
                 else:
-                    print("Not implemented yet")
-                    raise Exception
+                    raise ParserException("Not implemented yet")
 
                 new_child = ASTNodeLiteral(new_val)
                 new_child.isConst = True

@@ -45,6 +45,7 @@ class CPrintListener(CListener):
             # Get current node
             item = self.depthStack.pop()
             if item not in self.depthStack:
+                item.line_num = ctx.start.line
                 item.simplify(self.typeTable)
 
     def enterEveryRule(self, ctx: ParserRuleContext):
@@ -115,7 +116,6 @@ class CPrintListener(CListener):
     def enterBitwise_xor_expression(self, ctx: CParser.Bitwise_xor_expressionContext):
         self.skip_node()
 
-    # ToDo: fix logical expressions
     def enterLogical_and_expression(self, ctx: CParser.Logical_and_expressionContext):
         expr = ASTNodeConditional()
         self.add_node(expr)
@@ -124,7 +124,6 @@ class CPrintListener(CListener):
         expr = ASTNodeConditional()
         self.add_node(expr)
 
-    # ToDo: fix relational expressions
     def enterRelational_comparison_expression(self, ctx: CParser.Relational_comparison_expressionContext):
         expr = ASTNodeConditional()
         self.add_node(expr)
@@ -147,23 +146,7 @@ class CPrintListener(CListener):
         expr = ASTNodeDefinition()
         expr.name = ctx.ID().getText()
         expr.type = ctx.value_type().Type().getText()
-
-        # self.typeTable.insert_variable(expr.name, expr.type, None, None)
-
         self.add_node(expr)
-
-    def exitVariable_definition(self, ctx: CParser.Variable_definitionContext):
-        node = self.depthStack[-1]
-        if isinstance(node, ASTNodeDefinition):
-            # print("correct")
-            if len(node.children) == 1 and node.children[0].isConst:
-                value = node.children[0].value
-            else:
-                value = None
-            if not self.typeTable.insert_variable(node.name, node.type, value, None):
-                raise ParserException(
-                    "Trying to redeclare variable %s at line %s" % (node.name, node.type))
-        # print(self.typeTable)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
         expr = ASTNodeIf()
@@ -179,7 +162,7 @@ class CPrintListener(CListener):
 
     def enterEquality_expression(self, ctx: CParser.Equality_expressionContext):
         expr = ASTNodeEqualityExpr()
-        expr.id = ctx.left_value().getText()
+        expr.name = ctx.left_value().getText()
         expr.equality = ctx.equality_symbol().getText()
         self.add_node(expr)
 
@@ -220,12 +203,9 @@ class CPrintListener(CListener):
 
     def enterParam(self, ctx: CParser.ParamContext):
         expr = ASTNodeParam()
+        expr.name = ctx.ID().getText()
+        expr.type = ctx.value_type().Type().getText()
         self.add_node(expr)
-
-    def exitParam(self, ctx: CParser.ParamContext):
-        node = self.depthStack[-1]
-        if isinstance(node, ASTNodeParam):
-            self.typeTable.insert_variable(ctx.ID().getText(), ctx.value_type().Type().getText(), None, None)
 
     def enterParams(self, ctx: CParser.ParamsContext):
         expr = ASTNodeParams()
