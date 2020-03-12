@@ -132,8 +132,8 @@ unary_expression: bracket_expression
     | inverse
     | negative
     | positive
-    | increment
-    | decrement
+    | pre_xcrement
+    | post_xcrement
     | indexing_expression
     | function_call_expression
     | equality_expression
@@ -147,8 +147,8 @@ positive: PLUS expression;
 // Logical inverse
 inverse: EXCLAMANTION expression;
 // Increment/decrement
-increment: (INCREMENT left_value) | (left_value INCREMENT);
-decrement: (DECREMENT left_value) | (left_value DECREMENT);
+pre_xcrement: (INCREMENT left_value) | (DECREMENT left_value);
+post_xcrement: (left_value INCREMENT) | (left_value DECREMENT);
 // Indexing/fucntions
 indexing_expression: (left_value | function_call_expression) (LSB expression RSB)+;
 function_call_expression: ID LB ((expression (COMMA expression)*))? RB;

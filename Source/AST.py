@@ -1,6 +1,7 @@
 """Abstract Syntax Tree"""
 from Source.TypeTable import *
 
+
 # ToDo: add print_llvm_ir where necessary
 # ToDo: make print_llvm_ir differentiate between data types
 # ToDo: make print_llvm_it differentiate between opperator types
@@ -182,6 +183,7 @@ class ASTNodeParam(ASTNode):
 class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
+
 
 '''Statements'''
 
@@ -375,7 +377,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             v1 = "%temp" + str(id(self.children[1]))
 
         print("%" + self.name + str(id(self)) + " =  alloca i32 ")
-        print("store i32 " + v1 + ", i32* %"+ self.name + str(id(self)))
+        print("store i32 " + v1 + ", i32* %" + self.name + str(id(self)))
 
 
 # Function call expression node
@@ -554,7 +556,7 @@ class ASTNodeMult(ASTNodeOpp):
             v2 = str(self.children[1].value)
         else:
             v2 = "%temp" + str(id(self.children[1]))
-        print("%tmp" + str(id(self)) + " = mul i32 " + v1 + ","  + v2)
+        print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2)
 
     # def __simplify(self):
     #
