@@ -27,6 +27,9 @@ class CPrintListener(CListener):
         parser = CParser(stream)
         tree = parser.library()
 
+        if parser.getNumberOfSyntaxErrors() > 0:
+            raise ParserException("%s parsing errors" % parser.getNumberOfSyntaxErrors())
+
         walker = ParseTreeWalker()
         walker.walk(self, tree)
 
