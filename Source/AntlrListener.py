@@ -157,13 +157,18 @@ class CPrintListener(CListener):
         expr = ASTNodeContinue()
         self.add_node(expr)
 
-    def enterDecrement(self, ctx: CParser.DecrementContext):
-        expr = ASTNodeDecrement()
+    def enterPost_xcrement(self, ctx: CParser.Post_xcrementContext):
+        expr = ASTNodePostcrement()
+        expr.operator = (ctx.DECREMENT() or ctx.INCREMENT()).getText()
+        self.add_node(expr)
+
+    def enterPre_xcrement(self, ctx: CParser.Pre_xcrementContext):
+        expr = ASTNodePrecrement()
+        expr.operator = (ctx.DECREMENT() or ctx.INCREMENT()).getText()
         self.add_node(expr)
 
     def enterEquality_expression(self, ctx: CParser.Equality_expressionContext):
         expr = ASTNodeEqualityExpr()
-        expr.name = ctx.left_value().getText()
         expr.equality = ctx.equality_symbol().getText()
         self.add_node(expr)
 
@@ -180,10 +185,6 @@ class CPrintListener(CListener):
 
     def enterFunction_call_expression(self, ctx: CParser.Function_call_expressionContext):
         expr = ASTNodeFunctionCallExpr()
-        self.add_node(expr)
-
-    def enterIncrement(self, ctx: CParser.IncrementContext):
-        expr = ASTNodeIncrement()
         self.add_node(expr)
 
     def enterIndexing_expression(self, ctx: CParser.Indexing_expressionContext):
@@ -273,8 +274,10 @@ class CPrintListener(CListener):
         # ToDo: fix
 
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
-        #self.skip_node()
-        self.add_node(ASTNodeLeftValue())
+        # self.skip_node()
+        expr = ASTNodeLeftValue()
+        expr.name = ctx.ID().getText()
+        self.add_node(expr)
 
     def enterDereference(self, ctx: CParser.DereferenceContext):
         self.add_node(ASTNodeDereference())

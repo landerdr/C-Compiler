@@ -183,6 +183,7 @@ class ASTNodeParam(ASTNode):
 class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
+        self.name = ""
 
 
 '''Statements'''
@@ -315,17 +316,55 @@ class ASTNodeLiteral(ASTNode):
 
 
 # Decrement expression node
-class ASTNodeDecrement(ASTNodeUnaryExpr):
+class ASTNodePostcrement(ASTNodeUnaryExpr):
     def __init__(self):
-        super().__init__("Decrement")
+        super().__init__("Post in/decrement")
         self.canReplace = False
+        self.operator = None
+
+    def _simplify(self, typetable):
+        entry = typetable.lookup_variable(self.children[0].name)
+        if not entry:
+            raise ParserException("Non declared variable %s at line %s" % (self.children[0].name, self.line_num))
+        if entry.value is None:
+            raise ParserException("Non defined variable %s at line %s" % (self.children[0].name, self.line_num))
+
+        new_child = ASTNodeLiteral(entry.value)
+        new_child.canReplace = True
+        new_child.parent = self
+        self.children = [new_child]
+        self.delete()
+
+        if self.operator == "++":
+            entry.value += 1
+        elif self.operator == "--":
+            entry.value -= 1
 
 
 # Increment expression node
-class ASTNodeIncrement(ASTNodeUnaryExpr):
+class ASTNodePrecrement(ASTNodeUnaryExpr):
     def __init__(self):
-        super().__init__("Increment")
+        super().__init__("Pre in/decrement")
         self.canReplace = False
+        self.operator = None
+
+    def _simplify(self, typetable):
+        entry = typetable.lookup_variable(self.children[0].name)
+        if not entry:
+            raise ParserException("Non declared variable %s at line %s" % (self.children[0].name, self.line_num))
+        if entry.value is None:
+            raise ParserException("Non defined variable %s at line %s" % (self.children[0].name, self.line_num))
+
+        if self.operator == "++":
+            entry.value += 1
+        elif self.operator == "--":
+            entry.value -= 1
+
+        new_child = ASTNodeLiteral(entry.value)
+        new_child.canReplace = True
+        new_child.parent = self
+        self.children = [new_child]
+        self.delete()
 
 
 # Equality expression node
@@ -333,19 +372,18 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Equality expression")
         self.canReplace = False
-        self.name = None
         self.equality = None
 
     # Print dot format name and label
     def print_dot(self, _file=None):
-        print('"', self, '"', '[label = "', self.value, ":", self.name, self.equality, '"]', file=_file)
+        print('"', self, '"', '[label = "', self.value, ":", self.children[0].name, self.equality, '"]', file=_file)
 
     def _simplify(self, typetable):
-        entry = typetable.lookup_variable(self.name)
+        entry = typetable.lookup_variable(self.children[0].name)
         if not entry:
             raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
-        if len(self.children) == 1 and isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
-            value = self.children[0].value
+        if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst:
+            value = self.children[1].value
             if self.equality == "=":
                 pass
             elif self.equality == "+=":
@@ -376,8 +414,8 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         else:
             v1 = "%temp" + str(id(self.children[1]))
 
-        print("%" + self.name + str(id(self)) + " =  alloca i32 ")
-        print("store i32 " + v1 + ", i32* %" + self.name + str(id(self)))
+        print("%" + self.children[0].name + str(id(self)) + " =  alloca i32 ")
+        print("store i32 " + v1 + ", i32* %" + self.children[0].name + str(id(self)))
 
 
 # Function call expression node
@@ -435,15 +473,15 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
 '''Operations'''
 
 
-# Base opperation expression node
-class ASTNodeOpp(ASTNodeExpression):
+# Base operation expression node
+class ASTNodeOp(ASTNodeExpression):
     def __init__(self, tt="opp"):
         super().__init__(tt)
         self.operators = []
 
 
 # Addition expression node
-class ASTNodeAddition(ASTNodeOpp):
+class ASTNodeAddition(ASTNodeOp):
     def __init__(self):
         super().__init__("Addition")
 
@@ -498,7 +536,7 @@ class ASTNodeAddition(ASTNodeOpp):
 
 
 # Multiplication expression node
-class ASTNodeMult(ASTNodeOpp):
+class ASTNodeMult(ASTNodeOp):
     def __init__(self):
         super().__init__("Multiplication")
 
@@ -615,7 +653,7 @@ class ASTNodeMult(ASTNodeOpp):
 
 
 # Conditional expression node
-class ASTNodeConditional(ASTNodeOpp):
+class ASTNodeConditional(ASTNodeOp):
     def __init__(self):
         super().__init__("Conditional expression")
 
