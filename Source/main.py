@@ -17,11 +17,11 @@ def main():
     for i in range(1, n):
         if sys.argv[i] == "-i":
             file_input = sys.argv[i + 1]
-        if sys.argv[i] == '--dot':
+        if sys.argv[i] == '-dot':
             file_dot = sys.argv[i + 1]
-        if sys.argv[i] == '--llvm':
+        if sys.argv[i] == '-llvm':
             file_llvm = sys.argv[i + 1]
-        if sys.argv[i] == '--prop':
+        if sys.argv[i] == '-prop':
             propagation = True
 
     if file_input == '':
@@ -29,7 +29,7 @@ def main():
         return
 
     text = FileStream(file_input)
-    print(text)
+    # print(text)
     try:
         listener.parse_string(text)
         if file_dot:

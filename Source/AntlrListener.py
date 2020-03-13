@@ -37,7 +37,7 @@ class CPrintListener(CListener):
         # print(Trees.toStringTree(tree, None, parser))
         # self.tt.simplify()
         print(self.typeTable)
-        self.tt.print_llvm_ir()
+        # self.tt.print_llvm_ir()
 
     '''Rules'''
 
