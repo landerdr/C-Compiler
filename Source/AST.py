@@ -24,7 +24,6 @@ class AST:
             item = self.depthStack.pop()
             if len(item.children) == 1:
                 if (isinstance(item, ASTNodeExpression) or isinstance(item, ASTNodeStatement)) and item.canReplace:
-                    # print("replacing:", item.value, "at pos:", item.index)
                     item.parent.replace_child(item.index, item.children[0])
 
             for i in reversed(item.children):
@@ -94,7 +93,6 @@ class AST:
 # Base node class
 class ASTNode:
     def __init__(self, _val='Undefined'):
-        # print("created:", _val)
         self.canReplace = True
         self.parent = None
         self.index = 0
@@ -104,7 +102,6 @@ class ASTNode:
 
     # Adds a child to it's list of children
     def add_child(self, child):
-        # print("added: ", child.value, "to:", self.value)
         child.parent = self
         child.index = len(self.children)
         self.children.append(child)
@@ -141,8 +138,10 @@ class ASTNode:
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
+            propagation = False
             self.optimise(symboltable)
-            # self.const_propagation(symboltable)
+            if propagation:
+                self.const_propagation(symboltable)
             self.const_folding()
 
     # Deletes a node and connects it's first child to the former parent of this node
@@ -242,7 +241,6 @@ class ASTNodeDefinition(ASTNodeStatement):
         print('"', self, '"', '[label = "', self.value, ":", self.name, self.type, '"]', file=_file)
 
     def optimise(self, symboltable):
-        # print("correct")
         value = None
         if len(self.children) == 0:
             pass

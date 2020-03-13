@@ -33,11 +33,7 @@ class CPrintListener(CListener):
         walker = ParseTreeWalker()
         walker.walk(self, tree)
 
-        # from antlr4.tree.Trees import Trees
-        # print(Trees.toStringTree(tree, None, parser))
-        # self.tt.simplify()
         print(self.typeTable)
-        # self.tt.print_llvm_ir()
 
     '''Rules'''
 
@@ -228,13 +224,11 @@ class CPrintListener(CListener):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
-        # self.add_node(ASTNodeOpp(ctx.getText()))
 
     def enterMultopp(self, ctx: CParser.MultoppContext):
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
-        # self.add_node(ASTNodeOpp(ctx.getText()))
 
     def enterLog_or(self, ctx: CParser.Log_orContext):
         x = self.depthStack[-1]
@@ -271,10 +265,7 @@ class CPrintListener(CListener):
         x.operators.append(ctx.getText())
         self.skip_node()
 
-        # ToDo: fix
-
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
-        # self.skip_node()
         expr = ASTNodeLeftValue()
         expr.name = ctx.ID().getText()
         self.add_node(expr)
@@ -287,8 +278,6 @@ class CPrintListener(CListener):
 
     def enterL_indexing_expression(self, ctx: CParser.L_indexing_expressionContext):
         self.add_node(ASTNodeIndexingExpr)
-
-        # ToDo: fix
 
     def enterValue_type(self, ctx: CParser.Value_typeContext):
         self.skip_node()
