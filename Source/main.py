@@ -9,7 +9,7 @@ def main():
     listener = CPrintListener()
 
     # input = fileinput.input()
-    filename = "simple_assignments.txt"
+    filename = "simple_expressions.txt"
     if len(sys.argv) > 1:
         filename = sys.argv[1]
 

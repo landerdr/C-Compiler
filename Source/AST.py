@@ -126,15 +126,21 @@ class ASTNode:
         print('"', self, '"', '[label = "', self.value, '"]', file=_file)
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
+        pass
+
+    def const_folding(self):
+        pass
+
+    def const_propagation(self, symboltable):
         pass
 
     # Simplify this node structure if possible
-    def simplify(self, typetable):
+    def simplify(self, symboltable):
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
-            self._simplify(typetable)
+            self.optimise(symboltable)
 
     # Deletes a node and connects it's first child to the former parent of this node
     def delete(self):
@@ -174,8 +180,8 @@ class ASTNodeParam(ASTNode):
         self.name = ""
         self.type = ""
 
-    def _simplify(self, typetable):
-        typetable.insert_variable(self.name, self.type, None, None)
+    def optimise(self, symboltable):
+        symboltable.insert_variable(self.name, self.type, None, None)
 
 
 class ASTNodeLeftValue(ASTNode):
@@ -229,13 +235,13 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, self.type, '"]', file=_file)
 
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         # print("correct")
         if len(self.children) == 1 and self.children[0].isConst:
             value = self.children[0].value
         else:
             value = None
-        if not typetable.insert_variable(self.name, self.type, value, None):
+        if not symboltable.insert_variable(self.name, self.type, value, None):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
 
@@ -291,15 +297,15 @@ class ASTNodeLiteral(ASTNode):
         self.canReplace = False
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         # Check if literal is variable
         if not self.isConst:
             # Lookup variable in type table
-            entry = typetable.lookup_variable(str(self.value))
+            entry = symboltable.lookup_variable(str(self.value))
             if not entry:
                 raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
             if entry.value is None:
-                print(typetable)
+                print(symboltable)
                 print(entry)
                 raise ParserException("Non defined variable %s at line %s" % (self.value, self.line_num))
 
@@ -320,8 +326,8 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         self.canReplace = False
         self.operator = None
 
-    def _simplify(self, typetable):
-        entry = typetable.lookup_variable(self.children[0].name)
+    def optimise(self, symboltable):
+        entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
             raise ParserException("Non declared variable %s at line %s" % (self.children[0].name, self.line_num))
         if entry.value is None:
@@ -346,8 +352,8 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.canReplace = False
         self.operator = None
 
-    def _simplify(self, typetable):
-        entry = typetable.lookup_variable(self.children[0].name)
+    def optimise(self, symboltable):
+        entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
             raise ParserException("Non declared variable %s at line %s" % (self.children[0].name, self.line_num))
         if entry.value is None:
@@ -376,8 +382,8 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.children[0].name, self.equality, '"]', file=_file)
 
-    def _simplify(self, typetable):
-        entry = typetable.lookup_variable(self.children[0].name)
+    def optimise(self, symboltable):
+        entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
             raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
         if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst:
@@ -434,7 +440,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
         self.canReplace = False
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value = not self.children[0].value
@@ -448,7 +454,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         self.canReplace = False
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value *= -1
@@ -483,7 +489,7 @@ class ASTNodeAddition(ASTNodeOp):
         super().__init__("Addition")
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -536,7 +542,7 @@ class ASTNodeMult(ASTNodeOp):
         super().__init__("Multiplication")
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -595,7 +601,7 @@ class ASTNodeConditional(ASTNodeOp):
         super().__init__("Conditional expression")
 
     # Simplify this node structure if possible
-    def _simplify(self, typetable):
+    def optimise(self, symboltable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
