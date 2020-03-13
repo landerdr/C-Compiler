@@ -251,7 +251,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
     def print_llvm_ir(self):
-        print("%" + self.children[0].name + str(id(self)) + " =  alloca i32 ")
+        print("%" + self.name + str(id(self)) + " =  alloca i32 , align 4")
 
 # If statement node
 class ASTNodeIf(ASTNodeStatement):
