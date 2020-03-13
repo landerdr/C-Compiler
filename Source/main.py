@@ -8,12 +8,27 @@ from Source.AntlrListener import *
 def main():
     listener = CPrintListener()
 
-    # input = fileinput.input()
-    filename = "simple_assignments.txt"
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
+    file_input = None
+    file_llvm = None
+    file_dot = None
+    propagation = False
 
-    text = FileStream("Source/Test/" + filename)
+    n = len(sys.argv)
+    for i in range(1, n):
+        if sys.argv[i] == "-i":
+            file_input = sys.argv[i+1]
+        if sys.argv[i] == '--dot':
+            file_dot = sys.argv[i+1]
+        if sys.argv[i] == '--llvm':
+            file_llvm = sys.argv[i+1]
+        if sys.argv[i] == '--prop':
+            propagation = True
+
+    if file_input == '':
+        print("no input file specified")
+        return
+
+    text = FileStream("Source/Test/" + file_input)
     print(text)
     try:
         listener.parse_string(text)
