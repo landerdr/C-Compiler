@@ -28,7 +28,7 @@ def main():
         print("no input file specified")
         return
 
-    text = FileStream("Source/Test/" + file_input)
+    text = FileStream(file_input)
     print(text)
     try:
         listener.parse_string(text)

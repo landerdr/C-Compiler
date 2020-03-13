@@ -253,6 +253,7 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_llvm_ir(self):
         print("%" + self.name + str(id(self)) + " =  alloca i32 , align 4")
 
+
 # If statement node
 class ASTNodeIf(ASTNodeStatement):
     def __init__(self):
