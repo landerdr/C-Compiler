@@ -17,9 +17,9 @@ def main():
     for i in range(1, n):
         if sys.argv[i] == "-i":
             file_input = sys.argv[i + 1]
-        if sys.argv[i] == '--dot':
+        if sys.argv[i] == '-dot':
             file_dot = sys.argv[i + 1]
-        if sys.argv[i] == '--llvm':
+        if sys.argv[i] == '-llvm':
             file_llvm = sys.argv[i + 1]
         if sys.argv[i] == '--prop':
             propagation = True
