@@ -189,6 +189,9 @@ class ASTNodeLeftValue(ASTNode):
         super().__init__("Left Value")
         self.name = ""
 
+    def print_dot(self, _file=None):
+        print('"', self, '"', '[label = "', self.value, ":", self.name, '"]', file=_file)
+
 
 '''Statements'''
 
@@ -237,8 +240,11 @@ class ASTNodeDefinition(ASTNodeStatement):
 
     def optimise(self, symboltable):
         # print("correct")
-        if len(self.children) == 1 and self.children[0].isConst:
+        if len(self.children) == 1 and isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
             value = self.children[0].value
+        elif len(self.children) == 1 and isinstance(self.children[0], ASTNodeEqualityExpr):
+            entry = symboltable.lookup_variable(self.children[0].get_name())
+            value = entry.value
         else:
             value = None
         if not symboltable.insert_variable(self.name, self.type, value, None):
@@ -296,6 +302,19 @@ class ASTNodeLiteral(ASTNode):
         self.isConst = False
         self.canReplace = False
 
+    def const_propagation(self, symboltable):
+        # Lookup variable in type table
+        entry = symboltable.lookup_variable(str(self.value))
+        # Replace with value from symboltable
+        replacement = ASTNodeLiteral(entry.value)
+        replacement.isConst = True
+        # Give child temporary values
+        replacement.parent = self
+        replacement.index = 0
+        # Insert child at front of children
+        self.children.insert(0, replacement)
+        self.delete()
+
     # Simplify this node structure if possible
     def optimise(self, symboltable):
         # Check if literal is variable
@@ -305,18 +324,9 @@ class ASTNodeLiteral(ASTNode):
             if not entry:
                 raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
             if entry.value is None:
-                print(symboltable)
-                print(entry)
                 raise ParserException("Non defined variable %s at line %s" % (self.value, self.line_num))
 
-            replacement = ASTNodeLiteral(entry.value)
-            replacement.isConst = True
-            # Give child temporary values
-            replacement.parent = self
-            replacement.index = 0
-            # Insert child at front of children
-            self.children.insert(0, replacement)
-            self.delete()
+            self.const_propagation(symboltable)
 
 
 # Decrement expression node
@@ -378,12 +388,15 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         self.canReplace = False
         self.equality = None
 
+    def get_name(self):
+        return self.children[0].name
+
     # Print dot format name and label
     def print_dot(self, _file=None):
-        print('"', self, '"', '[label = "', self.value, ":", self.children[0].name, self.equality, '"]', file=_file)
+        print('"', self, '"', '[label = "', self.value, ":", self.equality, '"]', file=_file)
 
     def optimise(self, symboltable):
-        entry = symboltable.lookup_variable(self.children[0].name)
+        entry = symboltable.lookup_variable(self.get_name())
         if not entry:
             raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
         if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst:
@@ -417,8 +430,8 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         else:
             v1 = "%temp" + str(id(self.children[1]))
 
-        print("%" + self.children[0].name + str(id(self)) + " =  alloca i32 ")
-        print("store i32 " + v1 + ", i32* %" + self.children[0].name + str(id(self)))
+        print("%" + self.get_name() + str(id(self)) + " =  alloca i32 ")
+        print("store i32 " + v1 + ", i32* %" + self.get_name() + str(id(self)))
 
 
 # Function call expression node
