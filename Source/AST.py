@@ -73,7 +73,7 @@ class AST:
                 self.depthStack.append(i)
 
     # Prints it's equivalent as llvm IR code
-    def print_llvm_ir(self):
+    def print_llvm_ir(self, _file=None):
         temp = [self.root]
         self.depthStack = [self.root]
         while len(self.depthStack) > 0:
@@ -84,7 +84,7 @@ class AST:
 
         while len(temp) > 0:
             item = temp.pop()
-            item.print_llvm_ir()
+            item.print_llvm_ir(_file)
 
 
 '''Core'''
@@ -151,7 +151,7 @@ class ASTNode:
         self.children = []
 
     # Prints it's equivalent as llvm IR code
-    def print_llvm_ir(self):
+    def print_llvm_ir(self, _file=None):
         pass
 
 
@@ -250,8 +250,8 @@ class ASTNodeDefinition(ASTNodeStatement):
         if not symboltable.insert_variable(self.name, self.type, value, None):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
-    def print_llvm_ir(self):
-        print("%" + self.name + str(id(self)) + " =  alloca i32 , align 4")
+    def print_llvm_ir(self, _file=None):
+        print("%" + self.name + str(id(self)) + " =  alloca i32 , align 4", file=_file)
 
 
 # If statement node
@@ -427,14 +427,14 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             value = None
         entry.value = value
 
-    def print_llvm_ir(self):
+    def print_llvm_ir(self, _file=None):
         if isinstance(self.children[1], ASTNodeLiteral):
             v1 = str(self.children[1].value)
         else:
             v1 = "%temp" + str(id(self.children[1]))
 
-        print("%" + self.get_name() + str(id(self)) + " =  alloca i32 ")
-        print("store i32 " + v1 + ", i32* %" + self.get_name() + str(id(self)))
+        print("%" + self.get_name() + str(id(self)) + " =  alloca i32 ", file=_file)
+        print("store i32 " + v1 + ", i32* %" + self.get_name() + str(id(self)), file=_file)
 
 
 # Function call expression node
@@ -549,7 +549,7 @@ class ASTNodeAddition(ASTNodeOp):
             v2 = str(self.children[1].value)
         else:
             v2 = "%temp" + str(id(self.children[1]))
-        print("%tmp" + str(id(self)) + " = add i32 " + v1 + "," + v2)
+        print("%tmp" + str(id(self)) + " = add i32 " + v1 + "," + v2, file=_file)
 
 
 # Multiplication expression node
@@ -608,7 +608,7 @@ class ASTNodeMult(ASTNodeOp):
             v2 = str(self.children[1].value)
         else:
             v2 = "%temp" + str(id(self.children[1]))
-        print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2)
+        print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2, file=_file)
 
 
 # Conditional expression node
