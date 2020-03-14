@@ -181,6 +181,7 @@ class CPrintListener(CListener):
 
     def enterFunction_call_expression(self, ctx: CParser.Function_call_expressionContext):
         expr = ASTNodeFunctionCallExpr()
+        expr.name = ctx.ID().getText()
         self.add_node(expr)
 
     def enterIndexing_expression(self, ctx: CParser.Indexing_expressionContext):

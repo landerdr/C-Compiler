@@ -16,6 +16,8 @@ class AST:
     def __init__(self):
         self.root = None
         self.depthStack = []
+        self.typeTable = TypeTable()
+        self.typeTable.enter_scope()
 
     # Deprecated function
     def simplify(self):
@@ -72,19 +74,37 @@ class AST:
             for i in reversed(item.children):
                 self.depthStack.append(i)
 
-    # Prints it's equivalent as llvm IR code
+    # (Hopefully) Prints it's equivalent as llvm IR code
     def print_llvm_ir(self, _file=None):
-        temp = [self.root]
-        self.depthStack = [self.root]
-        while len(self.depthStack) > 0:
-            item = self.depthStack.pop()
-            for i in reversed(item.children):
-                self.depthStack.append(i)
-                temp.append(i)
 
-        while len(temp) > 0:
-            item = temp.pop()
-            item.print_llvm_ir(_file)
+        type_table = TypeTable()
+        type_table.enter_scope()
+
+        prestack = [self.root]
+        grey = []
+        visited = []
+
+        while len(prestack) > 0:
+            item = prestack.pop()
+
+            # if entering this node for the first time -> print stuff
+            if not (item in grey):
+                grey.append(item)
+                item.print_llvm_ir_pre(type_table, _file, len(type_table.tables))
+
+            # check if a child hasn't been visited yet
+            found = False
+            for i in item.children:
+                if not (i in visited):
+                    prestack.append(item)
+                    prestack.append(i)
+                    found = True
+                    break
+
+            # no new nodes were found -> all children visited -> time to exit this node -> print stuff
+            if not found:
+                item.print_llvm_ir_post(type_table, _file, len(type_table.tables))
+                visited.append(item)
 
 
 '''Core'''
@@ -153,8 +173,31 @@ class ASTNode:
         self.children = []
 
     # Prints it's equivalent as llvm IR code
-    def print_llvm_ir(self, _file=None):
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0):
         pass
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        pass
+
+    def get_llvm_addr(self):
+        return "%t" + str(id(self))
+
+    def load_if_necessary(self, _file=None, _indent=0):
+        if isinstance(self, ASTNodeLiteral):
+            if not self.isConst:
+                v1 = self.get_llvm_addr()
+                print('  ' * _indent + v1 + " = load i32, i32* %" +
+                      str(self.value) + ", align 4", file=_file)
+                return v1
+            else:
+                return str(self.value)
+        elif isinstance(self, ASTNodeLeftValue):
+            v1 = self.get_llvm_addr()
+            print('  ' * _indent + v1 + " = load i32, i32* %" +
+                  str(self.name) + ", align 4", file=_file)
+            return v1
+        else:
+            return "%t" + str(id(self))
 
 
 # Base Library node
@@ -167,6 +210,14 @@ class ASTNodeLib(ASTNode):
 class ASTNodeFunction(ASTNode):
     def __init__(self):
         super().__init__("Function")
+        self.canReplace = False
+
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0):
+        print('  ' * _indent + "\ndefine i32 @main() #0 ", file=_file, end='')
+        # print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2, file=_file)
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        pass
 
 
 # Base list of parameters node
@@ -227,6 +278,14 @@ class ASTNodeCompound(ASTNodeStatement):
     def __init__(self, _val="Compound statement"):
         super().__init__(_val)
 
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0):
+        _type_table.enter_scope()
+        print('  ' * _indent + "{", file=_file)
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        _type_table.leave_scope()
+        print('  ' * (_indent - 1) + "}", file=_file)
+
 
 # Definition statement node
 class ASTNodeDefinition(ASTNodeStatement):
@@ -255,8 +314,12 @@ class ASTNodeDefinition(ASTNodeStatement):
         if not symboltable.insert_variable(self.name, self.type, value, None):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
-    def print_llvm_ir(self, _file=None):
-        print("%" + self.name + str(id(self)) + " =  alloca i32 , align 4", file=_file)
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+
+        print('  ' * _indent + "%" + self.name + " =  alloca i32 , align 4", file=_file)
+        if len(self.children) > 0:
+            val = self.children[0].load_if_necessary(_file, _indent)
+            print('  ' * _indent + "store i32 " + val + ", i32* %" + self.name + ", align 4", file=_file)
 
 
 # If statement node
@@ -280,6 +343,10 @@ class ASTNodeReturn(ASTNodeStatement):
     def __init__(self):
         super().__init__("Return statement")
         self.canReplace = False
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        rval = self.children[0].load_if_necessary(_file, _indent)
+        print('  ' * _indent + "ret i32 " + rval, file=_file)
 
 
 '''Expressions'''
@@ -436,20 +503,35 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             value = "Unknown"
         entry.value = value
 
-    def print_llvm_ir(self, _file=None):
-        if isinstance(self.children[1], ASTNodeLiteral):
-            v1 = str(self.children[1].value)
-        else:
-            v1 = "%temp" + str(id(self.children[1]))
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        v1 = self.children[1].load_if_necessary(_file, _indent)
 
-        print("%" + self.get_name() + str(id(self)) + " =  alloca i32 ", file=_file)
-        print("store i32 " + v1 + ", i32* %" + self.get_name() + str(id(self)), file=_file)
+        if self.equality != "=":
+            opp = 'add'
+            if self.equality == "-=":
+                opp = "sub"
+            if self.equality == "/=":
+                opp = 'sdiv'
+            if self.equality == "*=":
+                opp = 'mul'
+            if self.equality == "%=":
+                opp = 'srem'
+
+            new_v1 = self.get_llvm_addr()
+            print('  ' * _indent + new_v1 + " = " + opp + " i32 " + self.children[0].load_if_necessary(_file, _indent) + "," + v1, file=_file)
+            v1 = new_v1
+
+        print('  ' * _indent + "store i32 " + v1 + ", i32* %" + self.get_name() + ", align 4", file=_file)
 
 
 # Function call expression node
 class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Function call expression")
+        self.name = None
+        self.canReplace = False
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0):
+        print("  "*_indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name + "(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str, i32 0, i32 0))", file=_file)
 
 
 # Indexing expression node
@@ -551,17 +633,13 @@ class ASTNodeAddition(ASTNodeOp):
 
         self.delete()
 
-    def print_llvm_ir(self, _file=None):
-        if isinstance(self.children[0], ASTNodeLiteral):
-            v1 = str(self.children[0].value)
-        else:
-            v1 = "%temp" + str(id(self.children[0]))
-
-        if isinstance(self.children[1], ASTNodeLiteral):
-            v2 = str(self.children[1].value)
-        else:
-            v2 = "%temp" + str(id(self.children[1]))
-        print("%tmp" + str(id(self)) + " = add i32 " + v1 + "," + v2, file=_file)
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        v0 = self.children[0].load_if_necessary(_file, _indent)
+        v1 = self.children[1].load_if_necessary(_file, _indent)
+        opp = "add"
+        if self.operators[0] == '-':
+            opp = 'sub'
+        print('  ' * _indent + "%t" + str(id(self)) + " = " + opp + " i32 " + v0 + "," + v1, file=_file)
 
 
 # Multiplication expression node
@@ -611,16 +689,16 @@ class ASTNodeMult(ASTNodeOp):
 
         self.delete()
 
-    def print_llvm_ir(self, _file=None):
-        if isinstance(self.children[0], ASTNodeLiteral):
-            v1 = str(self.children[0].value)
-        else:
-            v1 = "%temp" + str(id(self.children[0]))
-        if isinstance(self.children[1], ASTNodeLiteral):
-            v2 = str(self.children[1].value)
-        else:
-            v2 = "%temp" + str(id(self.children[1]))
-        print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2, file=_file)
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        v0 = self.children[0].load_if_necessary(_file, _indent)
+        v1 = self.children[1].load_if_necessary(_file, _indent)
+        opp = "mul"
+        if self.operators[0] == '/':
+            opp = 'sdiv'
+        elif self.operators[0] == '%':
+            opp = 'srem'
+
+        print('  ' * _indent + "%t" + str(id(self)) + " = " + opp + " i32 " + v0 + "," + v1, file=_file)
 
 
 # Conditional expression node
