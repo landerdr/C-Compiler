@@ -1,7 +1,6 @@
 class Char:
-    def __init__(self, pointer=False, const=False):
-        self.pointer = pointer
-        self.const = const
+    def __init__(self):
+        pass
 
 
 class Int(Char):

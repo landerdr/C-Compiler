@@ -158,7 +158,7 @@ class ASTNode:
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
-            propagation = False
+            propagation = True
             self.optimise(symboltable)
             if propagation:
                 self.const_propagation(symboltable)
@@ -234,7 +234,7 @@ class ASTNodeParam(ASTNode):
         self.type = ""
 
     def optimise(self, symboltable):
-        symboltable.insert_variable(self.name, self.type, None, None)
+        symboltable.insert_variable(self.name, self.type)
 
 
 class ASTNodeLeftValue(ASTNode):
@@ -294,6 +294,8 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.canReplace = False
         self.type = None
         self.name = None
+        self.const = False
+        self.pointer = False
 
     # Print dot format name and label
     def print_dot(self, _file=None):
@@ -311,8 +313,8 @@ class ASTNodeDefinition(ASTNodeStatement):
         else:
             value = "Unknown"
 
-        if not symboltable.insert_variable(self.name, self.type, value, None):
-            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
+        if not symboltable.insert_variable(self.name, self.type, value=value, pointer=self.pointer, const=self.const):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.type))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
 
@@ -378,17 +380,18 @@ class ASTNodeLiteral(ASTNode):
         self.canReplace = False
 
     def const_propagation(self, symboltable):
-        # Lookup variable in type table
-        entry = symboltable.lookup_variable(str(self.value))
-        # Replace with value from symboltable
-        replacement = ASTNodeLiteral(entry.value)
-        replacement.isConst = True
-        # Give child temporary values
-        replacement.parent = self
-        replacement.index = 0
-        # Insert child at front of children
-        self.children.insert(0, replacement)
-        self.delete()
+        if not self.isConst:
+            # Lookup variable in type table
+            entry = symboltable.lookup_variable(str(self.value))
+            # Replace with value from symboltable
+            replacement = ASTNodeLiteral(entry.value)
+            replacement.isConst = True
+            # Give child temporary values
+            replacement.parent = self
+            replacement.index = 0
+            # Insert child at front of children
+            self.children.insert(0, replacement)
+            self.delete()
 
     # Simplify this node structure if possible
     def optimise(self, symboltable):
@@ -397,9 +400,9 @@ class ASTNodeLiteral(ASTNode):
             # Lookup variable in type table
             entry = symboltable.lookup_variable(str(self.value))
             if not entry:
-                raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
+                raise ParserException("Non declared variable '%s' at line %s" % (self.value, self.line_num))
             if entry.value is None:
-                raise ParserException("Non defined variable %s at line %s" % (self.value, self.line_num))
+                raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
 
 
 # Decrement expression node
@@ -412,9 +415,9 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
     def optimise(self, symboltable):
         entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
-            raise ParserException("Non declared variable %s at line %s" % (self.children[0].name, self.line_num))
+            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
         if entry.value is None:
-            raise ParserException("Non defined variable %s at line %s" % (self.children[0].name, self.line_num))
+            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
 
         if entry.value == "Unknown":
             return
@@ -441,9 +444,9 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
     def optimise(self, symboltable):
         entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
-            raise ParserException("Non declared variable %s at line %s" % (self.children[0].name, self.line_num))
+            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
         if entry.value is None:
-            raise ParserException("Non defined variable %s at line %s" % (self.children[0].name, self.line_num))
+            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
 
         if entry.value == "Unknown":
             return
@@ -477,7 +480,9 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def optimise(self, symboltable):
         entry = symboltable.lookup_variable(self.get_name())
         if not entry:
-            raise ParserException("Non declared variable %s at line %s" % (self.value, self.line_num))
+            raise ParserException("Non declared variable '%s' at line %s" % (self.get_name(), self.line_num))
+        if entry.const:
+            raise ParserException("Trying to redefine variable '%s' at line %s" % (self.get_name(), self.line_num))
         if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst:
             value = self.children[1].value
             if self.equality == "=":
