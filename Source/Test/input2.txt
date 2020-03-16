@@ -3,10 +3,13 @@ int main() {
     float b = 5.0;
     char c = 'c';
     float k = 1.0;
-    k = 5.0;
-    k = 3 % 2;
-    k = c;
+    k += 1;
+    k -= 5.0;
+    k /= 3 % 2;
+    k *= c;
     k ++;
+    k %= 5;
+    k--;
     int i = 1;
     int j = 1;
 

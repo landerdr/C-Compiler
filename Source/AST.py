@@ -186,6 +186,7 @@ class ASTNode:
     def load_if_necessary(self, _type_table, _file=None, _indent=0):
         if isinstance(self, ASTNodeLiteral):
             if not self.isConst:
+                print('; Load ' + str(self.value), file=_file)
                 v1 = self.get_llvm_addr()
                 llvm_type = self.get_llvm_type(_type_table, str(self.value))
                 print('  ' * _indent + v1 + " = load " + llvm_type + ", " + llvm_type + "* %" +
@@ -194,6 +195,7 @@ class ASTNode:
             else:
                 return str(self.value)
         elif isinstance(self, ASTNodeLeftValue):
+            print('; Load ' + str(self.name), file=_file)
             v1 = self.get_llvm_addr()
             llvm_type = self.get_llvm_type(_type_table, str(self.name))
             print('  ' * _indent + v1 + " = load " + llvm_type + ", " + llvm_type + "* %" +
@@ -216,8 +218,11 @@ class ASTNode:
                     return 'i32'
                 return 'float'
         elif isinstance(self, ASTNodeLeftValue):
-            entry = _type_table.lookup_variable(self.value);
-            return entry.type.get_llvm_type()
+            entry = _type_table.lookup_variable(self.name);
+            if isinstance(entry.type, str):
+                return entry.type
+            else:
+                return entry.type.get_llvm_type()
         else:
             entry = _type_table.lookup_variable(self.get_llvm_addr())
             if isinstance(entry.type, str):
@@ -343,22 +348,18 @@ class ASTNodeDefinition(ASTNodeStatement):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.type))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
-
+        print(";Definition " + self.type + ' ' + self.name, file=_file)
         if not _type_table.insert_variable(self.name, self.type, pointer=self.pointer, const=self.const):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
 
         llvm_type = self.get_llvm_type(_type_table, self.name)
 
-        print(
-            '  ' * _indent + "%" + self.name + " =  alloca " + llvm_type + " , align 4 ;" + self.type + ' ' + self.name,
-            file=_file)
+        print('  ' * _indent + "%" + self.name + " =  alloca " + llvm_type + " , align 4", file=_file)
         if len(self.children) > 0:
             v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t1 = self.children[0].get_llvm_type(_type_table)
             v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-            print(
-                '  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.name + ", align 4 ;assign " + self.name,
-                file=_file)
+            print('  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.name + ", align 4", file=_file)
 
 
 # If statement node
@@ -385,7 +386,7 @@ class ASTNodeReturn(ASTNodeStatement):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
         rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        new_val = convert_type(self.children[0].get_llvm_type(_type_table), 'i32' , rval, _file, _indent)
+        new_val = convert_type(self.children[0].get_llvm_type(_type_table), 'i32', rval, _file, _indent)
         print('  ' * _indent + "ret i32 " + new_val, file=_file)
 
 
@@ -443,7 +444,7 @@ class ASTNodeLiteral(ASTNode):
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
 
 
-# Decrement expression node
+# Postcrement expression node (In/Decrement behind var)
 class ASTNodePostcrement(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Post in/decrement")
@@ -471,8 +472,34 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         elif self.operator == "--":
             entry.value -= 1
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        print(';PostCrement' + self.operator, file=_file)
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+        t0 = self.children[0].get_llvm_type(_type_table)
 
-# Increment expression node
+        new_var = convert_types(t0, 'i8', v0, '1', _file, _indent)
+        v0 = new_var[0]
+        v1 = new_var[1]
+        llvm_type = new_var[2]
+
+        opp = "add"
+        if llvm_type == 'float':
+            opp = 'fadd'
+        if self.operator == '--':
+            opp = 'sub'
+            if llvm_type == 'float':
+                opp = 'fsub'
+
+        new_addr = self.get_llvm_addr()
+        if not _type_table.insert_variable(new_addr, llvm_type):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+
+        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
+        print('  ' * _indent + "store " + llvm_type + " " + new_addr + ", " + llvm_type + "* %" + self.children[0].name
+              + ", align 4 ", file=_file)
+
+
+# Precrement expression node (In/Decrement in front of var)
 class ASTNodePrecrement(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Pre in/decrement")
@@ -500,6 +527,10 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.children = [new_child]
         self.delete()
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+        pass
+
+
 
 # Equality expression node
 class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
@@ -523,6 +554,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             raise ParserException("Trying to redefine variable '%s' at line %s" % (self.get_name(), self.line_num))
         if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst:
             value = self.children[1].value
+            print(value)
             if self.equality == "=":
                 pass
             elif self.equality == "+=":
@@ -556,26 +588,35 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         llvm_type = this_var.type.get_llvm_type()
         t1 = self.children[1].get_llvm_type(_type_table)
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-
+        print("; assign " + self.get_name() + ' ' +  self.equality, file=_file)
         if self.equality != "=":
             opp = 'add'
+            if llvm_type == 'float':
+                opp = 'fadd'
             if self.equality == "-=":
                 opp = "sub"
+                if llvm_type == 'float':
+                    opp = 'fsub'
             if self.equality == "/=":
                 opp = 'sdiv'
+                if llvm_type == 'float':
+                    opp = 'fdiv'
             if self.equality == "*=":
                 opp = 'mul'
+                if llvm_type == 'float':
+                    opp = 'fmul'
             if self.equality == "%=":
                 opp = 'srem'
+                if llvm_type == 'float':
+                    raise ModuloException('Trying to use modulo on float type')
+
 
             new_v1 = self.get_llvm_addr()
             print('  ' * _indent + new_v1 + " = " + opp + " " + llvm_type + " " + self.children[0].load_if_necessary(
                 _type_table, _file, _indent) + "," + v1, file=_file)
             v1 = new_v1
 
-        print(
-            '  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.get_name() + ", align 4; assign " + self.get_name(),
-            file=_file)
+        print('  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.get_name() + ", align 4", file=_file)
 
 
 # Function call expression node
@@ -691,6 +732,7 @@ class ASTNodeAddition(ASTNodeOp):
         self.delete()
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
+
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)
@@ -700,6 +742,8 @@ class ASTNodeAddition(ASTNodeOp):
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
+
+        print(';' + v0 + " " + self.operators[0] + " " + v1, file=_file)
 
         opp = "add"
         if llvm_type == 'float':
@@ -713,7 +757,7 @@ class ASTNodeAddition(ASTNodeOp):
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
-        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1 + ' ;' + v0  + " " +  self.operators[0]  + " " +  v1, file=_file)
+        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
 
 # Multiplication expression node
@@ -777,7 +821,7 @@ class ASTNodeMult(ASTNodeOp):
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
-
+        print(';' + v0 + " " + self.operators[0] + " " + v1, file=_file)
         opp = "mul"
         if llvm_type == 'float':
             opp = 'fmul'
@@ -788,13 +832,14 @@ class ASTNodeMult(ASTNodeOp):
 
         elif self.operators[0] == '%':
             opp = 'srem'
+            if llvm_type == 'float':
+                raise ModuloException('Trying to use modulo on float type')
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
 
-        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1+ ' ;' + v0 + " " + self.operators[0]  + " " +  v1, file=_file)
-
+        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
 
 # Conditional expression node
@@ -862,14 +907,15 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
     v0 = convert_type(t0, llvm_type, v0, _file, _indent)
     v1 = convert_type(t1, llvm_type, v1, _file, _indent)
 
-    return (v0, v1, llvm_type)
+    return v0, v1, llvm_type
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0):
-
     if v1[0] != '%':
         if new_type == 'float':
-            return float_to_64bithex(float(v1))
+            return double_to_hex(float(v1))
+        if new_type == 'i8':
+            return str(ord(v1))
         return v1
     if old_type != new_type:
         prev = str(v1)
@@ -884,33 +930,5 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0):
     return v1
 
 
-def float_to_64bithex(inp):
-    # 12.99 -> 0x4029FAE140000000
-    # sign(1) exp(11) mantisse(52)
-    sign = 0
-    if inp < 0:
-        sign = 1
-        inp = -inp
-
-    exp = 1023 # bias
-    while inp < 1:
-        inp *= 2
-        exp -= 1
-    while inp >= 2:
-        inp /= 2
-        exp += 1
-
-    inp -= 1
-    mantisse = int(inp * 0x10000000000000)
-
-    mantisse &= ~0x1FFFFFFF  # mantisse is 52 in een double bits, mag maar 23 zijn voor een float -> 29 eraf knippen
-
-    bignumber = sign << 63
-    bignumber |= exp << 52
-    bignumber |= mantisse
-    out = ""
-    for i in range(16):
-        low = bignumber & 15
-        bignumber >>= 4
-        out = "0123456789ABCDEF"[low]+out
-    return "0x"+out
+class ModuloException(Exception):
+    pass
