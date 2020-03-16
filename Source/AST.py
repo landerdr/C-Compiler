@@ -218,7 +218,7 @@ class ASTNode:
                     return 'i32'
                 return 'float'
         elif isinstance(self, ASTNodeLeftValue):
-            entry = _type_table.lookup_variable(self.name);
+            entry = _type_table.lookup_variable(self.name)
             if isinstance(entry.type, str):
                 return entry.type
             else:
@@ -433,15 +433,16 @@ class ASTNodeLiteral(ASTNode):
         if not self.isConst:
             # Lookup variable in type table
             entry = symboltable.lookup_variable(str(self.value))
-            # Replace with value from symboltable
-            replacement = ASTNodeLiteral(entry.value)
-            replacement.isConst = True
-            # Give child temporary values
-            replacement.parent = self
-            replacement.index = 0
-            # Insert child at front of children
-            self.children.insert(0, replacement)
-            self.delete()
+            if not entry.pointer:
+                # Replace with value from symboltable
+                replacement = ASTNodeLiteral(entry.value)
+                replacement.isConst = True
+                # Give child temporary values
+                replacement.parent = self
+                replacement.index = 0
+                # Insert child at front of children
+                self.children.insert(0, replacement)
+                self.delete()
 
     # Simplify this node structure if possible
     def optimise(self, symboltable):
@@ -643,7 +644,8 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0):
         print(
-            "  " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name + "(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str, i32 0, i32 0))",
+            "  " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name +
+            "(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @.str, i32 0, i32 0))",
             file=_file)
 
 
