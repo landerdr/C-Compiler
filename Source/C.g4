@@ -158,8 +158,8 @@ equality_symbol: (ASSIGNMENT | PLUSEQ | MINUSEQ | STAREQ | DIVEQ | MODULOEQ | BI
 // Brackets
 bracket_expression: literal_expression | (LB expression RB);
 // Pointer operations
-dereference: (STAR ID) | (STAR LB expression RB);
-reference: BINAND ID;
+dereference: (STAR left_value) | (STAR LB expression RB);
+reference: BINAND left_value;
 // Left value
 left_value: ID | dereference | l_indexing_expression;
 l_indexing_expression: ID (LSB expression RSB)+;

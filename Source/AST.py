@@ -341,6 +341,8 @@ class ASTNodeDefinition(ASTNodeStatement):
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
             entry = symboltable.lookup_variable(self.children[0].get_name())
             value = entry.value
+        elif not (isinstance(self.children[0], ASTNodeReference) and self.pointer):
+            raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
             value = "Unknown"
 
@@ -359,7 +361,8 @@ class ASTNodeDefinition(ASTNodeStatement):
             v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t1 = self.children[0].get_llvm_type(_type_table)
             v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-            print('  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.name + ", align 4", file=_file)
+            print('  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.name + ", align 4",
+                  file=_file)
 
 
 # If statement node
@@ -417,6 +420,7 @@ class ASTNodeLiteral(ASTNode):
         super().__init__(value)
         self.isConst = False
         self.canReplace = False
+        self.pointer = False
 
     def const_propagation(self, symboltable):
         if not self.isConst:
@@ -442,6 +446,7 @@ class ASTNodeLiteral(ASTNode):
                 raise ParserException("Non declared variable '%s' at line %s" % (self.value, self.line_num))
             if entry.value is None:
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
+            self.pointer = entry.pointer
 
 
 # Postcrement expression node (In/Decrement behind var)
@@ -531,7 +536,6 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         pass
 
 
-
 # Equality expression node
 class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -552,9 +556,9 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             raise ParserException("Non declared variable '%s' at line %s" % (self.get_name(), self.line_num))
         if entry.const:
             raise ParserException("Trying to redefine variable '%s' at line %s" % (self.get_name(), self.line_num))
-        if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst:
+        if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst \
+                and entry.value != "Unknown":
             value = self.children[1].value
-            print(value)
             if self.equality == "=":
                 pass
             elif self.equality == "+=":
@@ -578,6 +582,9 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             else:
                 raise ParserException("Not implemented yet")
         else:
+            if isinstance(self.children[1], ASTNodeLiteral) and entry.pointer != self.children[1].pointer \
+                    or isinstance(self.children[1], ASTNodeReference) and entry.pointer:
+                raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
             value = "Unknown"
         entry.update_value(value, self.line_num)
 
@@ -588,7 +595,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         llvm_type = this_var.type.get_llvm_type()
         t1 = self.children[1].get_llvm_type(_type_table)
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-        print("; assign " + self.get_name() + ' ' +  self.equality, file=_file)
+        print("; assign " + self.get_name() + ' ' + self.equality, file=_file)
         if self.equality != "=":
             opp = 'add'
             if llvm_type == 'float':
@@ -610,13 +617,14 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 if llvm_type == 'float':
                     raise ModuloException('Trying to use modulo on float type')
 
-
             new_v1 = self.get_llvm_addr()
             print('  ' * _indent + new_v1 + " = " + opp + " " + llvm_type + " " + self.children[0].load_if_necessary(
                 _type_table, _file, _indent) + "," + v1, file=_file)
             v1 = new_v1
 
-        print('  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.get_name() + ", align 4", file=_file)
+        print(
+            '  ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.get_name() + ", align 4",
+            file=_file)
 
 
 # Function call expression node
@@ -670,12 +678,14 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
 class ASTNodeReference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Reference expression")
+        self.canReplace = False
 
 
 # Dereference expression node
 class ASTNodeDereference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Dereference expression")
+        self.canReplace = False
 
 
 '''Operations'''
