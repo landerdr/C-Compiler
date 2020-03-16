@@ -11,4 +11,5 @@ int i = 1 < 0;
 a++;
 int r = 0;
 int s = r += 5;
-int u = 3.0;
+int u = 3;
+u = u*1.0;

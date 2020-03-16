@@ -491,11 +491,11 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             elif self.equality == "-=":
                 value = entry.value - value
             elif self.equality == "/=":
-                value_type = get_type(entry.value, value)
+                value_type = get_dominant_type(entry.value, value)
                 if value == 0:
                     raise ParserException("division by zero at line %s" % self.line_num)
                 value = entry.value / value
-                if value_type != float:
+                if value_type != Float:
                     value = int(value)
             elif self.equality == "*=":
                 value = entry.value * value
@@ -505,7 +505,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 raise ParserException("Not implemented yet")
         else:
             value = "Unknown"
-        entry.value = value
+        entry.update_value(value, self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
         v1 = self.children[1].load_if_necessary(_file, _indent)
@@ -664,14 +664,14 @@ class ASTNodeMult(ASTNodeOp):
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
                                                                ASTNodeLiteral) and left.isConst and right.isConst:
-                value_type = get_type(left.value, right.value)
+                value_type = get_dominant_type(left.value, right.value)
                 if opp == "*":
                     new_val = left.value * right.value
                 elif opp == "/":
                     if right.value == 0:
                         raise ParserException("division by zero at line %s" % self.line_num)
                     new_val = left.value / right.value
-                    if value_type != float:
+                    if value_type != Float:
                         new_val = int(new_val)
                 else:
                     new_val = left.value % right.value
@@ -742,7 +742,7 @@ class ASTNodeConditional(ASTNodeOp):
                 else:
                     raise ParserException("Not implemented yet")
 
-                new_child = ASTNodeLiteral(new_val)
+                new_child = ASTNodeLiteral(int(new_val))
                 new_child.isConst = True
             # Create binary AST if we can't simplify
             else:

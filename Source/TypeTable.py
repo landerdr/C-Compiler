@@ -16,11 +16,11 @@ class TypeTable:
         if name in self.tables[-1]:
             return False
         if value_type == "char":
-            self.tables[-1][name] = Entry(Char, **kwargs)
+            self.tables[-1][name] = Entry(Char(), **kwargs)
         elif value_type == "int":
-            self.tables[-1][name] = Entry(Int, **kwargs)
+            self.tables[-1][name] = Entry(Int(), **kwargs)
         elif value_type == "float":
-            self.tables[-1][name] = Entry(Float, **kwargs)
+            self.tables[-1][name] = Entry(Float(), **kwargs)
         else:
             self.tables[-1][name] = Entry(value_type, **kwargs)
         return True
@@ -58,33 +58,53 @@ class Entry:
         self.pointer = kwargs.get("pointer") or False
         self.const = kwargs.get("const") or False
 
+        # If value is passed set value, none otherwise
         self.value = kwargs.get("value")
+        # If value is assigned, typecast to proper value
+        if self.value is not None:
+            self.update_value(self.value)
         # Location of variable in the register
         self.register = kwargs.get("register")
         # Location of variable on the stack (if applicable)
         self.location = kwargs.get("location")
 
-    def update_value(self, new_value):
-        if not isinstance(new_value, self.type):
-            print("Mismatched types")
-        self.value = new_value
+    def update_value(self, new_value, line_num=""):
+        # Support Unknown values
+        if new_value == "Unknown":
+            self.value = new_value
+            return
+
+        value_type = get_type(new_value)
+        # TODO: check refactor possibilities (issubclass)
+        if self.type < value_type:
+            print("Warning: implicit conversion from %s to %s at line %s" % (value_type, self.type, line_num))
+        self.value = self.type.cast(new_value)
 
     def __str__(self):
-        return "Type: %s %s%s, Value: %s" % (
-            "const" if self.const else "", str(self.type), "*" if self.pointer else "", str(self.value))
+        return "Type: %s%s%s, Value: %s" % (
+            "const " if self.const else "", str(self.type), "*" if self.pointer else "", str(self.value))
 
     def __repr__(self):
-        return "Type: %s %s%s, Value: %s" % (
-            "const" if self.const else "", str(self.type), "*" if self.pointer else "", str(self.value))
+        return "Type: %s%s%s, Value: %s" % (
+            "const " if self.const else "", str(self.type), "*" if self.pointer else "", str(self.value))
 
 
-def get_type(val1, val2):
+def get_type(val):
+    if isinstance(val, float):
+        return Float()
+    if isinstance(val, int):
+        return Int()
+    if isinstance(val, str):
+        return Char()
+
+
+def get_dominant_type(val1, val2):
     if isinstance(val1, Float) or isinstance(val2, Float):
-        return float
+        return Float()
     if isinstance(val1, Int) or isinstance(val2, Int):
-        return int
+        return Int()
     if isinstance(val1, Char) or isinstance(val2, Char):
-        return str
+        return Char()
 
 
 if __name__ == "__main__":
