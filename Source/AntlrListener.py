@@ -175,12 +175,14 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterFunction(self, ctx: CParser.FunctionContext):
-        self.typeTable.enter_scope()
         expr = ASTNodeFunction()
-        self.add_node(expr)
+        expr.name = ctx.ID().getText()
+        expr.type = ctx.value_type().Type().getText()
+        expr.const = ctx.value_type().CONST() is not None
+        expr.pointer = ctx.value_type().STAR() is not None
 
-    def exitFunction(self, ctx: CParser.FunctionContext):
-        self.typeTable.leave_scope()
+        self.typeTable.insert_function(expr.name, expr.type)
+        self.add_node(expr)
 
     def enterFunction_call_expression(self, ctx: CParser.Function_call_expressionContext):
         expr = ASTNodeFunctionCallExpr()

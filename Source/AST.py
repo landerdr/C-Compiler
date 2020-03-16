@@ -265,13 +265,20 @@ class ASTNodeParam(ASTNode):
         self.type = ""
 
     def optimise(self, symboltable):
-        symboltable.insert_variable(self.name, self.type)
+        symboltable.insert_param(self.name, self.type)
 
 
 class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
         self.name = ""
+        self.pointer = False
+
+    def optimise(self, symboltable):
+        entry = symboltable.lookup_variable(self.name)
+        if not entry:
+            raise ParserException("Non declared variable '%s' at line %s" % (self.name, self.line_num))
+        self.pointer = entry.pointer
 
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, '"]', file=_file)
@@ -341,18 +348,18 @@ class ASTNodeDefinition(ASTNodeStatement):
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
             entry = symboltable.lookup_variable(self.children[0].get_name())
             value = entry.value
-        elif self.pointer and not isinstance(self.children[0], ASTNodeReference):
+        elif self.pointer != isinstance(self.children[0], ASTNodeReference):
             raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
             value = "Unknown"
 
         if not symboltable.insert_variable(self.name, self.type, value=value, pointer=self.pointer, const=self.const):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.type))
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0):
         print(";Definition " + self.type + ' ' + self.name, file=_file)
         if not _type_table.insert_variable(self.name, self.type, pointer=self.pointer, const=self.const):
-            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.type))
+            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.line_num))
 
         llvm_type = self.get_llvm_type(_type_table, self.name)
 
@@ -583,7 +590,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 raise ParserException("Not implemented yet")
         else:
             if isinstance(self.children[1], ASTNodeLiteral) and entry.pointer != self.children[1].pointer \
-                    or isinstance(self.children[1], ASTNodeReference) and entry.pointer:
+                    or isinstance(self.children[1], ASTNodeReference) != entry.pointer:
                 raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
             value = "Unknown"
         entry.update_value(value, self.line_num)
@@ -686,6 +693,10 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Dereference expression")
         self.canReplace = False
+
+    def optimise(self, symboltable):
+        if not self.children[0].pointer:
+            raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
 
 '''Operations'''

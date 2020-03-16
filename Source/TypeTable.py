@@ -1,12 +1,27 @@
 from Source.Types import *
 
 
+def _string_to_type(value_type):
+    if value_type == "char":
+        return Char()
+    elif value_type == "int":
+        return Int()
+    elif value_type == "float":
+        return Float()
+    else:
+        return value_type
+
+
 class TypeTable:
     def __init__(self):
         self.tables = list()
+        self.functions = dict()
+        self.current = None
+        self.param = dict()
 
     def enter_scope(self):
-        self.tables.append(dict())
+        self.tables.append(self.param)
+        self.param = dict()
 
     def leave_scope(self):
         if len(self.tables) != 0:
@@ -15,14 +30,13 @@ class TypeTable:
     def insert_variable(self, name, value_type, **kwargs):
         if name in self.tables[-1]:
             return False
-        if value_type == "char":
-            self.tables[-1][name] = Entry(Char(), **kwargs)
-        elif value_type == "int":
-            self.tables[-1][name] = Entry(Int(), **kwargs)
-        elif value_type == "float":
-            self.tables[-1][name] = Entry(Float(), **kwargs)
-        else:
-            self.tables[-1][name] = Entry(value_type, **kwargs)
+        self.tables[-1][name] = Entry(_string_to_type(value_type), **kwargs)
+        return True
+
+    def insert_param(self, name, value_type):
+        if name in self.param:
+            return False
+        self.param[name] = Entry(_string_to_type(value_type))
         return True
 
     def lookup_variable(self, name):
@@ -31,18 +45,16 @@ class TypeTable:
                 return self.tables[-i][name]
         return None
 
-    def insert_function(self, name, parameters, value_type):
-        key = tuple(name) + tuple(parameters)
-        if len(self.tables) != 1:
+    def insert_function(self, name, value_type):
+        if name in self.functions:
             return False
-        if key in self.tables[-1]:
-            return False
-        self.tables[-1][key] = Entry(value_type)
-        return True
+        self.current = name
+        self.functions[name] = Entry(_string_to_type(value_type))
 
-    def lookup_function(self, name, parameters):
-        key = tuple(name) + tuple(parameters)
-        return self.lookup_variable(key)
+    def lookup_function(self, name):
+        if name in self.functions:
+            return self.functions[name]
+        return None
 
     def __str__(self):
         str = ''
