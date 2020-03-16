@@ -341,7 +341,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
             entry = symboltable.lookup_variable(self.children[0].get_name())
             value = entry.value
-        elif not (isinstance(self.children[0], ASTNodeReference) and self.pointer):
+        elif self.pointer and not isinstance(self.children[0], ASTNodeReference):
             raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
             value = "Unknown"
