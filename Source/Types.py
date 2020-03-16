@@ -17,8 +17,9 @@ class Char:
     def __ge__(self, other):
         return self.rank >= other.rank
 
+    # TODO: fix char to not be int
     def cast(self, value):
-        return chr(value)
+        return int(value)
 
     def __str__(self):
         return "Char"
