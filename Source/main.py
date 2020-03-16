@@ -34,8 +34,7 @@ def main():
             _file_dot = open(file_dot, 'w+')
             listener.tt.print_tree(_file_dot)
         if file_llvm:
-            _file_llvm = open(file_llvm, 'w+')
-            listener.tt.print_llvm_ir(_file_llvm)
+            listener.tt.print_llvm_ir(file_llvm)
 
     except ParserException as e:
         print("Parser error:", e)
