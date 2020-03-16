@@ -154,11 +154,10 @@ class ASTNode:
         pass
 
     # Simplify this node structure if possible
-    def simplify(self, symboltable):
+    def simplify(self, symboltable, propagation=False):
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
-            propagation = True
             self.optimise(symboltable)
             if propagation:
                 self.const_propagation(symboltable)

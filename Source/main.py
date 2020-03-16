@@ -6,12 +6,10 @@ from Source.AntlrListener import *
 
 
 def main():
-    listener = CPrintListener()
-
     file_input = None
     file_llvm = None
     file_dot = None
-    propagation = False
+    listener = CPrintListener()
 
     n = len(sys.argv)
     for i in range(1, n):
@@ -22,7 +20,7 @@ def main():
         if sys.argv[i] == '-llvm':
             file_llvm = sys.argv[i + 1]
         if sys.argv[i] == '-prop':
-            propagation = True
+            listener.propagation = True
 
     if file_input == '':
         print("no input file specified")
