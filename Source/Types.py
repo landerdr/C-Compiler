@@ -27,8 +27,12 @@ class Char:
     def __repr__(self):
         return "Char"
 
+    def get_llvm_type(self = None):
+        return 'i8'
+
 
 class Int(Char):
+
     def __init__(self):
         super().__init__()
         self.rank = 1
@@ -42,8 +46,12 @@ class Int(Char):
     def __repr__(self):
         return "Int"
 
+    def get_llvm_type(self = None):
+        return 'i32'
+
 
 class Float(Int):
+
     def __init__(self):
         super().__init__()
         self.rank = 2
@@ -56,3 +64,6 @@ class Float(Int):
 
     def __repr__(self):
         return "Float"
+
+    def get_llvm_type(self = None):
+        return 'float'
