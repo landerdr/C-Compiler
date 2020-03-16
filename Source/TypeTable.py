@@ -107,6 +107,19 @@ def get_dominant_type(val1, val2):
         return Char
 
 
+# Found at https://stackoverflow.com/questions/23624212/how-to-convert-a-float-into-hex
+
+import struct
+
+
+def float_to_hex(f):
+    return hex(struct.unpack('<I', struct.pack('<f', f))[0])
+
+
+def double_to_hex(f):
+    return hex(struct.unpack('<Q', struct.pack('<d', f))[0])
+
+
 if __name__ == "__main__":
     table = TypeTable()
     table.enter_scope()
