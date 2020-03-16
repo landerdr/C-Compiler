@@ -493,13 +493,16 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             elif self.equality == "/=":
                 value_type = get_dominant_type(entry.value, value)
                 if value == 0:
-                    raise ParserException("division by zero at line %s" % self.line_num)
+                    raise ParserException("Division by zero at line %s" % self.line_num)
                 value = entry.value / value
                 if value_type != Float:
                     value = int(value)
             elif self.equality == "*=":
                 value = entry.value * value
             elif self.equality == "%=":
+                value_type = get_dominant_type(entry.value, value)
+                if value_type == Float:
+                    raise ParserException("Invalid operation '%=' with float argument(s) at line " + str(self.line_num))
                 value = entry.value % value
             else:
                 raise ParserException("Not implemented yet")
@@ -669,12 +672,17 @@ class ASTNodeMult(ASTNodeOp):
                     new_val = left.value * right.value
                 elif opp == "/":
                     if right.value == 0:
-                        raise ParserException("division by zero at line %s" % self.line_num)
+                        raise ParserException("Division by zero at line %s" % self.line_num)
                     new_val = left.value / right.value
                     if value_type != Float:
                         new_val = int(new_val)
-                else:
+                elif opp == "%":
+                    if value_type == Float:
+                        raise ParserException(
+                            "Invalid operation '%' with float argument(s) at line " + str(self.line_num))
                     new_val = left.value % right.value
+                else:
+                    raise ParserException("Not implemented yet")
 
                 new_child = ASTNodeLiteral(new_val)
                 new_child.isConst = True

@@ -99,12 +99,12 @@ def get_type(val):
 
 
 def get_dominant_type(val1, val2):
-    if isinstance(val1, Float) or isinstance(val2, Float):
-        return Float()
-    if isinstance(val1, Int) or isinstance(val2, Int):
-        return Int()
-    if isinstance(val1, Char) or isinstance(val2, Char):
-        return Char()
+    if isinstance(val1, float) or isinstance(val2, float):
+        return Float
+    if isinstance(val1, int) or isinstance(val2, int):
+        return Int
+    if isinstance(val1, str) or isinstance(val2, str):
+        return Char
 
 
 if __name__ == "__main__":
