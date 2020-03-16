@@ -86,7 +86,7 @@ class CPrintListener(CListener):
             expr.value = int(txt.getText())
         if ctx.Char():
             expr.isConst = True
-            expr.value = ord(txt.getText()[1])
+            expr.value = txt.getText()[1]
         if ctx.Float():
             expr.isConst = True
             expr.value = float(txt.getText())
