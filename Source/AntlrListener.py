@@ -44,7 +44,7 @@ class CPrintListener(CListener):
             item = self.depthStack.pop()
             if item not in self.depthStack:
                 item.line_num = ctx.start.line
-                item.simplify(self.typeTable, self.propagation)
+                item.optimise(self.typeTable, self.propagation)
 
     def enterEveryRule(self, ctx: ParserRuleContext):
         pass

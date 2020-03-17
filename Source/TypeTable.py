@@ -112,11 +112,11 @@ def get_type(val):
 
 def get_dominant_type(val1, val2):
     if isinstance(val1, float) or isinstance(val2, float):
-        return Float
+        return float
     if isinstance(val1, int) or isinstance(val2, int):
-        return Int
+        return int
     if isinstance(val1, str) or isinstance(val2, str):
-        return Char
+        return str
 
 
 # Found at https://stackoverflow.com/questions/23624212/how-to-convert-a-float-into-hex

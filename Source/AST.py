@@ -15,7 +15,9 @@ class ParserException(Exception):
 class ModuloException(Exception):
     pass
 
+
 last_label = 0
+
 
 class AST:
     def __init__(self):
@@ -46,7 +48,7 @@ class AST:
 
         while len(temp) > 0:
             item = temp.pop()
-            item.simplify()
+            item.optimise()
 
     # Prints the tree in dot format to a specified file (terminal if no file was given.)
     def print_tree(self, _file=None):
@@ -125,6 +127,7 @@ class AST:
 
         print("declare i32 @printf(i8*, ...) #1", file=_file)
 
+
 '''Core'''
 
 
@@ -161,25 +164,28 @@ class ASTNode:
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, '"]', file=_file)
 
-    # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    # Greatly simplifies the tree structure, removes redundant children, etc
+    # Checks for errors in semantics
+    def _reduce(self, symboltable):
         pass
 
-    def const_folding(self):
+    # Constant folds (expects reduced node)
+    def _const_folding(self):
         pass
 
-    def const_propagation(self, symboltable):
+    # Constant propagation (expects reduced node)
+    def _const_propagation(self, symboltable):
         pass
 
-    # Simplify this node structure if possible
-    def simplify(self, symboltable, propagation=False):
+    # Optimises this node structure if possible
+    def optimise(self, symboltable, propagation=False):
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
         else:
-            self.optimise(symboltable)
+            self._reduce(symboltable)
             if propagation:
-                self.const_propagation(symboltable)
-            self.const_folding()
+                self._const_propagation(symboltable)
+            self._const_folding()
 
     # Deletes a node and connects it's first child to the former parent of this node
     def delete(self):
@@ -294,7 +300,7 @@ class ASTNodeParam(ASTNode):
         self.name = ""
         self.type = ""
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         symboltable.insert_param(self.name, self.type)
 
 
@@ -302,9 +308,9 @@ class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
         self.name = ""
-        self.pointer = False
+        # self.pointer = False
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         entry = symboltable.lookup_variable(self.name)
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.name, self.line_num))
@@ -358,7 +364,7 @@ class ASTNodeCompound(ASTNodeStatement):
 # Definition statement node
 class ASTNodeDefinition(ASTNodeStatement):
     def __init__(self):
-        super().__init__("Definition")
+        self.init__ = super().__init__("Definition")
         self.canReplace = False
         self.type = None
         self.name = None
@@ -369,7 +375,7 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, self.type, '"]', file=_file)
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         value = None
         if len(self.children) == 0:
             pass
@@ -437,6 +443,9 @@ class ASTNodeReturn(ASTNodeStatement):
 class ASTNodeExpression(ASTNode):
     def __init__(self, val="Expression"):
         super().__init__(val)
+        # To support typechecking when const propagation is disabled
+        self.pointer = False
+        self.type = None
 
 
 # Unary expression node
@@ -452,18 +461,17 @@ class ASTNodeTernaryExpr(ASTNodeExpression):
 
 
 # Node literal
-class ASTNodeLiteral(ASTNode):
+class ASTNodeLiteral(ASTNodeExpression):
     def __init__(self, value="Value"):
         super().__init__(value)
         self.isConst = False
         self.canReplace = False
-        self.pointer = False
 
-    def const_propagation(self, symboltable):
+    def _const_propagation(self, symboltable):
         if not self.isConst:
             # Lookup variable in type table
             entry = symboltable.lookup_variable(str(self.value))
-            if not entry.pointer:
+            if not entry.pointer and not entry.value == "Unknown":
                 # Replace with value from symboltable
                 replacement = ASTNodeLiteral(entry.value)
                 replacement.isConst = True
@@ -475,7 +483,7 @@ class ASTNodeLiteral(ASTNode):
                 self.delete()
 
     # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         # Check if literal is variable
         if not self.isConst:
             # Lookup variable in type table
@@ -494,7 +502,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         self.canReplace = False
         self.operator = None
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
@@ -549,7 +557,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.canReplace = False
         self.operator = None
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         entry = symboltable.lookup_variable(self.children[0].name)
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
@@ -588,7 +596,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.equality, '"]', file=_file)
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         entry = symboltable.lookup_variable(self.get_name())
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.get_name(), self.line_num))
@@ -597,6 +605,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst \
                 and entry.value != "Unknown":
             value = self.children[1].value
+            value_type = get_dominant_type(entry.value, value)
             if self.equality == "=":
                 pass
             elif self.equality == "+=":
@@ -604,17 +613,15 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             elif self.equality == "-=":
                 value = entry.value - value
             elif self.equality == "/=":
-                value_type = get_dominant_type(entry.value, value)
                 if value == 0:
                     raise ParserException("Division by zero at line %s" % self.line_num)
                 value = entry.value / value
-                if value_type != Float:
+                if value_type != float:
                     value = int(value)
             elif self.equality == "*=":
                 value = entry.value * value
             elif self.equality == "%=":
-                value_type = get_dominant_type(entry.value, value)
-                if value_type == Float:
+                if value_type == float:
                     raise ParserException("Invalid operation '%=' with float argument(s) at line " + str(self.line_num))
                 value = entry.value % value
             else:
@@ -690,11 +697,12 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
             string_ref = "@.str"
             if len(_string_list) > 1:
-                string_ref += "." + str(len(_string_list)-1)
+                string_ref += "." + str(len(_string_list) - 1)
 
             print(
-                "  " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name + "(i8* getelementptr inbounds ([3 x i8], [3 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type + ' ' + value + ")",
-                file=_file)
+                "  " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name +
+                "(i8* getelementptr inbounds ([3 x i8], [3 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type +
+                ' ' + value + ")", file=_file)
 
 
 # Indexing expression node
@@ -710,7 +718,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
         self.canReplace = False
 
     # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value = not self.children[0].value
@@ -724,12 +732,11 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         self.canReplace = False
 
     # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value *= -1
                 self.delete()
-
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
@@ -768,7 +775,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         super().__init__("Dereference expression")
         self.canReplace = False
 
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         if not self.children[0].pointer:
             raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
@@ -795,7 +802,7 @@ class ASTNodeAddition(ASTNodeOp):
         print('"', self, '"', '[label = "', self.value, ":", self.operators, '"]', file=_file)
 
     # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -805,8 +812,8 @@ class ASTNodeAddition(ASTNodeOp):
             self.children = self.children[2:] if len(self.children) > 2 else []
 
             # Simplify if possible
-            if isinstance(left, ASTNodeLiteral) and isinstance(right,
-                                                               ASTNodeLiteral) and left.isConst and right.isConst:
+            if isinstance(left, ASTNodeLiteral) and isinstance(right, ASTNodeLiteral) \
+                    and left.isConst and right.isConst:
                 if opp == "+":
                     new_val = left.value + right.value
                 else:
@@ -864,7 +871,7 @@ class ASTNodeMult(ASTNodeOp):
         super().__init__("Multiplication")
 
     # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -883,10 +890,10 @@ class ASTNodeMult(ASTNodeOp):
                     if right.value == 0:
                         raise ParserException("Division by zero at line %s" % self.line_num)
                     new_val = left.value / right.value
-                    if value_type != Float:
+                    if value_type != float:
                         new_val = int(new_val)
                 elif opp == "%":
-                    if value_type == Float:
+                    if value_type == float:
                         raise ParserException(
                             "Invalid operation '%' with float argument(s) at line " + str(self.line_num))
                     new_val = left.value % right.value
@@ -946,7 +953,7 @@ class ASTNodeConditional(ASTNodeOp):
         super().__init__("Conditional expression")
 
     # Simplify this node structure if possible
-    def optimise(self, symboltable):
+    def _reduce(self, symboltable):
         # Run over all operators
         for i in range(len(self.operators)):
             # Get relevant children and operator
@@ -1024,15 +1031,19 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             new_addr3 = '%bbb' + new_addr[4:]
-            print('  ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file )
-            print('  ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label+1)  + " "  + ", label %" + str(last_label+2), file=_file )
-            print("; <label>:" + str(last_label+1)  + ":" + ' '*38 + "; preds = %" + str(last_label) , file=_file )
+            print('  ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file)
+            print('  ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 1) + " " + ", label %" + str(
+                last_label + 2), file=_file)
+            print("; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
 
-            print('  ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file )
-            print('  ' * _indent + "br " + "label %" + str(last_label+2)  + " ", file=_file )
-            print("; <label>:" + str(last_label+2)  + ":" + ' '*38 + "; preds = %" + str(last_label+1)  + ", %" + str(last_label) , file=_file )
+            print('  ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file)
+            print('  ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
+            print(
+                "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
+                    last_label), file=_file)
 
-            print('  ' * _indent + new_addr3 + " = phi i1 [ false, %" + str(last_label) + "], [" + new_addr2 + ", %"+ str(last_label+1)  + " ]", file=_file )
+            print('  ' * _indent + new_addr3 + " = phi i1 [ false, %" + str(
+                last_label) + "], [" + new_addr2 + ", %" + str(last_label + 1) + " ]", file=_file)
             convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
 
             last_label += 2
@@ -1046,15 +1057,20 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr2 = '%bb' + new_addr[3:]
             new_addr3 = '%bbb' + new_addr[4:]
 
-            print('  ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file )
-            print('  ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label+2)  + " "  + ", label %" + str(last_label+1), file=_file )
-            print("; <label>:" + str(last_label+1)  + ":" + ' '*38 + "; preds = %" + str(last_label) , file=_file )
+            print('  ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file)
+            print('  ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 2) + " " + ", label %" + str(
+                last_label + 1), file=_file)
+            print("; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
 
-            print('  ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file )
-            print('  ' * _indent + "br " + "label %" + str(last_label+2)  + " ", file=_file )
-            print("; <label>:" + str(last_label+2)  + ":" + ' '*38 + "; preds = %" + str(last_label+1)  + ", %" + str(last_label) , file=_file )
+            print('  ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file)
+            print('  ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
+            print(
+                "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
+                    last_label), file=_file)
 
-            print('  ' * _indent + new_addr3 + " = phi i1 [ true, %" + str(last_label) + "], [" + new_addr2 + ", %"+ str(last_label+1)  + " ]", file=_file )
+            print(
+                '  ' * _indent + new_addr3 + " = phi i1 [ true, %" + str(last_label) + "], [" + new_addr2 + ", %" + str(
+                    last_label + 1) + " ]", file=_file)
             convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
 
             last_label += 2
@@ -1063,7 +1079,6 @@ class ASTNodeConditional(ASTNodeOp):
                 raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
 
             return
-
 
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
@@ -1107,7 +1122,6 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
         if new_type == 'double':
             if old_type == 'float':
                 convopp = 'fpext'
-
 
         print('  ' * _indent + v1 + " = " + convopp + " " + old_type + " " + prev + " to " + new_type, file=_file)
 
