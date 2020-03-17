@@ -15,6 +15,7 @@ class ParserException(Exception):
 class ModuloException(Exception):
     pass
 
+last_label = 0
 
 class AST:
     def __init__(self):
@@ -216,6 +217,14 @@ class ASTNode:
             print('  ' * _indent + v1 + " = load " + llvm_type + ", " + llvm_type + "* %" +
                   str(self.name) + ", align 4", file=_file)
             return v1
+        elif isinstance(self, ASTNodeEqualityExpr):
+            print('; Load ' + str(self.children[0].name), file=_file)
+            v1 = self.get_llvm_addr()
+            llvm_type = self.get_llvm_type(_type_table, str(self.children[0].name))
+            print('  ' * _indent + v1 + " = load " + llvm_type + ", " + llvm_type + "* %" +
+                  str(self.children[0].name) + ", align 4", file=_file)
+            return v1
+
         else:
             return self.get_llvm_addr()
 
@@ -234,6 +243,12 @@ class ASTNode:
                 return 'float'
         elif isinstance(self, ASTNodeLeftValue):
             entry = _type_table.lookup_variable(self.name)
+            if isinstance(entry.type, str):
+                return entry.type
+            else:
+                return entry.type.get_llvm_type()
+        elif isinstance(self, ASTNodeEqualityExpr):
+            entry = _type_table.lookup_variable(self.children[0].name)
             if isinstance(entry.type, str):
                 return entry.type
             else:
@@ -612,13 +627,13 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         entry.update_value(value, self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print("; assign " + self.get_name() + ' ' + self.equality, file=_file)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         this_var = _type_table.lookup_variable(self.get_name())
-
         llvm_type = this_var.type.get_llvm_type()
         t1 = self.children[1].get_llvm_type(_type_table)
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-        print("; assign " + self.get_name() + ' ' + self.equality, file=_file)
+
         if self.equality != "=":
             opp = 'add'
             if llvm_type == 'float':
@@ -714,6 +729,27 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
             if self.children[0].isConst:
                 self.children[0].value *= -1
                 self.delete()
+
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+        v1 = '-1'
+        t0 = self.children[0].get_llvm_type(_type_table)
+        t1 = 'i8'
+        new_var = convert_types(t0, t1, v0, v1, _file, _indent)
+        v0 = new_var[0]
+        v1 = new_var[1]
+        llvm_type = new_var[2]
+        print(';' + v0 + " " + '-' + " " + v1, file=_file)
+        opp = "add"
+        if llvm_type == 'float':
+            opp = 'fadd'
+
+        new_addr = self.get_llvm_addr()
+        if not _type_table.insert_variable(new_addr, llvm_type):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+
+        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
 
 # Reference expression node
@@ -958,6 +994,82 @@ class ASTNodeConditional(ASTNodeOp):
 
         self.delete()
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
+        t0 = self.children[0].get_llvm_type(_type_table)
+        t1 = self.children[1].get_llvm_type(_type_table)
+        new_var = convert_types(t0, t1, v0, v1, _file, _indent)
+        v0 = new_var[0]
+        v1 = new_var[1]
+        llvm_type = new_var[2]
+        print(';' + v0 + " " + self.operators[0] + " " + v1, file=_file)
+        opp = "icmp slt"
+        if self.operators[0] == "==":
+            opp = "icmp eq"
+        elif self.operators[0] == "<":
+            opp = "icmp slt"
+        elif self.operators[0] == ">":
+            opp = "icmp sgt"
+        elif self.operators[0] == "!=":
+            opp = "icmp ne"
+        elif self.operators[0] == "<=":
+            opp = "icmp sle"
+        elif self.operators[0] == ">=":
+            opp = "icmp sge"
+
+        new_addr = self.get_llvm_addr()
+        global last_label
+        if self.operators[0] == "&&":
+            new_addr1 = '%b' + new_addr[2:]
+            new_addr2 = '%bb' + new_addr[3:]
+            new_addr3 = '%bbb' + new_addr[4:]
+            print('  ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file )
+            print('  ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label+1)  + " "  + ", label %" + str(last_label+2), file=_file )
+            print("; <label>:" + str(last_label+1)  + ":" + ' '*38 + "; preds = %" + str(last_label) , file=_file )
+
+            print('  ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file )
+            print('  ' * _indent + "br " + "label %" + str(last_label+2)  + " ", file=_file )
+            print("; <label>:" + str(last_label+2)  + ":" + ' '*38 + "; preds = %" + str(last_label+1)  + ", %" + str(last_label) , file=_file )
+
+            print('  ' * _indent + new_addr3 + " = phi i1 [ false, %" + str(last_label) + "], [" + new_addr2 + ", %"+ str(last_label+1)  + " ]", file=_file )
+            convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
+
+            last_label += 2
+
+            if not _type_table.insert_variable(new_addr, llvm_type):
+                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+
+            return
+        elif self.operators[0] == "||":
+            new_addr1 = '%b' + new_addr[2:]
+            new_addr2 = '%bb' + new_addr[3:]
+            new_addr3 = '%bbb' + new_addr[4:]
+
+            print('  ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file )
+            print('  ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label+2)  + " "  + ", label %" + str(last_label+1), file=_file )
+            print("; <label>:" + str(last_label+1)  + ":" + ' '*38 + "; preds = %" + str(last_label) , file=_file )
+
+            print('  ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file )
+            print('  ' * _indent + "br " + "label %" + str(last_label+2)  + " ", file=_file )
+            print("; <label>:" + str(last_label+2)  + ":" + ' '*38 + "; preds = %" + str(last_label+1)  + ", %" + str(last_label) , file=_file )
+
+            print('  ' * _indent + new_addr3 + " = phi i1 [ true, %" + str(last_label) + "], [" + new_addr2 + ", %"+ str(last_label+1)  + " ]", file=_file )
+            convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
+
+            last_label += 2
+
+            if not _type_table.insert_variable(new_addr, llvm_type):
+                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+
+            return
+
+
+        if not _type_table.insert_variable(new_addr, llvm_type):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+
+        print('  ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
+
 
 def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
     llvm_type = 'i8'
@@ -972,7 +1084,7 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
     return v0, v1, llvm_type
 
 
-def convert_type(old_type, new_type, v1, _file=None, _indent=0):
+def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
     if v1[0] != '%':
         if new_type == 'float':
             return double_to_hex(float(v1))
@@ -982,15 +1094,21 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0):
     if old_type != new_type:
         prev = str(v1)
         v1 = str(v1) + "conv"
+        if _save_as:
+            v1 = _save_as
         convopp = 'sitofp'
         if new_type == 'i32':
             convopp = 'sext'
             if old_type == 'float':
                 convopp = 'fptosi'
+            if old_type == 'i1':
+                convopp = 'zext'
 
         if new_type == 'double':
             if old_type == 'float':
                 convopp = 'fpext'
+
+
         print('  ' * _indent + v1 + " = " + convopp + " " + old_type + " " + prev + " to " + new_type, file=_file)
 
     return v1
