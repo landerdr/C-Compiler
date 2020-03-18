@@ -1,0 +1,12 @@
+int main(){
+    float* i;
+    float* c;
+    float k;
+    int l;
+    int m;
+    c = &k;
+    //printf("%d", k);
+
+    return 0;
+
+}

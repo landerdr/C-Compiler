@@ -400,7 +400,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             value = "Unknown"
             if string_to_type(self.type) < self.children[0].type:
                 print("Warning: implicit conversion from '%s' to '%s' at line %s" % (
-                string_to_type(self.type), self.children[0].type, self.line_num))
+                    string_to_type(self.type), self.children[0].type, self.line_num))
 
         if not symboltable.insert_variable(self.name, self.type, value=value, pointer=self.pointer, const=self.const,
                                            line_num=self.line_num):
@@ -422,8 +422,9 @@ class ASTNodeDefinition(ASTNodeStatement):
             v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t1 = self.children[0].get_llvm_type(_type_table)[0]
             v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-            print('    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.name + ", align 4",
-                  file=_file)
+            print(
+                '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + self.name + ", align 4",
+                file=_file)
 
 
 # If statement node
@@ -566,8 +567,9 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
-        print('    ' * _indent + "store " + llvm_type + " " + new_addr + ", " + llvm_type + "* %" + self.children[0].name
-              + ", align 4 ", file=_file)
+        print(
+            '    ' * _indent + "store " + llvm_type + " " + new_addr + ", " + llvm_type + "* %" + self.children[0].name
+            + ", align 4 ", file=_file)
 
 
 # Precrement expression node (In/Decrement in front of var)
@@ -654,7 +656,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             value = "Unknown"
             if entry.type < child.type:
                 print("Warning: implicit conversion from '%s' to '%s' at line %s" % (
-                entry.type, child.type, self.line_num))
+                    entry.type, child.type, self.line_num))
         entry.update_value(value, self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -791,6 +793,9 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         self.canReplace = False
         self.pointer = True
 
+    def _reduce(self, symboltable):
+        self.type = self.children[0].type
+
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         pass
 
@@ -802,6 +807,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         self.canReplace = False
 
     def _reduce(self, symboltable):
+        self.type = self.children[0].type
         if not self.children[0].pointer:
             raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
@@ -1108,7 +1114,8 @@ class ASTNodeConditional(ASTNodeOp):
                     last_label), file=_file)
 
             print(
-                '    ' * _indent + new_addr3 + " = phi i1 [ true, %" + str(last_label) + "], [" + new_addr2 + ", %" + str(
+                '    ' * _indent + new_addr3 + " = phi i1 [ true, %" + str(
+                    last_label) + "], [" + new_addr2 + ", %" + str(
                     last_label + 1) + " ]", file=_file)
             convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
 
@@ -1118,7 +1125,6 @@ class ASTNodeConditional(ASTNodeOp):
                 raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
 
             return
-
 
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
