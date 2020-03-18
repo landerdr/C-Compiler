@@ -493,6 +493,8 @@ class ASTNodeLiteral(ASTNodeExpression):
                 # Replace with value from symboltable
                 replacement = ASTNodeLiteral(entry.value)
                 replacement.isConst = True
+                replacement.pointer = entry.pointer
+                replacement.type = entry.type
                 # Give child temporary values
                 replacement.parent = self
                 replacement.index = 0
