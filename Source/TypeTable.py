@@ -29,6 +29,9 @@ class TypeTable:
 
     def leave_scope(self):
         if len(self.tables) != 0:
+            for key in self.tables[-1]:
+                if self.tables[-1][key].usage_count == 0:
+                    print("Warning: Unused variable '%s'" % key)
             self.tables.pop()
 
     def insert_variable(self, name, value_type, **kwargs):
@@ -46,6 +49,7 @@ class TypeTable:
     def lookup_variable(self, name):
         for i in range(1, len(self.tables) + 1):
             if name in self.tables[-i]:
+                self.tables[-i][name].usage_count += 1
                 return self.tables[-i][name]
         return None
 
@@ -74,11 +78,14 @@ class Entry:
         self.pointer = kwargs.get("pointer") or False
         self.const = kwargs.get("const") or False
 
+        self.line_num = kwargs.get("line_num")
+        self.usage_count = 0
+
         # If value is passed set value, none otherwise
         self.value = kwargs.get("value")
         # If value is assigned, typecast to proper value
         if self.value is not None:
-            self.update_value(self.value, kwargs.get("line_num"))
+            self.update_value(self.value, self.line_num)
         # Location of variable in the register
         self.register = kwargs.get("register")
         # Location of variable on the stack (if applicable)
