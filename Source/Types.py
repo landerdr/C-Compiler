@@ -26,6 +26,12 @@ class BaseType:
     def __repr__(self):
         return "NoneType"
 
+    def __bool__(self):
+        return False
+
+    def get_llvm_type_ptr(self=None):
+        return "NoneType"
+
 
 class Char(BaseType):
     def __init__(self):
@@ -45,6 +51,13 @@ class Char(BaseType):
     def get_llvm_type(self=None):
         return 'i8'
 
+    def get_llvm_type_ptr(self=None):
+        return 'i8'
+
+    def __bool__(self):
+        return True
+
+
 
 class Int(Char):
     def __init__(self):
@@ -62,6 +75,9 @@ class Int(Char):
     def get_llvm_type(self=None):
         return 'i32'
 
+    def get_llvm_type_ptr(self=None):
+        return 'i32'
+
 
 class Float(Int):
     def __init__(self):
@@ -77,6 +93,9 @@ class Float(Int):
         return "Float"
 
     def get_llvm_type(self=None):
+        return 'float'
+
+    def get_llvm_type_ptr(self=None):
         return 'float'
 
 
@@ -110,4 +129,8 @@ class Pointer(Int):
         return "%s*" % self.pointertype
 
     def get_llvm_type(self=None):
-        return 'float'
+        return self.pointertype.get_llvm_type()
+
+    def get_llvm_type_ptr(self=None):
+        return self.pointertype.get_llvm_type_ptr() + '*'
+

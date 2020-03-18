@@ -3,13 +3,13 @@ int main(){
     float* i;
     float* c;
     float k = 5;
-    int l;
-    int m;
+    int u = *c;
     c = &k;
-    *i = *c;
-    printf(*c);
-
-    return 0;
+    k += 1;
+    *i += *c + k;
+    //printf(*c);
+    //printf(*i);
+    return **i;
 
 }
 
