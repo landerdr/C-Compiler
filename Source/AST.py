@@ -394,6 +394,8 @@ class ASTNodeDefinition(ASTNodeStatement):
     def _reduce(self, symboltable):
         value = None
         if len(self.children) == 0:
+            if self.type.pointertype != NONE:
+                value = "Unknown"
             pass
         elif isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
             value = self.children[0].value
@@ -406,7 +408,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             value = "Unknown"
             if self.type < self.children[0].type:
                 print("Warning: implicit conversion from '%s' to '%s' at line %s" % (
-                    string_to_type(self.type), self.children[0].type, self.line_num))
+                    self.children[0].type, self.type, self.line_num))
 
         if not symboltable.insert_variable(self.name, self.type, value=value, const=self.const,
                                            line_num=self.line_num):
