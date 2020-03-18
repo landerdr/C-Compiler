@@ -637,6 +637,8 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         print('"', self, '"', '[label = "', self.value, ":", self.equality, '"]', file=_file)
 
     def _reduce(self, symboltable):
+        if not isinstance(self.children[0], ASTNodeLeftValue):
+            return
         entry = symboltable.lookup_variable(self.get_name())
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.get_name(), self.line_num))

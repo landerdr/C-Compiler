@@ -5,6 +5,7 @@ int main(){
     int l;
     int m;
     c = &k;
+    *i = *c;
     //printf("%d", k);
 
     return 0;
