@@ -1,6 +1,5 @@
 import fileinput
 import sys
-import traceback
 
 from Source.AntlrListener import *
 
@@ -38,9 +37,6 @@ def main():
 
     except ParserException as e:
         print("Parser error:", e)
-    except Exception as e:
-        print("Actual error: ", e)
-        traceback.print_exc()
 
 
 if __name__ == '__main__':
