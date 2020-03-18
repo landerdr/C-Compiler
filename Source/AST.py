@@ -880,6 +880,10 @@ class ASTNodeAddition(ASTNodeOp):
             right = self.children[1]
             self.children = self.children[2:] if len(self.children) > 2 else []
 
+            if not compatible_types(left.type, right.type):
+                raise ParserException("Invalid operation '%s' on types %s and %s at line %s" % (
+                    opp, left.type, right.type, self.line_num))
+
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right, ASTNodeLiteral) \
                     and left.isConst and right.isConst:
@@ -947,6 +951,10 @@ class ASTNodeMult(ASTNodeOp):
             left = self.children[0]
             right = self.children[1]
             self.children = self.children[2:] if len(self.children) > 2 else []
+
+            if not compatible_types(left.type, right.type):
+                raise ParserException("Invalid operation '%s' on types %s and %s at line %s" % (
+                    opp, left.type, right.type, self.line_num))
 
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
@@ -1031,6 +1039,10 @@ class ASTNodeConditional(ASTNodeOp):
             left = self.children[0]
             right = self.children[1]
             self.children = self.children[2:] if len(self.children) > 2 else []
+
+            if not compatible_types(left.type, right.type):
+                raise ParserException("Invalid operation '%s' on types %s and %s at line %s" % (
+                    opp, left.type, right.type, self.line_num))
 
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
