@@ -84,12 +84,15 @@ class CPrintListener(CListener):
         if ctx.Int():
             expr.isConst = True
             expr.value = int(txt.getText())
+            expr.type = INT
         if ctx.Char():
             expr.isConst = True
-            expr.value = txt.getText()[1]
+            expr.value = ord(txt.getText()[1])
+            expr.type = CHAR
         if ctx.Float():
             expr.isConst = True
             expr.value = float(txt.getText())
+            expr.type = FLOAT
         self.add_node(expr)
 
     def enterExpression_statement(self, ctx: CParser.Expression_statementContext):

@@ -308,13 +308,15 @@ class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
         self.name = ""
-        # self.pointer = False
+        self.pointer = False
+        self.type = None
 
     def _reduce(self, symboltable):
         entry = symboltable.lookup_variable(self.name)
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.name, self.line_num))
         self.pointer = entry.pointer
+        self.type = entry.type
 
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, '"]', file=_file)
@@ -388,8 +390,12 @@ class ASTNodeDefinition(ASTNodeStatement):
             raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
             value = "Unknown"
+            if string_to_type(self.type) < self.children[0].type:
+                print("Warning: implicit conversion from '%s' to '%s' at line %s" % (
+                string_to_type(self.type), self.children[0].type, self.line_num))
 
-        if not symboltable.insert_variable(self.name, self.type, value=value, pointer=self.pointer, const=self.const):
+        if not symboltable.insert_variable(self.name, self.type, value=value, pointer=self.pointer, const=self.const,
+                                           line_num=self.line_num):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -493,6 +499,7 @@ class ASTNodeLiteral(ASTNodeExpression):
             if entry.value is None:
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
             self.pointer = entry.pointer
+            self.type = entry.type
 
 
 # Postcrement expression node (In/Decrement behind var)
@@ -601,11 +608,12 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.get_name(), self.line_num))
         if entry.const:
-            raise ParserException("Trying to redefine variable '%s' at line %s" % (self.get_name(), self.line_num))
-        if len(self.children) == 2 and isinstance(self.children[1], ASTNodeLiteral) and self.children[1].isConst \
-                and entry.value != "Unknown":
-            value = self.children[1].value
-            value_type = get_dominant_type(entry.value, value)
+            raise ParserException(
+                "Trying to redefine const variable '%s' at line %s" % (self.get_name(), self.line_num))
+        child = self.children[1]
+        if len(self.children) == 2 and isinstance(child, ASTNodeLiteral) and child.isConst and entry.value != "Unknown":
+            value = child.value
+            value_type = get_dominant_type(entry.type, child.type)
             if self.equality == "=":
                 pass
             elif self.equality == "+=":
@@ -616,12 +624,12 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 if value == 0:
                     raise ParserException("Division by zero at line %s" % self.line_num)
                 value = entry.value / value
-                if value_type != float:
+                if value_type != FLOAT:
                     value = int(value)
             elif self.equality == "*=":
                 value = entry.value * value
             elif self.equality == "%=":
-                if value_type == float:
+                if value_type == FLOAT:
                     raise ParserException("Invalid operation '%=' with float argument(s) at line " + str(self.line_num))
                 value = entry.value % value
             else:
@@ -631,6 +639,9 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                     or isinstance(self.children[1], ASTNodeReference) != entry.pointer:
                 raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
             value = "Unknown"
+            if entry.type < child.type:
+                print("Warning: implicit conversion from '%s' to '%s' at line %s" % (
+                entry.type, child.type, self.line_num))
         entry.update_value(value, self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -719,9 +730,11 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
 
     # Simplify this node structure if possible
     def _reduce(self, symboltable):
+        self.type = self.children[0].type
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
-                self.children[0].value = not self.children[0].value
+                self.children[0].value = int(not self.children[0].value)
+                self.children[0].type = INT
                 self.delete()
 
 
@@ -733,6 +746,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
 
     # Simplify this node structure if possible
     def _reduce(self, symboltable):
+        self.type = self.children[0].type
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value *= -1
@@ -764,6 +778,7 @@ class ASTNodeReference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Reference expression")
         self.canReplace = False
+        self.pointer = True
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         pass
@@ -831,6 +846,7 @@ class ASTNodeAddition(ASTNodeOp):
             # Give child temporary values
             new_child.parent = self
             new_child.index = 0
+            new_child.type = get_dominant_type(left.type, right.type)
             # Insert child at front of children
             self.children.insert(0, new_child)
 
@@ -883,17 +899,17 @@ class ASTNodeMult(ASTNodeOp):
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
                                                                ASTNodeLiteral) and left.isConst and right.isConst:
-                value_type = get_dominant_type(left.value, right.value)
+                value_type = get_dominant_type(left.type, right.type)
                 if opp == "*":
                     new_val = left.value * right.value
                 elif opp == "/":
                     if right.value == 0:
                         raise ParserException("Division by zero at line %s" % self.line_num)
                     new_val = left.value / right.value
-                    if value_type != float:
+                    if value_type != FLOAT:
                         new_val = int(new_val)
                 elif opp == "%":
-                    if value_type == float:
+                    if value_type == FLOAT:
                         raise ParserException(
                             "Invalid operation '%' with float argument(s) at line " + str(self.line_num))
                     new_val = left.value % right.value
@@ -912,6 +928,7 @@ class ASTNodeMult(ASTNodeOp):
             # Give child temporary values
             new_child.parent = self
             new_child.index = 0
+            new_child.type = get_dominant_type(left.type, right.type)
             # Insert child at front of children
             self.children.insert(0, new_child)
 
@@ -996,6 +1013,7 @@ class ASTNodeConditional(ASTNodeOp):
             # Give child temporary values
             new_child.parent = self
             new_child.index = 0
+            new_child.type = INT
             # Insert child at front of children
             self.children.insert(0, new_child)
 

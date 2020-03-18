@@ -1,13 +1,17 @@
 from Source.Types import *
 
+CHAR = Char()
+INT = Int()
+FLOAT = Float()
 
-def _string_to_type(value_type):
+
+def string_to_type(value_type):
     if value_type == "char":
-        return Char()
+        return CHAR
     elif value_type == "int":
-        return Int()
+        return INT
     elif value_type == "float":
-        return Float()
+        return FLOAT
     else:
         return value_type
 
@@ -30,13 +34,13 @@ class TypeTable:
     def insert_variable(self, name, value_type, **kwargs):
         if name in self.tables[-1]:
             return False
-        self.tables[-1][name] = Entry(_string_to_type(value_type), **kwargs)
+        self.tables[-1][name] = Entry(string_to_type(value_type), **kwargs)
         return True
 
     def insert_param(self, name, value_type):
         if name in self.param:
             return False
-        self.param[name] = Entry(_string_to_type(value_type))
+        self.param[name] = Entry(string_to_type(value_type))
         return True
 
     def lookup_variable(self, name):
@@ -49,7 +53,7 @@ class TypeTable:
         if name in self.functions:
             return False
         self.current = name
-        self.functions[name] = Entry(_string_to_type(value_type))
+        self.functions[name] = Entry(string_to_type(value_type))
 
     def lookup_function(self, name):
         if name in self.functions:
@@ -74,7 +78,7 @@ class Entry:
         self.value = kwargs.get("value")
         # If value is assigned, typecast to proper value
         if self.value is not None:
-            self.update_value(self.value)
+            self.update_value(self.value, kwargs.get("line_num"))
         # Location of variable in the register
         self.register = kwargs.get("register")
         # Location of variable on the stack (if applicable)
@@ -89,7 +93,7 @@ class Entry:
         value_type = get_type(new_value)
         # TODO: check refactor possibilities (issubclass)
         if self.type < value_type:
-            print("Warning: implicit conversion from %s to %s at line %s" % (value_type, self.type, line_num))
+            print("Warning: implicit conversion from '%s' to '%s' at line %s" % (value_type, self.type, line_num))
         self.value = self.type.cast(new_value)
 
     def __str__(self):
@@ -103,20 +107,20 @@ class Entry:
 
 def get_type(val):
     if isinstance(val, float):
-        return Float()
+        return FLOAT
     if isinstance(val, int):
-        return Int()
+        return INT
     if isinstance(val, str):
-        return Char()
+        return CHAR
 
 
-def get_dominant_type(val1, val2):
-    if isinstance(val1, float) or isinstance(val2, float):
-        return float
-    if isinstance(val1, int) or isinstance(val2, int):
-        return int
-    if isinstance(val1, str) or isinstance(val2, str):
-        return str
+def get_dominant_type(type1, type2):
+    if type1 == FLOAT or type2 == FLOAT:
+        return FLOAT
+    if type1 == INT or type2 == INT:
+        return INT
+    if type1 == CHAR or type2 == CHAR:
+        return CHAR
 
 
 # Found at https://stackoverflow.com/questions/23624212/how-to-convert-a-float-into-hex
