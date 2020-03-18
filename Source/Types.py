@@ -1,21 +1,37 @@
-class Char:
+class BaseType:
     def __init__(self):
-        self.rank = 0
+        self.pointertype = None
 
     def __lt__(self, other):
-        return self.rank < other.rank
+        return self <= other and not self == other
 
     def __le__(self, other):
-        return self.rank <= other.rank
+        return issubclass(type(other), type(self))
 
     def __eq__(self, other):
-        return self.rank == other.rank
+        return type(self) == type(other)
 
     def __gt__(self, other):
-        return self.rank > other.rank
+        return self >= other and not self == other
 
     def __ge__(self, other):
-        return self.rank >= other.rank
+        return issubclass(type(self), type(other))
+
+    # TODO: fix char to not be int
+    def cast(self, value):
+        return None
+
+    def __str__(self):
+        return "NoneType"
+
+    def __repr__(self):
+        return "NoneType"
+
+
+class Char(BaseType):
+    def __init__(self):
+        super().__init__()
+        self.pointertype = BaseType()
 
     # TODO: fix char to not be int
     def cast(self, value):
@@ -34,7 +50,6 @@ class Char:
 class Int(Char):
     def __init__(self):
         super().__init__()
-        self.rank = 0
 
     def cast(self, value):
         return int(value)
@@ -52,7 +67,6 @@ class Int(Char):
 class Float(Int):
     def __init__(self):
         super().__init__()
-        self.rank = 1
 
     def cast(self, value):
         return float(value)
@@ -62,6 +76,27 @@ class Float(Int):
 
     def __repr__(self):
         return "Float"
+
+    def get_llvm_type(self=None):
+        return 'float'
+
+
+class Pointer(Int):
+    def __init__(self, pointertype):
+        super().__init__()
+        self.pointertype = pointertype
+
+    def cast(self, value):
+        pass
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.pointertype == other.pointertype
+
+    def __str__(self):
+        return "%s*" % self.pointertype
+
+    def __repr__(self):
+        return "%s*" % self.pointertype
 
     def get_llvm_type(self=None):
         return 'float'
