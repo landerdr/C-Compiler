@@ -17,7 +17,6 @@ class BaseType:
     def __ge__(self, other):
         return issubclass(type(self), type(other))
 
-    # TODO: fix char to not be int
     def cast(self, value):
         return None
 
@@ -91,6 +90,18 @@ class Pointer(Int):
 
     def __eq__(self, other):
         return type(self) == type(other) and self.pointertype == other.pointertype
+
+    def __lt__(self, other):
+        return self <= other and not self == other
+
+    def __le__(self, other):
+        return issubclass(type(other), type(self)) and self.pointertype <= other.pointertype
+
+    def __gt__(self, other):
+        return self >= other and not self == other
+
+    def __ge__(self, other):
+        return issubclass(type(self), type(other)) and self.pointertype >= other.pointertype
 
     def __str__(self):
         return "%s*" % self.pointertype

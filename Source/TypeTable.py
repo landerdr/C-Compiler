@@ -1,8 +1,17 @@
 from Source.Types import *
 
+NONE = BaseType()
 CHAR = Char()
 INT = Int()
 FLOAT = Float()
+
+
+class ParserException(Exception):
+    pass
+
+
+class ModuloException(Exception):
+    pass
 
 
 def string_to_type(value_type):
@@ -74,8 +83,9 @@ class TypeTable:
 class Entry:
     def __init__(self, value_type, **kwargs):
         self.type = value_type
+        if kwargs.get("pointer"):
+            self.type = Pointer(self.type)
 
-        self.pointer = kwargs.get("pointer") or False
         self.const = kwargs.get("const") or False
 
         self.line_num = kwargs.get("line_num")
@@ -98,18 +108,17 @@ class Entry:
             return
 
         value_type = get_type(new_value)
-        # TODO: check refactor possibilities (issubclass)
         if self.type < value_type:
             print("Warning: implicit conversion from '%s' to '%s' at line %s" % (value_type, self.type, line_num))
         self.value = self.type.cast(new_value)
 
     def __str__(self):
-        return "Type: %s%s%s, Value: %s" % (
-            "const " if self.const else "", str(self.type), "*" if self.pointer else "", str(self.value))
+        return "Type: %s%s, Value: %s" % (
+            "const " if self.const else "", str(self.type), str(self.value))
 
     def __repr__(self):
-        return "Type: %s%s%s, Value: %s" % (
-            "const " if self.const else "", str(self.type), "*" if self.pointer else "", str(self.value))
+        return "Type: %s%s, Value: %s" % (
+            "const " if self.const else "", str(self.type), str(self.value))
 
 
 def get_type(val):
@@ -121,13 +130,12 @@ def get_type(val):
         return CHAR
 
 
+def compatible_types(type1, type2):
+    return type1 <= type2 or type1 >= type2
+
+
 def get_dominant_type(type1, type2):
-    if type1 == FLOAT or type2 == FLOAT:
-        return FLOAT
-    if type1 == INT or type2 == INT:
-        return INT
-    if type1 == CHAR or type2 == CHAR:
-        return CHAR
+    return max(type1, type2)
 
 
 # Found at https://stackoverflow.com/questions/23624212/how-to-convert-a-float-into-hex
@@ -156,6 +164,10 @@ if __name__ == "__main__":
     print(b)
     b.update_value(5)
     print(table.lookup_variable("b"))
+
+    print(get_dominant_type(INT, FLOAT))
+    print(compatible_types(Pointer(INT), INT))
+    print(get_dominant_type(Pointer(CHAR), Pointer(CHAR)))
 
     table.leave_scope()
     table.leave_scope()

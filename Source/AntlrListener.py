@@ -146,9 +146,10 @@ class CPrintListener(CListener):
     def enterVariable_definition(self, ctx: CParser.Variable_definitionContext):
         expr = ASTNodeDefinition()
         expr.name = ctx.ID().getText()
-        expr.type = ctx.value_type().Type().getText()
+        expr.type = string_to_type(ctx.value_type().Type().getText())
+        if ctx.value_type().STAR() is not None:
+            expr.type = Pointer(expr.type)
         expr.const = ctx.value_type().CONST() is not None
-        expr.pointer = ctx.value_type().STAR() is not None
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):

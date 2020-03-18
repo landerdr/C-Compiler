@@ -1,19 +1,10 @@
 """Abstract Syntax Tree"""
 from Source.TypeTable import *
 
-
 # ToDo: add print_llvm_ir where necessary
 # ToDo: make print_llvm_ir differentiate between data types
 # ToDo: make print_llvm_it differentiate between operator types
 # ToDo: splits simplify into Const collapse / propagation / gwn verwijdere van onnodige stuff, zoda we da zonder kunne runne
-
-
-class ParserException(Exception):
-    pass
-
-
-class ModuloException(Exception):
-    pass
 
 
 last_label = 0
@@ -329,14 +320,12 @@ class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
         self.name = ""
-        self.pointer = False
-        self.type = None
+        self.type = NONE
 
     def _reduce(self, symboltable):
         entry = symboltable.lookup_variable(self.name)
         if not entry:
             raise ParserException("Non declared variable '%s' at line %s" % (self.name, self.line_num))
-        self.pointer = entry.pointer
         self.type = entry.type
 
     def print_dot(self, _file=None):
@@ -397,7 +386,6 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.type = None
         self.name = None
         self.const = False
-        self.pointer = False
 
     # Print dot format name and label
     def print_dot(self, _file=None):
@@ -412,15 +400,15 @@ class ASTNodeDefinition(ASTNodeStatement):
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
             entry = symboltable.lookup_variable(self.children[0].get_name())
             value = entry.value
-        elif self.pointer != isinstance(self.children[0], ASTNodeReference):
+        elif not compatible_types(self.type, self.children[0].type):
             raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
             value = "Unknown"
-            if string_to_type(self.type) < self.children[0].type:
+            if self.type < self.children[0].type:
                 print("Warning: implicit conversion from '%s' to '%s' at line %s" % (
                     string_to_type(self.type), self.children[0].type, self.line_num))
 
-        if not symboltable.insert_variable(self.name, self.type, value=value, pointer=self.pointer, const=self.const,
+        if not symboltable.insert_variable(self.name, self.type, value=value, const=self.const,
                                            line_num=self.line_num):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
@@ -481,8 +469,7 @@ class ASTNodeExpression(ASTNode):
     def __init__(self, val="Expression"):
         super().__init__(val)
         # To support typechecking when const propagation is disabled
-        self.pointer = False
-        self.type = None
+        self.type = NONE
 
 
 # Unary expression node
@@ -508,11 +495,10 @@ class ASTNodeLiteral(ASTNodeExpression):
         if not self.isConst:
             # Lookup variable in type table
             entry = symboltable.lookup_variable(str(self.value))
-            if not entry.pointer and not entry.value == "Unknown":
+            if entry.value != "Unknown":
                 # Replace with value from symboltable
                 replacement = ASTNodeLiteral(entry.value)
                 replacement.isConst = True
-                replacement.pointer = entry.pointer
                 replacement.type = entry.type
                 # Give child temporary values
                 replacement.parent = self
@@ -531,7 +517,6 @@ class ASTNodeLiteral(ASTNodeExpression):
                 raise ParserException("Non declared variable '%s' at line %s" % (self.value, self.line_num))
             if entry.value is None:
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
-            self.pointer = entry.pointer
             self.type = entry.type
 
 
@@ -670,8 +655,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             else:
                 raise ParserException("Not implemented yet")
         else:
-            if isinstance(self.children[1], ASTNodeLiteral) and entry.pointer != self.children[1].pointer \
-                    or isinstance(self.children[1], ASTNodeReference) != entry.pointer:
+            if not compatible_types(entry.type, child.type):
                 raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
             value = "Unknown"
             if entry.type < child.type:
@@ -820,10 +804,9 @@ class ASTNodeReference(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Reference expression")
         self.canReplace = False
-        self.pointer = True
 
     def _reduce(self, symboltable):
-        self.type = self.children[0].type
+        self.type = Pointer(self.children[0].type)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         child = self.children[0]
@@ -835,7 +818,9 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         if not _type_table.insert_variable(new_addr, llvm_type, pointer=entry[1]):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
-        print('    ' * _indent + 'store float* ' + v0 + ', float** ' + self.parent.get_without_load(_type_table, _file, _indent) + ', align 8', file=_file)
+        print('    ' * _indent + 'store float* ' + v0 + ', float** ' + self.parent.get_without_load(_type_table, _file,
+                                                                                                    _indent) + ', align 8',
+              file=_file)
 
         print('    ' * _indent + new_addr + " = load " + llvm_type + ", " + llvm_type + "* " +
               v0 + ", align 4", file=_file)
@@ -848,8 +833,8 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         self.canReplace = False
 
     def _reduce(self, symboltable):
-        self.type = self.children[0].type
-        if not self.children[0].pointer:
+        self.type = self.children[0].type.pointertype
+        if self.type < Pointer(INT):
             raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -865,7 +850,6 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
 
         print('    ' * _indent + new_addr + " = load " + llvm_type + ", " + llvm_type + "* " +
               v0 + ", align 4", file=_file)
-
 
 
 '''Operations'''
