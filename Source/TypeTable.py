@@ -15,9 +15,9 @@ class ModuloException(Exception):
 
 
 def string_to_type(value_type):
-    if value_type == "char":
+    if value_type == "char" or value_type == "i8":
         return CHAR
-    elif value_type == "int":
+    elif value_type == "int" or value_type == "i32":
         return INT
     elif value_type == "float":
         return FLOAT

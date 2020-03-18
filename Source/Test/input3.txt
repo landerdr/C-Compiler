@@ -6,7 +6,7 @@ int main(){
     int m;
     c = &k;
     *i = *c;
-    int j = i;
+    int j = i + 3;
     //printf("%d", k);
 
     return 0;
