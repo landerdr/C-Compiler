@@ -276,7 +276,8 @@ class CPrintListener(CListener):
 
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
         expr = ASTNodeLeftValue()
-        expr.name = ctx.ID().getText()
+        if ctx.ID():
+            expr.name = ctx.ID().getText()
         self.add_node(expr)
 
     def enterDereference(self, ctx: CParser.DereferenceContext):
