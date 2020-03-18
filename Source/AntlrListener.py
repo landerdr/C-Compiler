@@ -181,9 +181,9 @@ class CPrintListener(CListener):
     def enterFunction(self, ctx: CParser.FunctionContext):
         expr = ASTNodeFunction()
         expr.name = ctx.ID().getText()
-        expr.type = ctx.value_type().Type().getText()
-        expr.const = ctx.value_type().CONST() is not None
-        expr.pointer = ctx.value_type().STAR() is not None
+        expr.type = string_to_type(ctx.value_type().Type().getText())
+        if ctx.value_type().STAR() is not None:
+            expr.type = Pointer(expr.type)
 
         self.typeTable.insert_function(expr.name, expr.type)
         self.add_node(expr)
@@ -212,7 +212,10 @@ class CPrintListener(CListener):
     def enterParam(self, ctx: CParser.ParamContext):
         expr = ASTNodeParam()
         expr.name = ctx.ID().getText()
-        expr.type = ctx.value_type().Type().getText()
+        expr.type = string_to_type(ctx.value_type().Type().getText())
+        if ctx.value_type().STAR() is not None:
+            expr.type = Pointer(expr.type)
+        expr.const = ctx.value_type().CONST() is not None
         self.add_node(expr)
 
     def enterParams(self, ctx: CParser.ParamsContext):

@@ -284,6 +284,8 @@ class ASTNodeFunction(ASTNode):
     def __init__(self):
         super().__init__("Function")
         self.canReplace = False
+        self.name = None
+        self.type = NONE
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         print('\n' + '; Function Attrs: noinline nounwind optnone uwtable', file=_file)
@@ -309,11 +311,12 @@ class ASTNodeParams(ASTNode):
 class ASTNodeParam(ASTNode):
     def __init__(self):
         super().__init__("Param")
-        self.name = ""
-        self.type = ""
+        self.name = None
+        self.type = NONE
+        self.const = False
 
     def _reduce(self, symboltable):
-        symboltable.insert_param(self.name, self.type)
+        symboltable.insert_param(self.name, self.type, const=self.const)
 
 
 class ASTNodeLeftValue(ASTNode):
