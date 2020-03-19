@@ -826,6 +826,10 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         super().__init__("Reference expression")
         self.canReplace = False
 
+    def _const_propagation(self, symboltable):
+        entry = symboltable.lookup_variable(self.children[0].name)
+        entry.value = "Unknown"
+
     def _reduce(self, symboltable):
         self.type = Pointer(self.children[0].type)
 
@@ -834,7 +838,9 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         new_addr = self.get_llvm_addr()
         llvm_type = child.get_llvm_type(_type_table)[0]
         v0 = child.get_without_load(_type_table, _file, _indent)
-        print('    ' * _indent + 'store ' + llvm_type + '* ' + v0 + ', ' + llvm_type + '** ' + self.parent.get_without_load(_type_table, _file, _indent) + ', align 8', file=_file)
+        print(
+            '    ' * _indent + 'store ' + llvm_type + '* ' + v0 + ', ' + llvm_type + '** ' + self.parent.get_without_load(
+                _type_table, _file, _indent) + ', align 8', file=_file)
 
 
 # Dereference expression node
