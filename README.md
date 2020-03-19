@@ -73,7 +73,7 @@ Run clang:
     - [x] *=
     - [x] /=
     - [x] %=
-    - [x] %=
+
 #### Supported in CFG but not (completely) in LLVM yet
 - [x] (multidimensional) Arrays
 - [x] Functions
