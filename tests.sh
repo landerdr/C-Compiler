@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 INPUT="Default"
 OUTPUT=0
@@ -14,7 +14,7 @@ runtest()
 
 runtestprop()
 {
-  echo "Run test prop ${INPUT}"
+  echo "Run test w/ prop ${INPUT}"
   python3 Source/main.py -i ${INPUT} -llvm main.ll -prop
   confirm
   return
