@@ -707,8 +707,6 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         entry.update_value(value, self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        if isinstance(self.children[1], ASTNodeReference):
-            return
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         if not isinstance(self.children[0], ASTNodeLeftValue):
             var_name = self.children[0].children[0].get_llvm_addr()[1:]
@@ -747,10 +745,11 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             print('    ' * _indent + new_v1 + " = " + opp + " " + llvm_type + " " + v1 + "," + v0, file=_file)
             v1 = new_v1
 
-        pointer = entry.type
+        pointer = entry.type.get_llvm_type_ptr()
         allign = '4'
-        if not pointer:
-            llvm_type += '*'
+
+        if pointer != entry.type.get_llvm_type():
+            llvm_type = pointer
             allign = '8'
 
         print(
@@ -767,6 +766,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf':
+            value = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t = self.children[0].get_llvm_type(_type_table)
             printed_type = t[0]
             if t[1] != printed_type:
@@ -778,7 +778,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 _string_list.append("%d\\0A")
             elif printed_type == 'float':
                 _string_list.append("%f\\0A")
-            value = self.children[0].load_if_necessary(_type_table, _file, _indent)
+
             value = convert_type(printed_type, printed_type, value, _file, _indent)
             if printed_type == 'float':
                 printed_type = 'double'
@@ -868,10 +868,15 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         child = self.children[0]
         new_addr = self.get_llvm_addr()
         llvm_type = child.get_llvm_type(_type_table)[0]
-        v0 = child.get_without_load(_type_table, _file, _indent)
-        print(
-            '    ' * _indent + 'store ' + llvm_type + '* ' + v0 + ', ' + llvm_type + '** ' + self.parent.get_without_load(
-                _type_table, _file, _indent) + ', align 8', file=_file)
+
+        if not _type_table.insert_variable(new_addr, llvm_type, pointer=True):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+
+    def get_llvm_addr(self):
+        return self.children[0].get_llvm_addr()
+
+    def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+        return self.children[0].get_without_load(_type_table, _file, _indent)
 
 
 # Dereference expression node
