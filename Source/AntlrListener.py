@@ -34,7 +34,7 @@ class CPrintListener(CListener):
         walker = ParseTreeWalker()
         walker.walk(self, tree)
 
-        print(self.typeTable)
+        # print(self.typeTable)
 
     '''Rules'''
 
