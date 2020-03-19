@@ -58,7 +58,6 @@ class Char(BaseType):
         return True
 
 
-
 class Int(Char):
     def __init__(self):
         super().__init__()

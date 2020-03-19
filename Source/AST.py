@@ -535,19 +535,16 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         self.canReplace = False
         self.operator = None
 
-    def _reduce(self, symboltable):
+    def _const_propagation(self, symboltable):
         entry = symboltable.lookup_variable(self.children[0].name)
-        if not entry:
-            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
-        if entry.value is None:
-            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
 
         if entry.value == "Unknown":
             return
 
         new_child = ASTNodeLiteral(entry.value)
-        new_child.canReplace = True
         new_child.parent = self
+        new_child.isConst = True
+        new_child.type = entry.type
         self.children = [new_child]
         self.delete()
 
@@ -555,6 +552,13 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             entry.value += 1
         elif self.operator == "--":
             entry.value -= 1
+
+    def _reduce(self, symboltable):
+        entry = symboltable.lookup_variable(self.children[0].name)
+        if not entry:
+            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
+        if entry.value is None:
+            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
@@ -590,13 +594,8 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.canReplace = False
         self.operator = None
 
-    def _reduce(self, symboltable):
+    def _const_propagation(self, symboltable):
         entry = symboltable.lookup_variable(self.children[0].name)
-        if not entry:
-            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
-        if entry.value is None:
-            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
-
         if entry.value == "Unknown":
             return
 
@@ -606,10 +605,18 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
             entry.value -= 1
 
         new_child = ASTNodeLiteral(entry.value)
-        new_child.canReplace = True
         new_child.parent = self
+        new_child.isConst = True
+        new_child.type = entry.type
         self.children = [new_child]
         self.delete()
+
+    def _reduce(self, symboltable):
+        entry = symboltable.lookup_variable(self.children[0].name)
+        if not entry:
+            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
+        if entry.value is None:
+            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         pass
@@ -642,6 +649,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if len(self.children) == 2 and isinstance(child, ASTNodeLiteral) and child.isConst and entry.value != "Unknown":
             value = child.value
             value_type = get_dominant_type(entry.type, child.type)
+            self.type = entry.type
             if self.equality == "=":
                 pass
             elif self.equality == "+=":
