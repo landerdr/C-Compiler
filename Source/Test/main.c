@@ -1,15 +1,22 @@
 
 int main(){
-    float* i;
-    float* c;
-    float k = 5;
-    int u = *c;
+    int* i;
+    int* c;
+    int k = 5;
+    int k2 = 5;
+    i = &k2;
     c = &k;
-    k += 1;
-    *i += *c + k;
-    //printf(*c);
-    //printf(*i);
-    return **i;
+    *i = 0;
+    *c = 0;
+    *c = k--;
+    *i = --k2;
+
+    printf(*c);
+    printf(*i);
+    printf(k);
+    printf(k2);
+
+    return k;
 
 }
 
