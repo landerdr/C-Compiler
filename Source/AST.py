@@ -76,6 +76,7 @@ class AST:
     # (Hopefully) Prints it's equivalent as llvm IR code
     def print_llvm_ir(self, _file_name=None):
         _file = open(_file_name, 'w+')
+        print("; ModuleID = 'main.c'\nsource_filename = \"main.c\"\ntarget datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\ntarget triple = \"x86_64-pc-linux-gnu\"", file=_file)
 
         type_table = TypeTable()
         type_table.enter_scope()
@@ -227,8 +228,6 @@ class ASTNode:
         elif isinstance(self, ASTNodeLeftValue):
             return self._load(self.name, _type_table, _file, _indent, _target)
 
-        elif isinstance(self, ASTNodeEqualityExpr):
-            return self._load(self.children[0].name, _type_table, _file, _indent, _target)
         else:
             return self.get_llvm_addr()
 
@@ -1241,7 +1240,8 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
             return double_to_hex(float(v1))
         if new_type == 'i8':
             return str(ord(v1))
-        return v1
+        if new_type == 'i32':
+            return str(int(float(v1)))
     if old_type != new_type:
         prev = str(v1)
         v1 = str(v1) + "conv"
