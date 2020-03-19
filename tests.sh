@@ -23,14 +23,18 @@ runtestprop()
 
 confirm()
 {
+  echo "==============================================="
   clang main.ll -o main
   ./main
+  echo "==============================================="
   if [ $? -eq ${OUTPUT} ]
     then
       echo "Test successvol."
+      echo "==============================================="
       return
   fi
     echo "Test failed."
+    echo "==============================================="
     return
 }
 
