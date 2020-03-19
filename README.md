@@ -67,6 +67,13 @@ Run clang:
 
 ## Extra features
 - [x] Scope support in symbol table
+- [x] Assignment operators
+    - [x] +=
+    - [x] -=
+    - [x] *=
+    - [x] /=
+    - [x] %=
+    - [x] %=
 #### Supported in CFG but not (completely) in LLVM yet
 - [x] (multidimensional) Arrays
 - [x] Functions
@@ -77,3 +84,4 @@ Run clang:
 - [x] continue
 - [x] break
 - [x] if / else statements
+- [x] ternary operators
