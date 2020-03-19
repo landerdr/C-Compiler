@@ -62,11 +62,11 @@ Run clang:
     - [x] Printf int
     - [x] Printf float
     - [ ] Printf pointer
-- [ ] (mandatory) Code generation LLVM
+- [x] (mandatory) Code generation LLVM
 
 ## Extra features
 - [x] Scope support in symbol table
-#### Supported in CFG but not in LLVM yet
+#### Supported in CFG but not (completely) in LLVM yet
 - [x] (multidimensional) Arrays
 - [x] Functions
 - [x] return statement
