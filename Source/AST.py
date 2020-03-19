@@ -1016,7 +1016,6 @@ class ASTNodeMult(ASTNodeOp):
                 elif opp == "/":
                     if right.value == 0:
                         raise ParserException("Division by zero at line %s" % self.line_num)
-                    print(left.value, right.value)
                     new_val = left.value / right.value
                     if value_type != FLOAT:
                         new_val = int(new_val)
