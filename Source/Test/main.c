@@ -16,7 +16,7 @@ int main(){
     printf(k);
     printf(k2);
 
-    return k;
+    return 2;
 
 }
 
