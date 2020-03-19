@@ -845,7 +845,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
 
     def _reduce(self, symboltable):
         self.type = self.children[0].type.pointertype
-        if self.type < Pointer(INT):
+        if self.type == NONE:
             raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
