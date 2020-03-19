@@ -768,13 +768,16 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf':
-            printed_type = self.children[0].get_llvm_type(_type_table)[0]
-
-            if printed_type == 'i8':
+            t = self.children[0].get_llvm_type(_type_table)
+            printed_type = t[0]
+            if t[1] != printed_type:
+                _string_list.append("%p\\0A")
+                printed_type = t[1]
+            elif printed_type == 'i8':
                 _string_list.append("%c\\0A")
-            if printed_type == 'i32':
+            elif printed_type == 'i32':
                 _string_list.append("%d\\0A")
-            if printed_type == 'float':
+            elif printed_type == 'float':
                 _string_list.append("%f\\0A")
             value = self.children[0].load_if_necessary(_type_table, _file, _indent)
             value = convert_type(printed_type, printed_type, value, _file, _indent)
@@ -831,22 +834,22 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
     # TODO: FIX!
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        v1 = '-1'
+        v1 = '0'
         t0 = self.children[0].get_llvm_type(_type_table)[0]
         t1 = 'i8'
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
-        opp = "add"
+        opp = "sub"
         if llvm_type == 'float':
-            opp = 'fadd'
+            opp = 'fsub'
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
-        print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
+        print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v1 + "," + v0, file=_file)
 
 
 # Reference expression node
