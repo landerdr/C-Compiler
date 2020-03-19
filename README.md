@@ -42,6 +42,7 @@ Run clang:
     - [x] unary operator --
 - [ ] (optional) Conversions
     - [x] Warning implicit casts
+    - [x] Implicit casts
     - [ ] Explicit casts
 - [x] (optional) Constant propagation
 - [x] (mandatory) Syntax Errors
@@ -57,11 +58,11 @@ Run clang:
     - [x] (mandatory) Comment support in language
     - [ ] (optional) Put comments in generated LLVM code
     - [ ] (optional) Put original line in generated LLVM code
-- [ ] (mandatory) Printf
+- [x] (mandatory) Printf
     - [x] Printf char
     - [x] Printf int
     - [x] Printf float
-    - [ ] Printf pointer
+    - [x] Printf pointer
 - [x] (mandatory) Code generation LLVM
 
 ## Extra features
