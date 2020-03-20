@@ -46,3 +46,12 @@ OUTPUT=0
 runtest
 runtestprop
 
+INPUT="Source/Test/pointers.c"
+OUTPUT=0
+runtest
+runtestprop
+
+INPUT="Source/Test/equality_opperators.txt"
+OUTPUT=0
+runtest
+runtestprop
