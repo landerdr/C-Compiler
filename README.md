@@ -40,7 +40,7 @@ Contains all test input files.
     - [x] char
     - [x] int
     - [x] float
-    - [x] pointer types
+    - [x] pointer types (not yet pointer to pointer)
 - [x] (mandatory) Reserved words `const`
 - [x] (mandatory) Variables
     - [x] variable declarations
@@ -108,7 +108,7 @@ Basic run command:
 
 Compiler options:
 - `-i <INPUT>`: indicates input file
-- `-dot <DOT OUTPUT>`: generates ast representation in dot language.
+- `-dot <DOT OUTPUT>`: generates AST representation in dot language.
 - `-prop`: enables constant propagation
 - `-llvm <LLVM OUTPUT>`: generates llvm to output file
 
