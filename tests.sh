@@ -1,5 +1,11 @@
 #!/bin/bash
 
+echo "Intalling requirements..."
+pip install -r requirements.txt
+sudo apt install clang
+echo "Done installing."
+
+
 INPUT="Default"
 OUTPUT=0
 
