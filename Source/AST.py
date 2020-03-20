@@ -722,7 +722,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
 
         if self.equality != "=":
 
-            if t1 == 'float':
+            if t1 == 'float' and isinstance(self.children, ASTNodeLiteral):
                 t1 = 'double'
 
             new_v1 = self.get_llvm_addr()
@@ -833,16 +833,19 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[0]
-        v0 = convert_type(str(t0), 'i32', v0, _file, _indent)
+        v1 = convert_type('i32', str(t0), '0', _file, _indent)
+
         llvm_type = 'i1'
         opp = "xor"
-        if llvm_type == 'float':
+        icmp = 'icmp ne '
+        if str(t0) == 'float' or t0 == 'double':
             opp = 'xor'
+            icmp = 'fcmp une '
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
-        print(v0 + 't = icmp ne ' + t0 + v0 + ', 0', file=_file)
+        print('    ' * _indent + v0 + 't = ' + icmp + t0 + ' ' + v0 + ', ' + v1, file=_file)
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "t , true", file=_file)
 
 
@@ -1182,7 +1185,7 @@ class ASTNodeConditional(ASTNodeOp):
         if self.operators[0] == "==":
             opp = "icmp eq"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp eq'
+                opp = 'fcmp oeq'
         elif self.operators[0] == "<":
             opp = "icmp slt"
             if llvm_type == 'float' or llvm_type == 'double':
@@ -1194,7 +1197,7 @@ class ASTNodeConditional(ASTNodeOp):
         elif self.operators[0] == "!=":
             opp = "icmp ne"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp ne'
+                opp = 'fcmp une'
         elif self.operators[0] == "<=":
             opp = "icmp sle"
             if llvm_type == 'float' or llvm_type == 'double':
@@ -1209,13 +1212,18 @@ class ASTNodeConditional(ASTNodeOp):
         if self.operators[0] == "&&":
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
-            new_addr3 = '%bbb' + new_addr[4:]
-            print('    ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file)
+            val = convert_type('i32', llvm_type, '0', _file, _indent)
+
+            icmp = 'icmp ne'
+            if llvm_type == 'float' or llvm_type == 'double':
+                icmp = 'fcmp une'
+
+            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 1) + " " + ", label %" + str(
                 last_label + 2), file=_file)
             print("; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
 
-            print('    ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file)
+            print('    ' * _indent + new_addr2 + " =  " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
             print('    ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
             print(
                 "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
@@ -1234,14 +1242,18 @@ class ASTNodeConditional(ASTNodeOp):
         elif self.operators[0] == "||":
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
-            new_addr3 = '%bbb' + new_addr[4:]
+            val = convert_type('i32', llvm_type, '0', _file, _indent)
 
-            print('    ' * _indent + new_addr1 + " = icmp ne " + " " + llvm_type + " " + v0 + ", 0", file=_file)
+            icmp = 'icmp ne'
+            if llvm_type == 'float' or llvm_type == 'double':
+                icmp = 'fcmp une'
+
+            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 2) + " " + ", label %" + str(
                 last_label + 1), file=_file)
             print("; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
 
-            print('    ' * _indent + new_addr2 + " = icmp ne " + " " + llvm_type + " " + v1 + ", 0", file=_file)
+            print('    ' * _indent + new_addr2 + " = " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
             print('    ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
             print(
                 "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
@@ -1311,10 +1323,15 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
                 convopp = 'fpext'
 
         if new_type == 'i8':
+            if old_type == 'i1':
+                print('    ' * _indent + prev + "con = zext i1 " + prev + " to i32", file=_file)
+                convopp = 'trunc'
+                print('    ' * _indent + v1 + " = " + convopp + " i32 " + prev + "con to " + new_type, file=_file)
+                return v1
             if old_type == 'i32':
                 convopp = 'trunc'
 
-            if old_type == 'double':
+            if old_type == 'double' or old_type == 'float':
                 convopp = 'fptosi'
 
         if new_type == 'i1':
