@@ -3,7 +3,7 @@ int main(){
 
     float k = 5;
     float k2 = -k;
-
+    2 = 2;
 
     printf(k);
     printf(k2);
