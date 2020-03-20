@@ -113,9 +113,9 @@ Compiler options:
 - `-llvm <LLVM OUTPUT>`: generates llvm to output file
 
 Generate antlr files:
-_ONLY IF YOU WANT TO REGEN THE ANTLR FILES, CONTENTS NEEDS TO BE MOVED TO `gen/`_
+_ONLY IF YOU WANT TO REGEN THE ANTLR FILES_
 
-    > java -Xmx500M -cp antlr-4.8-complete.jar org.antlr.v4.Tool -Dlanguage=Python3 Source/C.g4
+    > ./build.sh
 
 Tests:
 
