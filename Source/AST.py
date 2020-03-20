@@ -1,4 +1,6 @@
 """Abstract Syntax Tree"""
+from math import floor
+
 from Source.TypeTable import *
 
 # ToDo: add print_llvm_ir where necessary
@@ -722,7 +724,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
 
         if self.equality != "=":
 
-            if t1 == 'float' and isinstance(self.children, ASTNodeLiteral):
+            if t1 == 'float' and isinstance(self.children[1], ASTNodeLiteral):
                 t1 = 'double'
 
             new_v1 = self.get_llvm_addr()
@@ -732,7 +734,6 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             v0 = converted[0]
             v1 = converted[1]
             t1 = converted[2]
-
 
             opp = 'add'
             if t1 == 'double' or t1 == 'float':
@@ -1301,7 +1302,7 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
             if old_type == 'i32':
                 return v1
             elif old_type == 'float':
-                return str(v1)
+                return str(floor(float(v1)))
             return str(v1)
         if new_type == 'i32':
             return str(int(float(v1)))
@@ -1322,12 +1323,17 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
             if old_type == 'float':
                 convopp = 'fpext'
 
+        if new_type == 'float':
+            if old_type == 'double':
+                convopp = 'fptrunc'
+
         if new_type == 'i8':
             if old_type == 'i1':
                 print('    ' * _indent + prev + "con = zext i1 " + prev + " to i32", file=_file)
                 convopp = 'trunc'
                 print('    ' * _indent + v1 + " = " + convopp + " i32 " + prev + "con to " + new_type, file=_file)
                 return v1
+
             if old_type == 'i32':
                 convopp = 'trunc'
 
