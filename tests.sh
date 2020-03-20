@@ -41,7 +41,7 @@ confirm()
 
 # Test section
 
-INPUT="Source/Test/simple_assignments.txt"
+INPUT="Test/simple_assignments.txt"
 OUTPUT=0
 runtest
 runtestprop

@@ -1,27 +1,36 @@
 # C-Compiler
-Custom C compiler for compilers course
+Custom C _-ish_ compiler for compilers course.
 [Online generator for reference](http://ellcc.org/demo/index.cgi)
 
-Run basic antrl: 
+## Project structure
+`gen/`:
+This folder contains all antlr4 generated files.
 
-    > java -Xmx500M -cp java/antlr-4.8-complete.jar org.antlr.v4.Tool -Dlanguage=Python3 Hello.g4  
-    > python3 main.py  -i <INPUT> --dot <DOT_FILE_OUTEPUT> -llvm <LLVM OUTPUT>
-  
-Run clang:
-    
-    > clang main.c -S -emit-llvm -o main.ll
-    > clang main.ll -o main
-    > ./main
-    
+`Source/`:
+Contains all source files for the compiler:
+- `Source/main.py`:
+Parses cli input and controls compiler.
+- `Source/AntlrListener.py`:
+Custom implementation of the antlr Listener to create the AST.
+- `Source/AST.py`:
+Implementation of our AST tree structure and nodes.
+- `Source/TypeTable.py`:
+Implementation of our symbol table.
+- `Source/Types.py`:
+Custom classes for types.
+
+`Test/`:
+Contains all test input files.
+
 ## Features
 #### Project 1
-- [x] (mandatory) Binary operations +, -, *, and /
-- [x] (mandatory) Binary operations >, <, and ==
-- [x] (mandatory) Unary operators + and -
+- [x] (mandatory) Binary operations `+`, `-`, `*`, and `/`
+- [x] (mandatory) Binary operations `>`, `<`, and `==`
+- [x] (mandatory) Unary operators `+` and `-`
 - [x] (mandatory) Brackets to overwrite the order of operations
-- [x] (optional) Binary operator %
-- [x] (optional) Comparison operators >= ,<= , and !=
-- [x] (optional) Logical operators &&, ||, and !
+- [x] (optional) Binary operator `%`
+- [x] (optional) Comparison operators `>=` ,`<=` , and `!=`
+- [x] (optional) Logical operators `&&`, `||`, and `!`
 - [x] (mandatory) AST
 - [x] (mandatory) Dot language representation
 - [x] (optional) Constant folding
@@ -32,15 +41,15 @@ Run clang:
     - [x] int
     - [x] float
     - [x] pointer types
-- [x] (mandatory) Reserved words (const)
+- [x] (mandatory) Reserved words `const`
 - [x] (mandatory) Variables
     - [x] variable declarations
     - [x] variable definitions
     - [x] assignment statements
     - [x] identifiers appearing in expressions
 - [x] (optional) Identifier Operations 
-    - [x] unary operator ++ 
-    - [x] unary operator --
+    - [x] unary operator `++` 
+    - [x] unary operator `--`
 - [ ] (optional) Conversions
     - [x] Warning implicit casts
     - [x] Implicit casts
@@ -69,11 +78,11 @@ Run clang:
 ## Extra features
 - [x] Scope support in symbol table
 - [x] Assignment operators
-    - [x] +=
-    - [x] -=
-    - [x] *=
-    - [x] /=
-    - [x] %=
+    - [x] `+=`
+    - [x] `-=`
+    - [x] `*=`
+    - [x] `/=`
+    - [x] `%=`
 
 #### Supported in CFG but not (completely) in LLVM yet
 - [x] (multidimensional) Arrays
@@ -86,3 +95,29 @@ Run clang:
 - [x] break
 - [x] if / else statements
 - [x] ternary operators
+
+## Requirements, build process & testing
+Requirements:
+- Python3
+- antlr4-python3-runtime (v4.8)
+- antlr4
+
+Basic run command:
+
+    > python3 Source/main.py -i <INPUT> -llvm <LLVM OUTPUT>
+
+Compiler options:
+- `-i <INPUT>`: indicates input file
+- `-dot <DOT OUTPUT>`: generates ast representation in dot language.
+- `-prop`: enables constant propagation
+- `-llvm <LLVM OUTPUT>`: generates llvm to output file
+
+Generate antlr files:
+_ONLY IF YOU WANT TO REGEN THE ANTLR FILES, CONTENTS NEEDS TO BE MOVED TO `gen/`_
+
+    > java -Xmx500M -cp antlr-4.8-complete.jar org.antlr.v4.Tool -Dlanguage=Python3 Source/C.g4
+
+Tests:
+
+    > ./tests.sh
+    
