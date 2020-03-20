@@ -55,3 +55,8 @@ INPUT="Test/equality_opperators.txt"
 OUTPUT=0
 runtest
 runtestprop
+
+INPUT="Test/test_operations.txt"
+OUTPUT=0
+runtest
+runtestprop
