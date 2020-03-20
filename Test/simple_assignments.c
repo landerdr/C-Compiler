@@ -17,5 +17,6 @@ int main()
     u = u*1.0;
     int k = u && 0;
     k = u || 0;
+
     return 0;
 }

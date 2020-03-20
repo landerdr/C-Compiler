@@ -227,7 +227,11 @@ class ASTNode:
                 return str(self.value)
         elif isinstance(self, ASTNodeLeftValue):
             return self._load(self.name, _type_table, _file, _indent, _target)
-
+        if isinstance(self, ASTNodeEqualityExpr):
+            if self.equality == '=':
+                return self._load(self.children[0].name, _type_table, _file, _indent, _target)
+            else:
+                return self.get_llvm_addr()
         else:
             return self.get_llvm_addr()
 
@@ -255,9 +259,7 @@ class ASTNode:
                 entry = _type_table.lookup_variable(str(self.value))
                 return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
             else:
-                if isinstance(self.value, int):
-                    return 'i32', 'i32'
-                return 'float', FLOAT
+                return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
         elif isinstance(self, ASTNodeLeftValue):
             entry = _type_table.lookup_variable(self.name)
             if isinstance(entry.type, str):
@@ -717,34 +719,45 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
 
         llvm_type = entry.type.get_llvm_type()
         t1 = self.children[1].get_llvm_type(_type_table)[0]
-        v1 = convert_type(t1, llvm_type, v1, _file, _indent)
 
         if self.equality != "=":
-            opp = 'add'
-            if llvm_type == 'float':
-                opp = 'fadd'
-            if self.equality == "-=":
-                opp = "sub"
-                if llvm_type == 'float':
-                    opp = 'fsub'
-            if self.equality == "/=":
-                opp = 'sdiv'
-                if llvm_type == 'float':
-                    opp = 'fdiv'
-            if self.equality == "*=":
-                opp = 'mul'
-                if llvm_type == 'float':
-                    opp = 'fmul'
-            if self.equality == "%=":
-                opp = 'srem'
-                if llvm_type == 'float':
-                    raise ModuloException('Trying to use modulo on float type')
+
+            if t1 == 'float':
+                t1 = 'double'
 
             new_v1 = self.get_llvm_addr()
             v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-            print('    ' * _indent + new_v1 + " = " + opp + " " + llvm_type + " " + v1 + "," + v0, file=_file)
+            converted = convert_types(llvm_type, t1, v0, v1, _file, _indent)
+
+            v0 = converted[0]
+            v1 = converted[1]
+            t1 = converted[2]
+
+
+            opp = 'add'
+            if t1 == 'double' or t1 == 'float':
+                opp = 'fadd'
+            if self.equality == "-=":
+                opp = "sub"
+                if t1 == 'double' or t1 == 'float':
+                    opp = 'fsub'
+            if self.equality == "/=":
+                opp = 'sdiv'
+                if t1 == 'double' or t1 == 'float':
+                    opp = 'fdiv'
+            if self.equality == "*=":
+                opp = 'mul'
+                if t1 == 'double' or t1 == 'float':
+                    opp = 'fmul'
+            if self.equality == "%=":
+                opp = 'srem'
+                if t1 == 'double' or t1 == 'float':
+                    raise ModuloException('Trying to use modulo on float type')
+
+            print('    ' * _indent + new_v1 + " = " + opp + " " + t1 + " " + v0 + ", " + v1, file=_file)
             v1 = new_v1
 
+        v1 = convert_type(t1, llvm_type, v1, _file, _indent)
         pointer = entry.type.get_llvm_type_ptr()
         allign = '4'
 
@@ -782,11 +795,13 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             value = convert_type(printed_type, printed_type, value, _file, _indent)
             if printed_type == 'float':
                 printed_type = 'double'
-                value = convert_type('float', printed_type, value, _file, _indent)
+                if value[0] == '%':
+                    value = convert_type('float', printed_type, value, _file, _indent)
 
             string_ref = "@.str"
             if len(_string_list) > 1:
                 string_ref += "." + str(len(_string_list) - 1)
+
 
             print(
                 "    " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name +
@@ -815,6 +830,25 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
                 self.children[0].type = INT
                 self.delete()
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+        t0 = self.children[0].get_llvm_type(_type_table)[0]
+        t1 = 'i1'
+        #new_var = convert_types(t0, t1, v0, v1, _file, _indent)
+        v0 = convert_type(str(t0), 'i32', v0, _file, _indent)
+        #v0 = new_var[0]
+        #v1 = new_var[1]
+        llvm_type = 'i1'  #new_var[2]
+        opp = "xor"
+        if llvm_type == 'float':
+            opp = 'xor'
+
+        new_addr = self.get_llvm_addr()
+        if not _type_table.insert_variable(new_addr, llvm_type):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+        print(v0 + 't = icmp ne ' + t0 + v0 + ', 0', file=_file)
+        print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "t , true", file=_file)
+
 
 # Negative expression node
 class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
@@ -830,7 +864,6 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 self.children[0].value *= -1
                 self.delete()
 
-    # TODO: FIX!
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = '0'
@@ -1152,16 +1185,28 @@ class ASTNodeConditional(ASTNodeOp):
         opp = "icmp slt"
         if self.operators[0] == "==":
             opp = "icmp eq"
+            if llvm_type == 'float' or llvm_type == 'double':
+                opp = 'fcmp eq'
         elif self.operators[0] == "<":
             opp = "icmp slt"
+            if llvm_type == 'float' or llvm_type == 'double':
+                opp = 'fcmp olt'
         elif self.operators[0] == ">":
             opp = "icmp sgt"
+            if llvm_type == 'float' or llvm_type == 'double':
+                opp = 'fcmp ogt'
         elif self.operators[0] == "!=":
             opp = "icmp ne"
+            if llvm_type == 'float' or llvm_type == 'double':
+                opp = 'fcmp ne'
         elif self.operators[0] == "<=":
             opp = "icmp sle"
+            if llvm_type == 'float' or llvm_type == 'double':
+                opp = 'fcmp ole'
         elif self.operators[0] == ">=":
             opp = "icmp sge"
+            if llvm_type == 'float' or llvm_type == 'double':
+                opp = 'fcmp oge'
 
         new_addr = self.get_llvm_addr()
         global last_label
@@ -1180,14 +1225,14 @@ class ASTNodeConditional(ASTNodeOp):
                 "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
                     last_label), file=_file)
 
-            print('    ' * _indent + new_addr3 + " = phi i1 [ false, %" + str(
+            print('    ' * _indent + new_addr + " = phi i1 [ false, %" + str(
                 last_label) + "], [" + new_addr2 + ", %" + str(last_label + 1) + " ]", file=_file)
-            convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
+            #convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
 
             last_label += 2
 
-            if not _type_table.insert_variable(new_addr, llvm_type):
-                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+            if not _type_table.insert_variable(new_addr, 'i1'):
+                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
 
             return
         elif self.operators[0] == "||":
@@ -1207,20 +1252,20 @@ class ASTNodeConditional(ASTNodeOp):
                     last_label), file=_file)
 
             print(
-                '    ' * _indent + new_addr3 + " = phi i1 [ true, %" + str(
+                '    ' * _indent + new_addr + " = phi i1 [ true, %" + str(
                     last_label) + "], [" + new_addr2 + ", %" + str(
                     last_label + 1) + " ]", file=_file)
-            convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
+            #convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
 
             last_label += 2
 
-            if not _type_table.insert_variable(new_addr, llvm_type):
-                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+            if not _type_table.insert_variable(new_addr, 'i1'):
+                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
 
             return
 
-        if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+        if not _type_table.insert_variable(new_addr, 'i1'):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
@@ -1231,6 +1276,8 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
         llvm_type = 'i32'
     if t0 == 'float' or t1 == 'float':
         llvm_type = 'float'
+    if t0 == 'double' or t1 == 'double':
+        llvm_type = 'double'
 
     v0 = convert_type(t0, llvm_type, v0, _file, _indent)
     v1 = convert_type(t1, llvm_type, v1, _file, _indent)
@@ -1243,7 +1290,11 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
         if new_type == 'float':
             return double_to_hex(float(v1))
         if new_type == 'i8':
-            return str(ord(v1))
+            if old_type == 'i32':
+                return v1
+            elif old_type == 'float':
+                return str(v1)
+            return str(v1)
         if new_type == 'i32':
             return str(int(float(v1)))
     if old_type != new_type:
@@ -1254,7 +1305,7 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
         convopp = 'sitofp'
         if new_type == 'i32':
             convopp = 'sext'
-            if old_type == 'float':
+            if old_type == 'float' or old_type == 'double':
                 convopp = 'fptosi'
             if old_type == 'i1':
                 convopp = 'zext'
@@ -1262,6 +1313,17 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
         if new_type == 'double':
             if old_type == 'float':
                 convopp = 'fpext'
+
+        if new_type == 'i8':
+            if old_type == 'i32':
+                convopp = 'trunc'
+
+            if old_type == 'double':
+                convopp = 'fptosi'
+
+        if new_type == 'i1':
+            #if old_type == 'i32':
+            convopp = 'zext'
 
         print('    ' * _indent + v1 + " = " + convopp + " " + old_type + " " + prev + " to " + new_type, file=_file)
 

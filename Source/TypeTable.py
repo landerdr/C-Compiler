@@ -1,6 +1,7 @@
 from Source.Types import *
 
 NONE = BaseType()
+BOOL = Bool()
 CHAR = Char()
 INT = Int()
 FLOAT = Float()
@@ -15,12 +16,15 @@ class ModuloException(Exception):
 
 
 def string_to_type(value_type):
-    if value_type == "char" or value_type == "i8":
+    if value_type == "bool" or value_type == "i1":
+        return BOOL
+    elif value_type == "char" or value_type == "i8":
         return CHAR
     elif value_type == "int" or value_type == "i32":
         return INT
     elif value_type == "float":
         return FLOAT
+
     else:
         return value_type
 
@@ -130,6 +134,8 @@ def get_type(val):
         return INT
     if isinstance(val, str):
         return CHAR
+    if isinstance(val, bool):
+        return Bool
 
 
 def compatible_types(type1, type2):

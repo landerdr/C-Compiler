@@ -47,7 +47,7 @@ confirm()
 
 # Test section
 
-INPUT="Test/simple_assignments.txt"
+INPUT="Test/simple_assignments.c"
 OUTPUT=0
 runtest
 runtestprop
@@ -57,12 +57,12 @@ OUTPUT=0
 runtest
 runtestprop
 
-INPUT="Test/equality_opperators.txt"
+INPUT="Test/equality_opperators.c"
 OUTPUT=0
 runtest
 runtestprop
 
-INPUT="Test/test_operations.txt"
+INPUT="Test/test_operations.c"
 OUTPUT=0
 runtest
 runtestprop

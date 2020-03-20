@@ -33,7 +33,31 @@ class BaseType:
         return "NoneType"
 
 
-class Char(BaseType):
+class Bool(BaseType):
+    def __init__(self):
+        super().__init__()
+        self.pointertype = BaseType()
+
+    def cast(self, value):
+        return bool(value)
+
+    def __str__(self):
+        return "Bool"
+
+    def __repr__(self):
+        return "Bool"
+
+    def get_llvm_type(self):
+        return 'i1'
+
+    def get_llvm_type_ptr(self):
+        return 'i1'
+
+    def __bool__(self):
+        return True
+
+
+class Char(Bool):
     def __init__(self):
         super().__init__()
         self.pointertype = BaseType()
