@@ -833,12 +833,8 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[0]
-        t1 = 'i1'
-        #new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = convert_type(str(t0), 'i32', v0, _file, _indent)
-        #v0 = new_var[0]
-        #v1 = new_var[1]
-        llvm_type = 'i1'  #new_var[2]
+        llvm_type = 'i1'
         opp = "xor"
         if llvm_type == 'float':
             opp = 'xor'

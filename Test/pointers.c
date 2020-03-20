@@ -12,7 +12,7 @@ int main(){
     printf(c);
 
     printf(a);
-    printf( &b);
+    printf(&b);
     printf(&c);
 
     return 0;
