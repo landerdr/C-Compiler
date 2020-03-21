@@ -78,10 +78,10 @@ Contains all test input files.
 #### Project 4
 - [ ] (mandatory) Reserved words
     - [ ] (mandatory) `if`, `else`, and `while`
-    – [ ] (mandatory) `for`
-    – [ ] (mandatory) `break`
-    – [ ] (mandatory) `continue`
-    – [ ] (optional) `switch`, `case`, and `default`
+    - [ ] (mandatory) `for`
+    - [ ] (mandatory) `break`
+    - [ ] (mandatory) `continue`
+    - [ ] (optional) `switch`, `case`, and `default`
 - [ ] (mandatory) Scopes
 
 ## Extra features
