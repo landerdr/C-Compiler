@@ -75,6 +75,14 @@ Contains all test input files.
     - [x] Printf pointer
 - [x] (mandatory) Code generation LLVM
 
+#### Project 4
+- [ ] (mandatory) Reserved words
+    – [ ] (mandatory) `for`
+    – [ ] (mandatory) `break`
+    – [ ] (mandatory) `continue`
+    – [ ] (optional) `switch`, `case`, and `default`
+- [ ] (mandatory) Scopes
+
 ## Extra features
 - [x] Scope support in symbol table
 - [x] Assignment operators
