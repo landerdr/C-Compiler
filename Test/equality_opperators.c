@@ -7,7 +7,7 @@ int main() {
     c -= 1;
     c *= 1.1;
     c /= 1.1;
-    printf(c); // excpecting c
+    //printf(c); // excpecting c
 
     int i = 4;
     i += 4;
@@ -15,7 +15,7 @@ int main() {
     i *= 10;
     i /= 4;
     i %= 6;
-    printf(i); // excpecting 3
+    //printf(i); // excpecting 3
 
     float b = 5;
     b += 1;
@@ -23,7 +23,7 @@ int main() {
     b *= 2;
     b /= 2;
     //b %= 3; // not allowed between floats
-    printf(b); // excpecting 5.000000000
+    //printf(b); // excpecting 5.000000000
 
     return 0;
 
