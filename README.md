@@ -77,6 +77,7 @@ Contains all test input files.
 
 #### Project 4
 - [ ] (mandatory) Reserved words
+    - [ ] (mandatory) `if`, `else`, and `while`
     – [ ] (mandatory) `for`
     – [ ] (mandatory) `break`
     – [ ] (mandatory) `continue`
