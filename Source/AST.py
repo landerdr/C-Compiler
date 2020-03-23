@@ -102,11 +102,12 @@ class AST:
             children = item.children
             if isinstance(item, ASTNodeEqualityExpr):
                 children = reversed(children)
-
-            for i in children:
-                if not (i in visited):
+            index = 0
+            for i in range(len(children)):
+                if not (children[i] in visited):
                     # prestack.append(item)
-                    prestack.append(i)
+                    prestack.append(children[i])
+                    index = i
                     found = True
                     break
 
@@ -115,6 +116,9 @@ class AST:
                 prestack.pop()
                 item.print_llvm_ir_post(type_table, _file, len(type_table.tables), string_list)
                 visited.append(item)
+            else:
+                if index != 0:
+                    item.print_llvm_ir_in(type_table, index-1, _file, len(type_table.tables), string_list)
 
         for i in range(0, len(string_list)):
             string_ref = "@.str"
@@ -198,6 +202,9 @@ class ASTNode:
 
     # Prints it's equivalent as llvm IR code
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+        pass
+
+    def print_llvm_ir_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
         pass
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -358,12 +365,17 @@ class ASTNodeBreak(ASTNodeStatement):
     def __init__(self):
         super().__init__("Break")
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print('    ' * _indent + "break", file=_file)
+
 
 # Continue statement node
 class ASTNodeContinue(ASTNodeStatement):
     def __init__(self):
         super().__init__("Continue")
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print('    ' * _indent + "continue", file=_file)
 
 # Base expression statement node
 class ASTNodeExpressionStatement(ASTNodeStatement):
@@ -456,6 +468,9 @@ class ASTNodeIf(ASTNodeStatement):
         self.Condition = None
         self.body = None
 
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print('    ' * _indent + "if (bla bla)", file=_file)
+
 
 # Loop statement node
 class ASTNodeLoopStatement(ASTNodeStatement):
@@ -463,6 +478,9 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         super().__init__("Loop statement")
         self.Condition = None
         self.body = None
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print('    ' * _indent + "while (bla bla)", file=_file)
 
 
 # Return statement node
