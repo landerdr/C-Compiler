@@ -467,9 +467,42 @@ class ASTNodeIf(ASTNodeStatement):
         super().__init__("If statement")
         self.Condition = None
         self.body = None
+        self.label1 = None
+        self.label2 = None
+
+    def print_llvm_ir_in(self, _type_table, index=0, _file=None, _indent=0, _string_list=None):
+        if index == 0:
+            global last_label
+            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+            t0 = self.children[0].get_llvm_type(_type_table)[0]
+            v0 = convert_type(t0, 'i1', v0,_file, _indent)
+            llvm_type = 'i1'
+            new_addr = self.get_llvm_addr()
+            #self.children[0].load_if_necessary(_type_table, _file, _indent)
+            #print('    ' * _indent + self.get_llvm_addr() + " = icmp ne i32 1, 0", file=_file)
+           # print('    ' * _indent + "br i1 " + self.get_llvm_addr() + ", label %1 , label %2", file=_file)
+
+            new_addr1 = '%b' + new_addr[2:]
+            self.label1 = last_label + 1
+            self.label2 = last_label + 2
+            icmp = 'icmp ne'
+            if llvm_type == 'float' or llvm_type == 'double':
+                icmp = 'fcmp une'
+
+            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
+                self.label2), file=_file)
+            print("\n; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print('    ' * _indent + "if (bla bla)", file=_file)
+        global last_label
+        print('    ' * _indent + "br label %" + str(self.label2), file=_file)
+        print(
+            "\n; <label>:" + str(self.label2) + ":" + ' ' * 38 + "; preds = %" + str(self.label1) + ", %" + str(
+                self.label1 - 1), file=_file)
+
+        last_label += 2
+
 
 
 # Loop statement node
@@ -1240,12 +1273,12 @@ class ASTNodeConditional(ASTNodeOp):
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 1) + " " + ", label %" + str(
                 last_label + 2), file=_file)
-            print("; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
+            print("\n; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
 
             print('    ' * _indent + new_addr2 + " =  " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
             print('    ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
             print(
-                "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
+                "\n; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
                     last_label), file=_file)
 
             print('    ' * _indent + new_addr + " = phi i1 [ false, %" + str(
@@ -1359,8 +1392,9 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
                 convopp = 'fptosi'
 
         if new_type == 'i1':
-            #if old_type == 'i32':
             convopp = 'zext'
+            if old_type == 'i32':
+                convopp = 'trunc'
 
         print('    ' * _indent + v1 + " = " + convopp + " " + old_type + " " + prev + " to " + new_type, file=_file)
 
