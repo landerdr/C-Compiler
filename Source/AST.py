@@ -101,7 +101,7 @@ class AST:
             found = False
             children = item.children
             if isinstance(item, ASTNodeEqualityExpr):
-                children = reversed(children)
+                children = list(reversed(children))
             index = 0
             for i in range(len(children)):
                 if not (children[i] in visited):
@@ -245,18 +245,7 @@ class ASTNode:
             return self.get_llvm_addr()
 
     def get_without_load(self, _type_table, _file=None, _indent=0):
-        if isinstance(self, ASTNodeLiteral):
-            if not self.isConst:
-                return '%' + str(self.value)
-            else:
-                return str(self.value)
-        elif isinstance(self, ASTNodeLeftValue):
-            return '%' + str(self.name)
-
-        elif isinstance(self, ASTNodeEqualityExpr):
-            return '%' + str(self.children[0].name)
-        else:
-            return self.get_llvm_addr()
+        return self.get_llvm_addr()
 
     def get_llvm_type(self, _type_table, _var_name=None):
         if _var_name:
@@ -349,6 +338,9 @@ class ASTNodeLeftValue(ASTNode):
 
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, '"]', file=_file)
+
+    def get_without_load(self, _type_table, _file=None, _indent=0):
+        return '%' + str(self.name)
 
 
 '''Statements'''
@@ -586,6 +578,12 @@ class ASTNodeLiteral(ASTNodeExpression):
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
             self.type = entry.type
 
+    def get_without_load(self, _type_table, _file=None, _indent=0):
+        if not self.isConst:
+            return '%' + str(self.value)
+        else:
+            return str(self.value)
+
 
 # Postcrement expression node (In/Decrement behind var)
 class ASTNodePostcrement(ASTNodeUnaryExpr):
@@ -820,6 +818,9 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         print(
             '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* %" + var_name + ", align " + allign,
             file=_file)
+
+    def get_without_load(self, _type_table, _file=None, _indent=0):
+        return '%' + str(self.children[0].name)
 
 
 # Function call expression node
