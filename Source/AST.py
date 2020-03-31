@@ -10,6 +10,7 @@ from Source.TypeTable import *
 
 
 last_label = 0
+last_branch_choice = 0
 
 
 class AST:
@@ -381,13 +382,13 @@ class ASTNodeCompound(ASTNodeStatement):
         super().__init__(_val)
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        if isinstance(self.parent, ASTNodeFunction):
+        if isinstance(self.parent, ASTNodeFunction) or isinstance(self.parent, ASTNodeIf):
             return
         _type_table.enter_scope()
         print('  ' * _indent + "{", file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
-        if isinstance(self.parent, ASTNodeFunction):
+        if isinstance(self.parent, ASTNodeFunction) or isinstance(self.parent, ASTNodeIf):
             return
         _type_table.leave_scope()
         _indent -= 1
@@ -461,22 +462,20 @@ class ASTNodeIf(ASTNodeStatement):
         self.body = None
         self.label1 = None
         self.label2 = None
+        self.label3 = None
 
     def print_llvm_ir_in(self, _type_table, index=0, _file=None, _indent=0, _string_list=None):
+        global last_label
         if index == 0:
-            global last_label
             v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t0 = self.children[0].get_llvm_type(_type_table)[0]
             v0 = convert_type(t0, 'i1', v0,_file, _indent)
             llvm_type = 'i1'
             new_addr = self.get_llvm_addr()
-            #self.children[0].load_if_necessary(_type_table, _file, _indent)
-            #print('    ' * _indent + self.get_llvm_addr() + " = icmp ne i32 1, 0", file=_file)
-           # print('    ' * _indent + "br i1 " + self.get_llvm_addr() + ", label %1 , label %2", file=_file)
-
             new_addr1 = '%b' + new_addr[2:]
-            self.label1 = last_label + 1
-            self.label2 = last_label + 2
+            self.label1 = "label_" + self.get_llvm_addr()[1:] + "1"
+            self.label2 = "label_" + self.get_llvm_addr()[1:] + "2"
+            self.label3 = self.label2
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
                 icmp = 'fcmp une'
@@ -484,14 +483,20 @@ class ASTNodeIf(ASTNodeStatement):
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
                 self.label2), file=_file)
-            print("\n; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
-            last_label += 2
+            print("\n " + self.label1 + ":", file=_file)
+            last_label = self.label1
+
+        if index == 1:
+            self.label3 = "label_" + self.get_llvm_addr()[1:] + "3"
+            print('    ' * _indent + "br label %" + str(self.label3), file=_file)
+            print("\n " + str(self.label2) + ":", file=_file)
+            last_label = self.label2
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print('    ' * _indent + "br label %" + str(self.label2), file=_file)
-        print(
-            "\n; <label>:" + str(self.label2) + ":" + ' ' * 38 + "; preds = %" + str(self.label1) + ", %" + str(
-                self.label1 - 1), file=_file)
+        print('    ' * _indent + "br label %" + str(self.label3), file=_file)
+        print("\n " + str(self.label3) + ":", file=_file)
+        global last_label
+        last_label = self.label3
 
 
 # Loop statement node
@@ -1263,27 +1268,25 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             val = convert_type('i32', llvm_type, '0', _file, _indent)
+            label1 = "comp_label_" + self.get_llvm_addr()[1:] + "1"
+            label2 = "comp_label_" + self.get_llvm_addr()[1:] + "2"
 
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
                 icmp = 'fcmp une'
 
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 1) + " " + ", label %" + str(
-                last_label + 2), file=_file)
-            print("\n; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label1) + " " + ", label %" + str(label2), file=_file)
+            print("\n " + label1 + ":", file=_file)
 
             print('    ' * _indent + new_addr2 + " =  " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
-            print('    ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
-            print(
-                "\n; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
-                    last_label), file=_file)
+            print('    ' * _indent + "br " + "label %" + str(label2) + " ", file=_file)
+            print("\n " + label2 + ":", file=_file)
 
             print('    ' * _indent + new_addr + " = phi i1 [ false, %" + str(
-                last_label) + "], [" + new_addr2 + ", %" + str(last_label + 1) + " ]", file=_file)
-            #convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
+                last_label) + "], [" + new_addr2 + ", %" + str(label1) + " ]", file=_file)
 
-            last_label += 2
+            last_label = label2
 
             if not _type_table.insert_variable(new_addr, 'i1'):
                 raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
@@ -1293,29 +1296,27 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             val = convert_type('i32', llvm_type, '0', _file, _indent)
+            label1 = "comp_label_" + self.get_llvm_addr()[1:] + "1"
+            label2 = "comp_label_" + self.get_llvm_addr()[1:] + "2"
 
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
                 icmp = 'fcmp une'
 
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(last_label + 2) + " " + ", label %" + str(
-                last_label + 1), file=_file)
-            print("; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label2) + " " + ", label %" + str(label1), file=_file)
+            print("\n" + label1 + ":", file=_file)
 
             print('    ' * _indent + new_addr2 + " = " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
-            print('    ' * _indent + "br " + "label %" + str(last_label + 2) + " ", file=_file)
-            print(
-                "; <label>:" + str(last_label + 2) + ":" + ' ' * 38 + "; preds = %" + str(last_label + 1) + ", %" + str(
-                    last_label), file=_file)
+            print('    ' * _indent + "br " + "label %" + str(label2) + " ", file=_file)
+            print("\n" + label2 + ":", file=_file)
 
             print(
                 '    ' * _indent + new_addr + " = phi i1 [ true, %" + str(
                     last_label) + "], [" + new_addr2 + ", %" + str(
-                    last_label + 1) + " ]", file=_file)
-            #convert_type('i1', llvm_type, new_addr3, _file, _indent, new_addr)
+                    label1) + " ]", file=_file)
 
-            last_label += 2
+            last_label = label2
 
             if not _type_table.insert_variable(new_addr, 'i1'):
                 raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))

@@ -84,7 +84,7 @@ statement: compound_statement
     | expression_statement;
 
 compound_statement: LCB statement* RCB;
-conditional_statement: If LB expression RB statement (Else LB expression RB statement)?;
+conditional_statement: If LB expression RB statement (Else statement)?;
 loop_statement: (While LB expression RB statement)
     | (For LB variable_definition expression TERMINUS expression RB statement);
 return_statement: Return expression? TERMINUS;
