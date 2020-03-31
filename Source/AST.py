@@ -485,16 +485,13 @@ class ASTNodeIf(ASTNodeStatement):
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
                 self.label2), file=_file)
             print("\n; <label>:" + str(last_label + 1) + ":" + ' ' * 38 + "; preds = %" + str(last_label), file=_file)
+            last_label += 2
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        global last_label
         print('    ' * _indent + "br label %" + str(self.label2), file=_file)
         print(
             "\n; <label>:" + str(self.label2) + ":" + ' ' * 38 + "; preds = %" + str(self.label1) + ", %" + str(
                 self.label1 - 1), file=_file)
-
-        last_label += 2
-
 
 
 # Loop statement node
