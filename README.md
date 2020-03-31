@@ -84,6 +84,14 @@ Contains all test input files.
     - [ ] (optional) `switch`, `case`, and `default`
 - [ ] (mandatory) Scopes
 
+#### Project 5
+- [ ] (mandatory) Reserved words
+    - [ ] (mandatory) `return`
+    - [ ] (mandatory) `void`
+- [ ] (mandatory) Scopes
+- [ ] (mandatory) Local and global variables
+- [ ] (mandatory) Functions
+
 ## Extra features
 - [x] Scope support in symbol table
 - [x] Assignment operators
