@@ -78,7 +78,9 @@ class AST:
     # (Hopefully) Prints it's equivalent as llvm IR code
     def print_llvm_ir(self, _file_name=None):
         _file = open(_file_name, 'w+')
-        print("; ModuleID = 'main.c'\nsource_filename = \"main.c\"\ntarget datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\ntarget triple = \"x86_64-pc-linux-gnu\"", file=_file)
+        print(
+            "; ModuleID = 'main.c'\nsource_filename = \"main.c\"\ntarget datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\ntarget triple = \"x86_64-pc-linux-gnu\"",
+            file=_file)
 
         type_table = TypeTable()
         type_table.enter_scope()
@@ -118,7 +120,7 @@ class AST:
                 visited.append(item)
             else:
                 if index != 0:
-                    item.print_llvm_ir_in(type_table, index-1, _file, len(type_table.tables), string_list)
+                    item.print_llvm_ir_in(type_table, index - 1, _file, len(type_table.tables), string_list)
 
         for i in range(0, len(string_list)):
             string_ref = "@.str"
@@ -306,9 +308,11 @@ class ASTNodeFunction(ASTNode):
             _indent += 1
             for i in range(len(self.param_names)):
                 name = self.param_names[i][0]
-                llvm_type =  self.param_names[i][1].get_llvm_type()
+                llvm_type = self.param_names[i][1].get_llvm_type()
                 print('    ' * _indent + "%" + name + " =  alloca " + llvm_type + " , align 4", file=_file)
-                print('    ' * _indent + "store " + llvm_type + " %" + str(i) + ", " + llvm_type + "* %" + name + ", align 4", file=_file)
+                print('    ' * _indent + "store " + llvm_type + " %" + str(
+                    i) + ", " + llvm_type + "* %" + name + ", align 4", file=_file)
+
 
 # Base list of parameters node
 class ASTNodeParams(ASTNode):
@@ -503,7 +507,7 @@ class ASTNodeIf(ASTNodeStatement):
         if index == 0:
             v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t0 = self.children[0].get_llvm_type(_type_table)[0]
-            v0 = convert_type(t0, 'i1', v0,_file, _indent)
+            v0 = convert_type(t0, 'i1', v0, _file, _indent)
             llvm_type = 'i1'
             new_addr = self.get_llvm_addr()
             new_addr1 = '%b' + new_addr[2:]
@@ -514,7 +518,7 @@ class ASTNodeIf(ASTNodeStatement):
             if llvm_type == 'float' or llvm_type == 'double':
                 icmp = 'fcmp une'
 
-            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
+            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0", file=_file)
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
                 self.label2), file=_file)
             print("\n " + self.label1 + ":", file=_file)
@@ -670,6 +674,9 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
         if entry.value is None:
             raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
+        if entry.const:
+            raise ParserException(
+                "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_llvm_addr())
@@ -728,6 +735,9 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
             raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
         if entry.value is None:
             raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
+        if entry.const:
+            raise ParserException(
+                "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
@@ -939,7 +949,8 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             if llvm_type == 'void':
                 print("    " * _indent + "call " + llvm_type + " @" + self.name + "(", file=_file, end="")
             else:
-                print("    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " @" + self.name + "(", file=_file, end="")
+                print("    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " @" + self.name + "(",
+                      file=_file, end="")
             print(params + ")", file=_file)
 
             _type_table.insert_variable(self.get_llvm_addr(), entry.type)
@@ -1356,7 +1367,8 @@ class ASTNodeConditional(ASTNodeOp):
                 icmp = 'fcmp une'
 
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label1) + " " + ", label %" + str(label2), file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label1) + " " + ", label %" + str(label2),
+                  file=_file)
             print("\n " + label1 + ":", file=_file)
 
             print('    ' * _indent + new_addr2 + " =  " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
@@ -1384,7 +1396,8 @@ class ASTNodeConditional(ASTNodeOp):
                 icmp = 'fcmp une'
 
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label2) + " " + ", label %" + str(label1), file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label2) + " " + ", label %" + str(label1),
+                  file=_file)
             print("\n" + label1 + ":", file=_file)
 
             print('    ' * _indent + new_addr2 + " = " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
