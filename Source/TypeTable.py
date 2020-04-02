@@ -59,6 +59,7 @@ class TypeTable:
         if name in self.param:
             return False
         self.param[name] = Entry(string_to_type(value_type), **kwargs)
+        self.param[name].update_value("Unknown")
         return True
 
     def lookup_variable(self, name):
@@ -68,11 +69,11 @@ class TypeTable:
                 return self.tables[-i][name]
         return None
 
-    def insert_function(self, name, value_type):
+    def insert_function(self, name, value_type, **kwargs):
         if name in self.functions:
             return False
         self.current = name
-        self.functions[name] = Entry(string_to_type(value_type))
+        self.functions[name] = Entry(string_to_type(value_type), **kwargs)
 
     def lookup_function(self, name):
         if name in self.functions:
