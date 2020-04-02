@@ -32,6 +32,43 @@ class BaseType:
     def get_llvm_type_ptr(self):
         return "NoneType"
 
+class VoidType:
+    def __init__(self):
+        self.pointertype = None
+
+    def __lt__(self, other):
+        return self <= other and not self == other
+
+    def __le__(self, other):
+        return issubclass(type(other), type(self))
+
+    def __eq__(self, other):
+        return type(self) == type(other)
+
+    def __gt__(self, other):
+        return self >= other and not self == other
+
+    def __ge__(self, other):
+        return issubclass(type(self), type(other))
+
+    def cast(self, value):
+        return None
+
+    def __str__(self):
+        return "Void"
+
+    def __repr__(self):
+        return "Void"
+
+    def __bool__(self):
+        return False
+
+    def get_llvm_type(self):
+        return 'void'
+
+    def get_llvm_type_ptr(self):
+        return "void"
+
 
 class Bool(BaseType):
     def __init__(self):

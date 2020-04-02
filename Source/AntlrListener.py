@@ -249,9 +249,12 @@ class CPrintListener(CListener):
             return self.skip_node()
         expr = ASTNodeFunction()
         expr.name = ctx.ID().getText()
-        expr.type = string_to_type(ctx.value_type().Type().getText())
-        if ctx.value_type().STAR() is not None:
-            expr.type = Pointer(expr.type)
+        if ctx.value_type():
+            expr.type = string_to_type(ctx.value_type().Type().getText())
+            if ctx.value_type().STAR():
+                expr.type = Pointer(expr.type)
+        else:
+            expr.type = string_to_type(ctx.Void().getText())
 
         self.typeTable.insert_function(expr.name, expr.type)
         self.add_node(expr)

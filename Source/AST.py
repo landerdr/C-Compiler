@@ -18,7 +18,6 @@ class AST:
         self.root = None
         self.depthStack = []
         self.typeTable = TypeTable()
-        self.typeTable.enter_scope()
 
     # Deprecated function
     def simplify(self):
@@ -238,20 +237,7 @@ class ASTNode:
         return v1
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-        if isinstance(self, ASTNodeLiteral):
-            if not self.isConst:
-                return self._load(self.value, _type_table, _file, _indent, _target)
-            else:
-                return str(self.value)
-        elif isinstance(self, ASTNodeLeftValue):
-            return self._load(self.name, _type_table, _file, _indent, _target)
-        if isinstance(self, ASTNodeEqualityExpr):
-            if self.equality == '=':
-                return self._load(self.children[0].name, _type_table, _file, _indent, _target)
-            else:
-                return self.get_llvm_addr()
-        else:
-            return self.get_llvm_addr()
+        return self.get_llvm_addr()
 
     def get_without_load(self, _type_table, _file=None, _indent=0):
         return self.get_llvm_addr()
@@ -260,31 +246,11 @@ class ASTNode:
         if _var_name:
             entry = _type_table.lookup_variable(_var_name)
             return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
-
-        if isinstance(self, ASTNodeLiteral):
-            if not self.isConst:
-                entry = _type_table.lookup_variable(str(self.value))
-                return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
-            else:
-                return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
-        elif isinstance(self, ASTNodeLeftValue):
-            entry = _type_table.lookup_variable(self.name)
-            if isinstance(entry.type, str):
-                return entry.type, entry.type
-            else:
-                return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
-        elif isinstance(self, ASTNodeEqualityExpr):
-            entry = _type_table.lookup_variable(self.children[0].name)
-            if isinstance(entry.type, str):
-                return entry.type, entry.type
-            else:
-                return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
+        entry = _type_table.lookup_variable(self.get_llvm_addr())
+        if isinstance(entry.type, str):
+            return entry.type, entry.type
         else:
-            entry = _type_table.lookup_variable(self.get_llvm_addr())
-            if isinstance(entry.type, str):
-                return entry.type, entry.type
-            else:
-                return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
+            return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
 
 
 # Base Library node
@@ -300,25 +266,57 @@ class ASTNodeFunction(ASTNode):
         self.canReplace = False
         self.name = None
         self.type = NONE
+        self.param_names = []
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         print('\n' + '; Function Attrs: noinline nounwind optnone uwtable', file=_file)
-        print("define " + self.type.get_llvm_type_ptr() + " @" + self.name + "() #0 {", file=_file, )
-        _type_table.enter_scope()
+        print("define " + self.type.get_llvm_type_ptr() + " @" + self.name + "(", file=_file, end="")
+        _type_table.insert_function(self.name, self.type)
         _indent += 1
-        print('    ' * _indent + self.get_llvm_addr() + " =  alloca i32, align 4", file=_file)
+        if len(self.children) == 1:
+            print(") #0", file=_file)
+            if self.name != 'main':
+                print("{", file=_file)
+            _type_table.enter_scope()
+
+        if self.name == 'main':
+            print('{', file=_file)
+            print('    ' * _indent + self.get_llvm_addr() + " =  alloca i32, align 4", file=_file)
         # print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2, file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
-        _type_table.leave_scope()
-        _indent -= 1
-        print('    ' * _indent + "}", file=_file)
+        if len(self.children) == 1:
+            if not isinstance(self.children[0], ASTNodeCompound):
+                print("}", file=_file)
+                _type_table.leave_scope()
+        if len(self.children) == 2:
+            if not isinstance(self.children[1], ASTNodeCompound):
+                print("}", file=_file)
+                _type_table.leave_scope()
 
+    def print_llvm_ir_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
+        if prev_index < len(self.children) - 2:
+            print(",", file=_file, end="")
+
+        else:
+            print(") #0 ", file=_file)
+            if self.name != 'main':
+                print("{", file=_file)
+            _type_table.enter_scope()
+            _indent += 1
+            for i in range(len(self.param_names)):
+                name = self.param_names[i][0]
+                llvm_type =  self.param_names[i][1].get_llvm_type()
+                print('    ' * _indent + "%" + name + " =  alloca " + llvm_type + " , align 4", file=_file)
+                print('    ' * _indent + "store " + llvm_type + " %" + str(i) + ", " + llvm_type + "* %" + name + ", align 4", file=_file)
 
 # Base list of parameters node
 class ASTNodeParams(ASTNode):
     def __init__(self):
         super().__init__("Params")
+
+    def print_llvm_ir_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
+        print(", ", file=_file, end="")
 
 
 # Single parameter node
@@ -331,6 +329,17 @@ class ASTNodeParam(ASTNode):
 
     def _reduce(self, symboltable):
         symboltable.insert_param(self.name, self.type, const=self.const)
+
+    def print_dot(self, _file=None):
+        print('"', self, '"', '[label = "', self.value, ": param", self.name, '"]', file=_file)
+
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print(self.type.get_llvm_type(), file=_file, end="")
+        _type_table.insert_param(self.name, self.type, const=self.const)
+        if isinstance(self.parent, ASTNodeFunction):
+            self.parent.param_names.append([self.name, self.type])
+        else:
+            self.parent.parent.param_names.append([self.name, self.type])
 
 
 class ASTNodeLeftValue(ASTNode):
@@ -350,6 +359,16 @@ class ASTNodeLeftValue(ASTNode):
 
     def get_without_load(self, _type_table, _file=None, _indent=0):
         return '%' + str(self.name)
+
+    def get_llvm_type(self, _type_table, _var_name=None):
+        entry = _type_table.lookup_variable(self.name)
+        if isinstance(entry.type, str):
+            return entry.type, entry.type
+        else:
+            return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
+
+    def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+        return self._load(self.name, _type_table, _file, _indent, _target)
 
 
 '''Statements'''
@@ -378,6 +397,7 @@ class ASTNodeContinue(ASTNodeStatement):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         print('    ' * _indent + "continue", file=_file)
 
+
 # Base expression statement node
 class ASTNodeExpressionStatement(ASTNodeStatement):
     def __init__(self, _val="Expression statement"):
@@ -390,17 +410,19 @@ class ASTNodeCompound(ASTNodeStatement):
         super().__init__(_val)
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        if isinstance(self.parent, ASTNodeFunction) or isinstance(self.parent, ASTNodeIf):
+        if isinstance(self.parent, ASTNodeFunction):
             return
         _type_table.enter_scope()
+        if isinstance(self.parent, ASTNodeIf):
+            return
         print('  ' * _indent + "{", file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
-        if isinstance(self.parent, ASTNodeFunction) or isinstance(self.parent, ASTNodeIf):
-            return
         _type_table.leave_scope()
         _indent -= 1
-        print('    ' * _indent + "}", file=_file)
+        if isinstance(self.parent, ASTNodeIf):
+            return
+        print('    ' * _indent + "}\n", file=_file)
 
 
 # Definition statement node
@@ -525,9 +547,13 @@ class ASTNodeReturn(ASTNodeStatement):
         self.canReplace = False
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        new_val = convert_type(self.children[0].get_llvm_type(_type_table)[0], 'i32', rval, _file, _indent)
-        print('    ' * _indent + "ret i32 " + new_val, file=_file)
+        new_val = ''
+        entry = _type_table.lookup_function(_type_table.current)
+        llvm_type = entry.type.get_llvm_type()
+        if len(self.children):
+            rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
+            new_val = convert_type(self.children[0].get_llvm_type(_type_table)[0], llvm_type, rval, _file, _indent)
+        print('    ' * _indent + "ret " + llvm_type + " " + new_val, file=_file)
 
 
 '''Expressions'''
@@ -591,6 +617,20 @@ class ASTNodeLiteral(ASTNodeExpression):
     def get_without_load(self, _type_table, _file=None, _indent=0):
         if not self.isConst:
             return '%' + str(self.value)
+        else:
+            return str(self.value)
+
+    def get_llvm_type(self, _type_table, _var_name=None):
+        if not self.isConst:
+            entry = _type_table.lookup_variable(str(self.value))
+            return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
+
+        else:
+            return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
+
+    def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+        if not self.isConst:
+            return self._load(self.value, _type_table, _file, _indent, _target)
         else:
             return str(self.value)
 
@@ -832,6 +872,19 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def get_without_load(self, _type_table, _file=None, _indent=0):
         return '%' + str(self.children[0].name)
 
+    def get_llvm_type(self, _type_table, _var_name=None):
+        entry = _type_table.lookup_variable(self.children[0].name)
+        if isinstance(entry.type, str):
+            return entry.type, entry.type
+        else:
+            return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
+
+    def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+        if self.equality == '=':
+            return self._load(self.children[0].name, _type_table, _file, _indent, _target)
+        else:
+            return self.get_llvm_addr()
+
 
 # Function call expression node
 class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
@@ -865,11 +918,27 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             if len(_string_list) > 1:
                 string_ref += "." + str(len(_string_list) - 1)
 
-
             print(
                 "    " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name +
                 "(i8* getelementptr inbounds ([4 x i8], [4 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type +
                 ' ' + value + ")", file=_file)
+        else:
+            entry = _type_table.lookup_function(self.name)
+            llvm_type = entry.type.get_llvm_type()
+            params = ""
+            for i in range(len(self.children)):
+                value = self.children[i].load_if_necessary(_type_table, _file, _indent)
+                t = self.children[i].get_llvm_type(_type_table)
+                params += t[0] + " " + value
+                if i != len(self.children) - 1:
+                    params += ", "
+            if llvm_type == 'void':
+                print("    " * _indent + "call " + llvm_type + " @" + self.name + "(", file=_file, end="")
+            else:
+                print("    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " @" + self.name + "(", file=_file, end="")
+            print(params + ")", file=_file)
+
+            _type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
 # Indexing expression node
@@ -963,7 +1032,6 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         child = self.children[0]
         new_addr = self.get_llvm_addr()
         llvm_type = child.get_llvm_type(_type_table)[0]
-
         if not _type_table.insert_variable(new_addr, llvm_type, pointer=True):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
@@ -1276,8 +1344,8 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             val = convert_type('i32', llvm_type, '0', _file, _indent)
-            label1 = "comp_label_" + self.get_llvm_addr()[1:] + "1"
-            label2 = "comp_label_" + self.get_llvm_addr()[1:] + "2"
+            label1 = "label_" + self.get_llvm_addr()[1:] + "1"
+            label2 = "label_" + self.get_llvm_addr()[1:] + "2"
 
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
@@ -1304,8 +1372,8 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             val = convert_type('i32', llvm_type, '0', _file, _indent)
-            label1 = "comp_label_" + self.get_llvm_addr()[1:] + "1"
-            label2 = "comp_label_" + self.get_llvm_addr()[1:] + "2"
+            label1 = "label_" + self.get_llvm_addr()[1:] + "1"
+            label2 = "label_" + self.get_llvm_addr()[1:] + "2"
 
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':

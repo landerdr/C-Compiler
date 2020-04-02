@@ -1,6 +1,7 @@
 from Source.Types import *
 
 NONE = BaseType()
+VOID = VoidType()
 BOOL = Bool()
 CHAR = Char()
 INT = Int()
@@ -24,7 +25,8 @@ def string_to_type(value_type):
         return INT
     elif value_type == "float":
         return FLOAT
-
+    elif value_type == 'void':
+        return VOID
     else:
         return value_type
 
