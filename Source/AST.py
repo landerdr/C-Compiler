@@ -276,24 +276,23 @@ class ASTNodeFunction(ASTNode):
         _indent += 1
         if len(self.children) == 1:
             print(") #0", file=_file)
-            if self.name != 'main':
-                print("{", file=_file)
             _type_table.enter_scope()
 
         if self.name == 'main':
             print('{', file=_file)
             print('    ' * _indent + self.get_llvm_addr() + " =  alloca i32, align 4", file=_file)
+        else:
+            print("{", file=_file)
         # print("%tmp" + str(id(self)) + " = mul i32 " + v1 + "," + v2, file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
         if len(self.children) == 1:
             if not isinstance(self.children[0], ASTNodeCompound):
-                print("}", file=_file)
                 _type_table.leave_scope()
         if len(self.children) == 2:
             if not isinstance(self.children[1], ASTNodeCompound):
-                print("}", file=_file)
                 _type_table.leave_scope()
+        print("}", file=_file)
 
     def print_llvm_ir_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
         if prev_index < len(self.children) - 2:
