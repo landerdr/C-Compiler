@@ -10,10 +10,7 @@ def run_command(input_file: str, output_file: str, expected_result_file: str):
         result = compare(output_file, expected_result_file)
     except Exception:
         result = False
-    if result:
-        print("TEST PASSED")
-    else:
-        print("TEST FAILED")
+    assert result is True
 
 
 def run_command_prop(input_file: str, output_file: str, expected_result_file: str):
@@ -24,11 +21,7 @@ def run_command_prop(input_file: str, output_file: str, expected_result_file: st
         result = compare(output_file, expected_result_file)
     except Exception:
         result = False
-    if result:
-        print("TEST PASSED")
-    else:
-        print("TEST FAILED")
-
+    assert result is True
 
 def compare(result_file: str, expected_result_file: str):
     return filecmp.cmp(result_file, expected_result_file)
@@ -41,8 +34,8 @@ def run_test(input_file: str, output_file: str, expected_result_file: str):
 
 
 def run_tests():
-    test_files = ["./Test/Deadline1.txt"]
-    result_files = ["./Test/Deadline1_result.txt"]
+    test_files = ["./Test/simple_expressions.txt", "./Test/Deadline1.txt"]
+    result_files = ["./Test/simple_expressions_result.txt", "./Test/Deadline1_result.txt"]
 
     for i in range(len(test_files)):
         run_test(test_files[i], "test.txt", result_files[i])

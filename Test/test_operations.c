@@ -55,7 +55,7 @@ int main()
     i /= 5.0;               //i=1
     i %= 1;                 //i=0
 
-    float f;                  //declare f
+    float f;                //declare f
     f = 0;                  //f=0
 
     f = 55 + '2' + 'd';     //f=205
@@ -80,7 +80,7 @@ int main()
     f -= f--;               //f=-1
     f *= -(88%4+5);         //f=5
     f /= 5.0;               //f=1
-    //f %= 1;                 //f=0
+    //f %= 1;               //f=0
 
 
     return i >= 1;          //RETURN 0
