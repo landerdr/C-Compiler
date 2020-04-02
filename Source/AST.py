@@ -440,10 +440,14 @@ class ASTNodeDefinition(ASTNodeStatement):
 
     def _reduce(self, symboltable):
         value = None
+        # If no children -> not defined
         if len(self.children) == 0:
+            # If pointer, ignore
             if self.type.pointertype != NONE:
                 value = "Unknown"
-            pass
+            elif self.const:
+                raise ParserException("Non defined const variable at line %s" % self.line_num)
+        # If value is known, assign value
         elif isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
             value = self.children[0].value
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
