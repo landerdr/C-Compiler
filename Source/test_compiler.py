@@ -55,3 +55,11 @@ def test_deadline1():
 
 def test_deadline1_prop():
     assert run_command_prop("./Test/Deadline1.txt", "test.txt", "./Test/Deadline1_result.txt") is True
+
+
+def test_special_scope():
+    assert run_command("./Test/special_scope.txt", "test.txt", "./Test/special_scope_result.txt") is True
+
+
+def test_special_scope_prop():
+    assert run_command_prop("./Test/special_scope.txt", "test.txt", "./Test/special_scope_result.txt") is True

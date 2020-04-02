@@ -1,0 +1,12 @@
+int main()
+{
+    int c = 0;
+    {
+        c = 4;
+        int c = 5;
+        printf(c);
+    }
+    printf(c);
+
+    return 0;
+}
