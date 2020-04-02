@@ -146,6 +146,7 @@ class ASTNode:
         self.children = []
         self.value = _val
         self.line_num = ""
+        self.unreachable = False
 
     # Adds a child to it's list of children
     def add_child(self, child):
@@ -185,8 +186,15 @@ class ASTNode:
 
     # Optimises this node structure if possible
     def optimise(self, symboltable, propagation=False):
+        # Simplify tree structure (remove long lines)
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
+        # Remove unreachable code
+        # elif self.unreachable:
+        #     self.parent.remove_child(self)
+        #     self.parent = None
+        #     self.children = []
+        # Further optimisations
         else:
             self._reduce(symboltable)
             if propagation:

@@ -7,6 +7,23 @@ from Source.AST import *
 from Source.TypeTable import TypeTable
 
 
+class Reachability:
+    def __init__(self):
+        self.reachable = [True]
+
+    def enter_scope(self):
+        self.reachable.append(self.reachable[-1])
+
+    def leave_scope(self):
+        self.reachable.pop()
+
+    def is_reachable(self):
+        return self.reachable[-1]
+
+    def set_not_reachable(self):
+        self.reachable[-1] = False
+
+
 class CPrintListener(CListener):
 
     def __init__(self):
@@ -16,6 +33,7 @@ class CPrintListener(CListener):
         self.depthStack = []
         self.tt = AST()
         self.propagation = False
+        self.reachable = Reachability()
 
     '''Core'''
 
@@ -43,6 +61,7 @@ class CPrintListener(CListener):
             # Get current node
             item = self.depthStack.pop()
             if item not in self.depthStack:
+                item.unreachable = self.reachable.is_reachable()
                 item.line_num = ctx.start.line
                 item.optimise(self.typeTable, self.propagation)
 
@@ -50,11 +69,15 @@ class CPrintListener(CListener):
         pass
 
     def enterLibrary(self, ctx: CParser.LibraryContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeLib()
         self.tt.root = expr
         self.depthStack.append(expr)
 
     def enterAdditional_expression(self, ctx: CParser.Additional_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeAddition()
         expr.operators = []
         self.add_node(expr)
@@ -63,19 +86,29 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterBreak_statement(self, ctx: CParser.Break_statementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeBreak()
         self.add_node(expr)
 
+    def exitBreak_statement(self, ctx: CParser.Break_statementContext):
+        self.reachable.set_not_reachable()
+
     def enterCompound_statement(self, ctx: CParser.Compound_statementContext):
-        expr = ASTNodeCompound()
         self.typeTable.enter_scope()
+        self.reachable.enter_scope()
+        if not self.reachable.is_reachable():
+            return self.skip_node()
+        expr = ASTNodeCompound()
         self.add_node(expr)
 
     def exitCompound_statement(self, ctx: CParser.Compound_statementContext):
         self.typeTable.leave_scope()
-        pass
+        self.reachable.leave_scope()
 
     def enterLiteral_expression(self, ctx: CParser.Literal_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         # Get txt
         txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char())
 
@@ -96,14 +129,20 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterExpression_statement(self, ctx: CParser.Expression_statementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeExpressionStatement()
         self.add_node(expr)
 
     def enterExpression(self, ctx: CParser.ExpressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeExpression()
         self.add_node(expr)
 
     def enterTernary_expression(self, ctx: CParser.Ternary_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeTernaryExpr()
         self.add_node(expr)
 
@@ -118,32 +157,46 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterLogical_and_expression(self, ctx: CParser.Logical_and_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeConditional()
         self.add_node(expr)
 
     def enterLogical_or_expression(self, ctx: CParser.Logical_or_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeConditional()
         self.add_node(expr)
 
     def enterRelational_comparison_expression(self, ctx: CParser.Relational_comparison_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeConditional()
         self.add_node(expr)
 
     def enterRelational_equality_expression(self, ctx: CParser.Relational_equality_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeConditional()
         self.add_node(expr)
 
     def enterMultiplication_expression(self, ctx: CParser.Multiplication_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeMult()
         expr.operators = []
         expr.line_num = ctx.start.line
         self.add_node(expr)
 
     def enterUnary_expression(self, ctx: CParser.Unary_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeUnaryExpr()
         self.add_node(expr)
 
     def enterVariable_definition(self, ctx: CParser.Variable_definitionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeDefinition()
         expr.name = ctx.ID().getText()
         expr.type = string_to_type(ctx.value_type().Type().getText())
@@ -153,24 +206,37 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeIf()
         self.add_node(expr)
 
     def enterContinue_statement(self, ctx: CParser.Continue_statementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeContinue()
         self.add_node(expr)
 
+    def exitContinue_statement(self, ctx: CParser.Continue_statementContext):
+        self.reachable.set_not_reachable()
+
     def enterPost_xcrement(self, ctx: CParser.Post_xcrementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodePostcrement()
         expr.operator = (ctx.DECREMENT() or ctx.INCREMENT()).getText()
         self.add_node(expr)
 
     def enterPre_xcrement(self, ctx: CParser.Pre_xcrementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodePrecrement()
         expr.operator = (ctx.DECREMENT() or ctx.INCREMENT()).getText()
         self.add_node(expr)
 
     def enterEquality_expression(self, ctx: CParser.Equality_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeEqualityExpr()
         expr.equality = ctx.equality_symbol().getText()
         self.add_node(expr)
@@ -179,6 +245,8 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterFunction(self, ctx: CParser.FunctionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeFunction()
         expr.name = ctx.ID().getText()
         expr.type = string_to_type(ctx.value_type().Type().getText())
@@ -189,27 +257,39 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterFunction_call_expression(self, ctx: CParser.Function_call_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeFunctionCallExpr()
         expr.name = ctx.ID().getText()
         self.add_node(expr)
 
     def enterIndexing_expression(self, ctx: CParser.Indexing_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeIndexingExpr()
         self.add_node(expr)
 
     def enterInverse(self, ctx: CParser.InverseContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeInverseExpr()
         self.add_node(expr)
 
     def enterLoop_statement(self, ctx: CParser.Loop_statementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeLoopStatement()
         self.add_node(expr)
 
     def enterNegative(self, ctx: CParser.NegativeContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeNegativeExpr()
         self.add_node(expr)
 
     def enterParam(self, ctx: CParser.ParamContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeParam()
         expr.name = ctx.ID().getText()
         expr.type = string_to_type(ctx.value_type().Type().getText())
@@ -219,6 +299,8 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterParams(self, ctx: CParser.ParamsContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeParams()
         self.add_node(expr)
 
@@ -226,71 +308,104 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterReturn_statement(self, ctx: CParser.Return_statementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeReturn()
         self.add_node(expr)
 
+    def exitReturn_statement(self, ctx: CParser.Return_statementContext):
+        self.reachable.set_not_reachable()
+
     def enterStatement(self, ctx: CParser.StatementContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeStatement()
         self.add_node(expr)
 
     def enterAddopp(self, ctx: CParser.AddoppContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterMultopp(self, ctx: CParser.MultoppContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterLog_or(self, ctx: CParser.Log_orContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterLog_and(self, ctx: CParser.Log_andContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterBinor(self, ctx: CParser.BinorContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterBinxor(self, ctx: CParser.BinxorContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterBinand(self, ctx: CParser.BinandContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterLog_eq(self, ctx: CParser.Log_eqContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterRel_com(self, ctx: CParser.Rel_comContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         x = self.depthStack[-1]
         x.operators.append(ctx.getText())
         self.skip_node()
 
     def enterLeft_value(self, ctx: CParser.Left_valueContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         expr = ASTNodeLeftValue()
         if ctx.ID():
             expr.name = ctx.ID().getText()
         self.add_node(expr)
 
     def enterDereference(self, ctx: CParser.DereferenceContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         self.add_node(ASTNodeDereference())
 
     def enterReference(self, ctx: CParser.ReferenceContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         self.add_node(ASTNodeReference())
 
     def enterL_indexing_expression(self, ctx: CParser.L_indexing_expressionContext):
+        if not self.reachable.is_reachable():
+            return self.skip_node()
         self.add_node(ASTNodeIndexingExpr)
 
     def enterValue_type(self, ctx: CParser.Value_typeContext):
