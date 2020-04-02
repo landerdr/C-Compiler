@@ -417,14 +417,14 @@ class ASTNodeCompound(ASTNodeStatement):
         _type_table.enter_scope()
         if isinstance(self.parent, ASTNodeIf):
             return
-        print('  ' * _indent + "{", file=_file)
+        # print('  ' * _indent + "{", file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
         _type_table.leave_scope()
         _indent -= 1
         if isinstance(self.parent, ASTNodeIf):
             return
-        print('    ' * _indent + "}\n", file=_file)
+        # print('    ' * _indent + "}\n", file=_file)
 
 
 # Definition statement node
