@@ -79,20 +79,25 @@ Contains all test input files.
 
 #### Project 4
 - [ ] (mandatory) Reserved words
-    - [ ] (mandatory) `if`, `else`, and `while`
-    - [ ] (mandatory) `for`
-    - [ ] (mandatory) `break`
-    - [ ] (mandatory) `continue`
+    - [x] (mandatory) `if`, `else`, and `while`
+    - [x] (mandatory) `for`
+    - [x] (mandatory) `break`
+    - [x] (mandatory) `continue`
     - [ ] (optional) `switch`, `case`, and `default`
 - [ ] (mandatory) Scopes
 
 #### Project 5
-- [ ] (mandatory) Reserved words
-    - [ ] (mandatory) `return`
-    - [ ] (mandatory) `void`
+- [x] (mandatory) Reserved words
+    - [x] (mandatory) `return`
+    - [x] (mandatory) `void`
 - [ ] (mandatory) Scopes
 - [ ] (mandatory) Local and global variables
 - [ ] (mandatory) Functions
+    - [ ] (mandatory) Forward declarations
+    - [ ] (optional) Check whether all paths in a function body end with a return statement
+- [x] (mandatory) Unreachable code removal
+    - [ ] (optional) Do not generate code for variables that are not used
+    - [ ] (optional) Do not generate code for conditionals that are never true
 
 ## Extra features
 - [x] Scope support in symbol table
