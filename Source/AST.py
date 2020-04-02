@@ -6,7 +6,6 @@ from Source.TypeTable import *
 # ToDo: add print_llvm_ir where necessary
 # ToDo: make print_llvm_ir differentiate between data types
 # ToDo: make print_llvm_it differentiate between operator types
-# ToDo: splits simplify into Const collapse / propagation / gwn verwijdere van onnodige stuff, zoda we da zonder kunne runne
 
 
 last_label = 0
