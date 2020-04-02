@@ -9,5 +9,5 @@ int main()
     float result = x + y; //calculate the result
     printf(result); //show the result
 
-    return 0
+    return 0;
 }
