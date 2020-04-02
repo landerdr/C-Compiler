@@ -1,4 +1,5 @@
 # C-Compiler
+![Python application](https://github.com/landerdr/C-Compiler/workflows/Python%20application/badge.svg)
 Custom C _-ish_ compiler for compilers course.
 [Online generator for reference](http://ellcc.org/demo/index.cgi)
 
