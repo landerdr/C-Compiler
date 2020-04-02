@@ -55,10 +55,10 @@ class TypeTable:
         self.tables[-1][name] = Entry(string_to_type(value_type), **kwargs)
         return True
 
-    def insert_param(self, name, value_type):
+    def insert_param(self, name, value_type, **kwargs):
         if name in self.param:
             return False
-        self.param[name] = Entry(string_to_type(value_type))
+        self.param[name] = Entry(string_to_type(value_type), **kwargs)
         return True
 
     def lookup_variable(self, name):
