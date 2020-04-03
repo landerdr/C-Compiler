@@ -282,6 +282,7 @@ class CPrintListener(CListener):
         if not self.reachable.is_reachable():
             return self.skip_node()
         expr = ASTNodeLoopStatement()
+        expr.loop_type = (ctx.Do() or ctx.For() or ctx.While()).getText()
         self.add_node(expr)
 
     def enterNegative(self, ctx: CParser.NegativeContext):

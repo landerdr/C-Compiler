@@ -355,7 +355,7 @@ class ASTNodeLeftValue(ASTNode):
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ":", self.name, '"]', file=_file)
 
-    def get_without_load(self, _type_table, _file=None, _indent=0):
+    def get_without_load(self, _type_table):
         entry = _type_table.lookup_variable(str(self.name))
         if entry:
             if entry.register:
@@ -545,6 +545,7 @@ class ASTNodeIf(ASTNodeStatement):
 class ASTNodeLoopStatement(ASTNodeStatement):
     def __init__(self):
         super().__init__("Loop statement")
+        self.loop_type = None
         self.Condition = None
         self.body = None
         self.label1 = "label_" + self.get_llvm_addr()[1:] + "1"
@@ -552,16 +553,47 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         self.label3 = "label_" + self.get_llvm_addr()[1:] + "3"
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print('    ' * _indent + "br label %" + str(self.label1), file=_file)
-        print("\n " + self.label1 + ":", file=_file)
-        global last_label
-        last_label = self.label1
+        _type_table.enter_scope()
+        if self.loop_type == 'while' or self.loop_type == 'do':
+            print('    ' * _indent + "br label %" + str(self.label1), file=_file)
+            print("\n " + self.label1 + ":", file=_file)
+            global last_label
+            last_label = self.label1
+        if self.loop_type == 'for':
+            temp = self.children[3]
+            self.replace_child(3, self.children[2])
+            self.replace_child(2, temp)
 
     def print_llvm_ir_in(self, _type_table, index=0, _file=None, _indent=0, _string_list=None):
+            global last_label
+            if index == 0 and self.loop_type == 'for':
+                print('    ' * _indent + "br label %" + str(self.label1), file=_file)
+                print("\n " + self.label1 + ":", file=_file)
+                global last_label
+                last_label = self.label1
+            if (index == 0 and self.loop_type == 'while') or (index == 1 and self.loop_type == 'for'):
+                v0 = self.children[index].load_if_necessary(_type_table, _file, _indent)
+                t0 = self.children[index].get_llvm_type(_type_table)[index]
+                v0 = convert_type(t0, 'i1', v0,_file, _indent)
+                llvm_type = 'i1'
+                new_addr = self.get_llvm_addr()
+                new_addr1 = '%b' + new_addr[2:]
+
+                icmp = 'icmp ne'
+                if llvm_type == 'float' or llvm_type == 'double':
+                    icmp = 'fcmp une'
+
+                print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
+                print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label2) + " " + ", label %" + str(
+                    self.label3), file=_file)
+                print("\n " + self.label2 + ":", file=_file)
+                last_label = self.label2
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         global last_label
-        if index == 0:
-            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-            t0 = self.children[0].get_llvm_type(_type_table)[0]
+        if self.loop_type == 'do':
+            v0 = self.children[1].load_if_necessary(_type_table, _file, _indent)
+            t0 = self.children[1].get_llvm_type(_type_table)[1]
             v0 = convert_type(t0, 'i1', v0,_file, _indent)
             llvm_type = 'i1'
             new_addr = self.get_llvm_addr()
@@ -572,16 +604,18 @@ class ASTNodeLoopStatement(ASTNodeStatement):
                 icmp = 'fcmp une'
 
             print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label2) + " " + ", label %" + str(
-                self.label3), file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
+                self.label2), file=_file)
             print("\n " + self.label2 + ":", file=_file)
             last_label = self.label2
+            _type_table.leave_scope()
+            return
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         print('    ' * _indent + "br label %" + str(self.label1), file=_file)
         print("\n " + str(self.label3) + ":", file=_file)
-        global last_label
         last_label = self.label3
+
+
 
 
 # Return statement node
@@ -735,10 +769,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
-        entry = _type_table.lookup_variable(self.children[0].name)
-        var_name = "%" + self.children[0].name
-        if entry.register:
-            var_name = entry.register
+        var_name = self.children[0].get_without_load(_type_table)
 
         print('    ' * _indent + new_addr + "t = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
         print(
@@ -1306,7 +1337,7 @@ class ASTNodeMult(ASTNodeOp):
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
@@ -1434,7 +1465,7 @@ class ASTNodeConditional(ASTNodeOp):
             last_label = label2
 
             if not _type_table.insert_variable(new_addr, 'i1'):
-                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
+                raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, 'i1'))
 
             return
         elif self.operators[0] == "||":
@@ -1465,12 +1496,12 @@ class ASTNodeConditional(ASTNodeOp):
             last_label = label2
 
             if not _type_table.insert_variable(new_addr, 'i1'):
-                raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
+                raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, 'i1'))
 
             return
 
         if not _type_table.insert_variable(new_addr, 'i1'):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, 'i1'))
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, 'i1'))
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
