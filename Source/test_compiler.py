@@ -3,7 +3,13 @@ import os
 
 
 def run_command(input_file: str, output_file: str, expected_result_file: str):
-    # print("__________no propagation__________")
+    """
+    Runs test for LLVM without propagation enabled
+    :param input_file: code input file to compile
+    :param output_file: temp output file used to write results to
+    :param expected_result_file: expected output to compare with generated output
+    :return:
+    """
     try:
         os.system("python3 Source/main.py -i %s -llvm main.ll" % input_file)
         os.system("clang main.ll -o main && ./main > %s" % output_file)
@@ -14,7 +20,13 @@ def run_command(input_file: str, output_file: str, expected_result_file: str):
 
 
 def run_command_prop(input_file: str, output_file: str, expected_result_file: str):
-    # print("__________w/ propagation__________")
+    """
+    Runs test for LLVM with propagation enabled
+    :param input_file: code input file to compile
+    :param output_file: temp output file used to write results to
+    :param expected_result_file: expected output to compare with generated output
+    :return:
+    """
     try:
         os.system("python3 Source/main.py -i %s -llvm main.ll -prop" % input_file)
         os.system("clang main.ll -o main && ./main > %s" % output_file)
@@ -25,6 +37,12 @@ def run_command_prop(input_file: str, output_file: str, expected_result_file: st
 
 
 def compare(result_file: str, expected_result_file: str):
+    """
+    Compares two files
+    :param result_file:
+    :param expected_result_file:
+    :return: if the two files match
+    """
     return filecmp.cmp(result_file, expected_result_file)
 
 
