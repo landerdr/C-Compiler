@@ -388,7 +388,11 @@ class ASTNodeBreak(ASTNodeStatement):
         super().__init__("Break")
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print('    ' * _indent + "break", file=_file)
+        node = self
+        while not isinstance(node, ASTNodeLoopStatement):
+            node = node.parent
+
+        print('    ' * _indent + "br label %" + node.label3, file=_file)
 
 
 # Continue statement node
@@ -554,6 +558,8 @@ class ASTNodeLoopStatement(ASTNodeStatement):
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         _type_table.enter_scope()
+        if self.loop_type == 'do':
+            self.label3 = self.label2
         if self.loop_type == 'while' or self.loop_type == 'do':
             print('    ' * _indent + "br label %" + str(self.label1), file=_file)
             print("\n " + self.label1 + ":", file=_file)

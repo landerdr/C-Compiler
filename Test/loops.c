@@ -14,8 +14,11 @@ int main(){
 
     for (int j = 0; j < 3; j++){
         //for (int k = 0; k < 3; k++){
-                printf(j);
+            printf(j);
         //    }
+
+        if (j == 1){break;}
+
     }
     int r =0;
     do{
