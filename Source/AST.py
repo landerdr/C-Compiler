@@ -356,6 +356,10 @@ class ASTNodeLeftValue(ASTNode):
         print('"', self, '"', '[label = "', self.value, ":", self.name, '"]', file=_file)
 
     def get_without_load(self, _type_table, _file=None, _indent=0):
+        entry = _type_table.lookup_variable(str(self.name))
+        if entry:
+            if entry.register:
+                return entry.register
         return '%' + str(self.name)
 
     def get_llvm_type(self, _type_table, _var_name=None):
@@ -460,16 +464,27 @@ class ASTNodeDefinition(ASTNodeStatement):
 
     # TODO: Update: use of new functions
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        register = "%var_" + self.name + "_" + self.get_llvm_addr()[1:]
-        if not _type_table.insert_variable(self.name, self.type, const=self.const, register=register):
-            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.line_num))
 
-        llvm_type = self.get_llvm_type(_type_table, self.name)[0]
+        llvm_type = self.type.get_llvm_type()
+
+        register = "%var_" + self.name + "_" + self.get_llvm_addr()[1:]
+        if len(_type_table.tables) == 1:
+            register = "@" + self.name
+            v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+            t1 = self.children[0].get_llvm_type(_type_table)[0]
+            v1 = convert_type(t1, llvm_type, v1, _file, _indent)
 
         allign = '4'
         if self.type.pointertype != NONE:
             llvm_type += '*'
             allign = '8'
+
+        if not _type_table.insert_variable(self.name, self.type, const=self.const, register=register):
+            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.line_num))
+
+        if len(_type_table.tables) == 1:
+            print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
+            return
 
         print('    ' * _indent + register + " =  alloca " + llvm_type + " , align " + allign, file=_file)
         if len(self.children) > 0:
@@ -477,7 +492,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             t1 = self.children[0].get_llvm_type(_type_table)[0]
             v1 = convert_type(t1, llvm_type, v1, _file, _indent)
             print(
-                '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + register + ", align 4",
+                '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + register + ", align " + allign,
                 file=_file)
 
 
@@ -918,6 +933,10 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             file=_file)
 
     def get_without_load(self, _type_table, _file=None, _indent=0):
+        entry = _type_table.lookup_variable(str(self.children[0].name))
+        if entry:
+            if entry.register:
+                return entry.register
         return '%' + str(self.children[0].name)
 
     def get_llvm_type(self, _type_table, _var_name=None):
@@ -1472,7 +1491,7 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
-    if v1[0] != '%':
+    if v1[0] != '%' and v1[0] != '@':
         if new_type == 'float':
             return double_to_hex(float(v1))
         if new_type == 'i8':
