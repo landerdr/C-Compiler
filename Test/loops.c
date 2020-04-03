@@ -2,10 +2,15 @@
 
 int main(){
 
-    i = 0;
-    while(i < 2){
+    int i = 0;
+    while(i < 7){
+        int j = 0;
+        while(j <= i){
+            printf(i);
+            j++;
+        }
         i++;
-        printf(i);
     }
+    return 0;
 
 }
