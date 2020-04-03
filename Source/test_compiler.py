@@ -89,3 +89,11 @@ def test_special_scope():
 
 def test_special_scope_prop():
     assert run_command_prop("./Test/special_scope.txt", "test.txt", "./Test/special_scope_result.txt") is True
+
+
+def test_loops():
+    assert run_command("./Test/loops.c", "test.txt", "./Test/loops_result.txt") is True
+
+
+def test_loops_prop():
+    assert run_command_prop("./Test/loops.c", "test.txt", "./Test/loops_result.txt") is True
