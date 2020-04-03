@@ -4,6 +4,8 @@
 Custom C _-ish_ compiler for compilers course.
 [Online generator for reference](http://ellcc.org/demo/index.cgi)
 
+Reference is gnu gcc compiler with flags `-ansi` and `-pedantic`.
+
 ## Project structure
 `gen/`:
 This folder contains all antlr4 generated files.
@@ -98,6 +100,16 @@ Contains all test input files.
 - [x] (mandatory) Unreachable code removal
     - [ ] (optional) Do not generate code for variables that are not used
     - [ ] (optional) Do not generate code for conditionals that are never true
+
+#### Project 6
+- [ ] (mandatory) Arrays
+    - [ ] (optional) multi-dimensional arrays
+    - [ ] (optional) assignments of complete arrays or array rows in case of multi-dimensional arrays
+    - [ ] (optional) dynamic arrays
+- [ ] (mandatory) Import
+    - [ ] `import <stdio.h>`
+    - [ ] `int printf(char *format, ...)` with format `%[width][code]` and codes `d`, `i`, `s` and `c`.
+    - [ ] `int scanf(const char*format, ...)` same as above
 
 ## Extra features
 - [x] Scope support in symbol table
