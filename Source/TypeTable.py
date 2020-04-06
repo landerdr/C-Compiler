@@ -110,6 +110,8 @@ class Entry:
         # Location of variable on the stack (if applicable)
         self.location = kwargs.get("location")
 
+        self.array = kwargs.get("array") or 0
+
     def update_value(self, new_value, line_num=""):
         # Support Unknown values
         if new_value == "Unknown":
@@ -120,6 +122,9 @@ class Entry:
         if self.type < value_type:
             print("Warning: implicit conversion from '%s' to '%s' at line %s" % (value_type, self.type, line_num))
         self.value = self.type.cast(new_value)
+
+    def is_array(self):
+        return not self.array == 0
 
     def __str__(self):
         return "Type: %s%s, Value: %s" % (

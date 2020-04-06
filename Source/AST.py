@@ -441,6 +441,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.type = None
         self.name = None
         self.const = False
+        self.array = 0
 
     # Print dot format name and label
     def print_dot(self, _file=None):
@@ -470,7 +471,7 @@ class ASTNodeDefinition(ASTNodeStatement):
                     self.children[0].type, self.type, self.line_num))
 
         if not symboltable.insert_variable(self.name, self.type, value=value, const=self.const,
-                                           line_num=self.line_num):
+                                           line_num=self.line_num, array=self.array):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     # TODO: Update: use of new functions
