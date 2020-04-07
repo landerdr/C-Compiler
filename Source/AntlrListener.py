@@ -205,8 +205,8 @@ class CPrintListener(CListener):
         if ctx.value_type().STAR() is not None:
             expr.type = Pointer(expr.type)
         expr.const = ctx.value_type().CONST() is not None
-        if ctx.value_type().Int() is not None:
-            expr.array = ctx.value_type().Int().getText()
+        if ctx.Int() is not None:
+            expr.array = ctx.Int().getText()
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
