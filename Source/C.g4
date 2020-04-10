@@ -96,7 +96,7 @@ loop_statement: (While LB expression RB statement)
 return_statement: Return expression? TERMINUS;
 break_statement: Break TERMINUS;
 continue_statement: Continue TERMINUS;
-variable_definition: value_type ID (LSB Int? RSB)+ (ASSIGNMENT expression)? TERMINUS;
+variable_definition: value_type ID (LSB Int? RSB)* (ASSIGNMENT expression)? TERMINUS;
 expression_statement: expression TERMINUS;
 
 // Expressions

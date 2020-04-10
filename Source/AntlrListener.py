@@ -210,8 +210,8 @@ class CPrintListener(CListener):
         if ctx.value_type().STAR() is not None:
             expr.type = Pointer(expr.type)
         expr.const = ctx.value_type().CONST() is not None
-        if ctx.Int() is not None:
-            expr.array = ctx.Int().getText()
+        if ctx.Int(0) is not None:
+            expr.array = ctx.Int(0).getText()
         elif ctx.LSB():
             expr.array = -1
         self.add_node(expr)
