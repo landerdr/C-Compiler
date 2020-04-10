@@ -270,9 +270,13 @@ class ASTNodeLib(ASTNode):
 class ASTNodeFunction(ASTNode):
     def __init__(self):
         super().__init__("Function")
+        # Indicates whether node can be replaced
         self.canReplace = False
+        # Name of node, used for printing in llvm
         self.name = None
+        # Type of node, used for quicker checking (uses child type)
         self.type = NONE
+        # No clue - oli's stuff
         self.param_names = []
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -322,8 +326,11 @@ class ASTNodeParams(ASTNode):
 class ASTNodeParam(ASTNode):
     def __init__(self):
         super().__init__("Param")
+        # Name from parameter
         self.name = None
+        # Type of parameter
         self.type = NONE
+        # If parameter is const
         self.const = False
 
     def _reduce(self, symboltable):
@@ -435,6 +442,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.type = None
         self.name = None
         self.const = False
+        self.array = 0
 
     # Print dot format name and label
     def print_dot(self, _file=None):
@@ -464,7 +472,7 @@ class ASTNodeDefinition(ASTNodeStatement):
                     self.children[0].type, self.type, self.line_num))
 
         if not symboltable.insert_variable(self.name, self.type, value=value, const=self.const,
-                                           line_num=self.line_num):
+                                           line_num=self.line_num, array=self.array):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     # TODO: Update: use of new functions
@@ -670,6 +678,7 @@ class ASTNodeLiteral(ASTNodeExpression):
         super().__init__(value)
         self.isConst = False
         self.canReplace = False
+        self.prop_able = False
         self.stringRef = None
         self.isString = False
 
@@ -699,6 +708,8 @@ class ASTNodeLiteral(ASTNodeExpression):
                 raise ParserException("Non declared variable '%s' at line %s" % (self.value, self.line_num))
             if entry.value is None:
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
+            if not self.prop_able:
+                entry.update_value("Unknown")
             self.type = entry.type
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -1022,14 +1033,14 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             t = self.children[0].get_llvm_type(_type_table)
             printed_type = t[0]
             if t[1] != printed_type:
-                _string_list.append("%p")
+                _string_list.append("%p\\0A")
                 printed_type = t[1]
             elif printed_type == 'i8':
-                _string_list.append("%c")
+                _string_list.append("%c\\0A")
             elif printed_type == 'i32':
-                _string_list.append("%d")
+                _string_list.append("%d\\0A")
             elif printed_type == 'float':
-                _string_list.append("%f")
+                _string_list.append("%f\\0A")
 
             value = convert_type(printed_type, printed_type, value, _file, _indent)
             if printed_type == 'float':

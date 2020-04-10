@@ -86,13 +86,13 @@ Contains all test input files.
     - [x] (mandatory) `break`
     - [x] (mandatory) `continue`
     - [ ] (optional) `switch`, `case`, and `default`
-- [ ] (mandatory) Scopes
+- [x] (mandatory) Scopes
 
 #### Project 5
 - [x] (mandatory) Reserved words
     - [x] (mandatory) `return`
     - [x] (mandatory) `void`
-- [ ] (mandatory) Scopes
+- [x] (mandatory) Scopes
 - [ ] (mandatory) Local and global variables
 - [ ] (mandatory) Functions
     - [ ] (mandatory) Forward declarations

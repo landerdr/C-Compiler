@@ -34,6 +34,7 @@ class CPrintListener(CListener):
         self.tt = AST()
         self.propagation = False
         self.reachable = Reachability()
+        self.propagation_ability_counter = 0
 
     '''Core'''
 
@@ -114,6 +115,7 @@ class CPrintListener(CListener):
 
         expr = ASTNodeLiteral(txt)
         expr.line_num = ctx.start.line
+        expr.prop_able = self.propagation_ability_counter == 0
         if ctx.Int():
             expr.isConst = True
             expr.value = int(txt.getText())
@@ -208,13 +210,19 @@ class CPrintListener(CListener):
         if ctx.value_type().STAR() is not None:
             expr.type = Pointer(expr.type)
         expr.const = ctx.value_type().CONST() is not None
+        if ctx.Int() is not None:
+            expr.array = ctx.Int().getText()
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
+        self.propagation_ability_counter += 1
         if not self.reachable.is_reachable():
             return self.skip_node()
         expr = ASTNodeIf()
         self.add_node(expr)
+
+    def exitConditional_statement(self, ctx: CParser.Conditional_statementContext):
+        self.propagation_ability_counter -= 1
 
     def enterContinue_statement(self, ctx: CParser.Continue_statementContext):
         if not self.reachable.is_reachable():
@@ -284,11 +292,15 @@ class CPrintListener(CListener):
         self.add_node(expr)
 
     def enterLoop_statement(self, ctx: CParser.Loop_statementContext):
+        self.propagation_ability_counter += 1
         if not self.reachable.is_reachable():
             return self.skip_node()
         expr = ASTNodeLoopStatement()
         expr.loop_type = (ctx.Do() or ctx.For() or ctx.While()).getText()
         self.add_node(expr)
+
+    def exitLoop_statement(self, ctx: CParser.Loop_statementContext):
+        self.propagation_ability_counter -= 1
 
     def enterNegative(self, ctx: CParser.NegativeContext):
         if not self.reachable.is_reachable():
