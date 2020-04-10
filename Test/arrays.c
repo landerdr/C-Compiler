@@ -10,7 +10,5 @@ int main(){
     printf("%d", j[0]);
     //int k[] = {0, 1, 2};
 
-    //printf("%d", j[0]);
-
     return 0;
 }
