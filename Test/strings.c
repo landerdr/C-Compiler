@@ -5,10 +5,10 @@ int main(){
 
     char * a;
     a = "%d%d";
-    //char * b  = "%d%d";
+    char * b  = "%d";
 
     printf(a, 2, 2);
-    printf(2);
+    printf(b, 2);
     return 0;
 
 }

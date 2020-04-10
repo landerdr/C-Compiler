@@ -59,12 +59,13 @@ Int: [0-9]+;
 String: '"' ~('\r' | '\n' | '"')* '"' ;
 Float: [0-9]+'.'[0-9]+;
 Char: '\''.'\'';
+HeaderFile:  [_a-zA-Z][_a-zA-Z0-9]* '.h';
 ID: [_a-zA-Z][_a-zA-Z0-9]*;
 WS: [ \t\r\n]+ -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
 
-include: Include LT ID '.h' GT;
+include: Include LT HeaderFile GT;
 
 library: (include | function
     | expression_statement
