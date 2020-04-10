@@ -502,7 +502,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         print('    ' * _indent + register + " =  alloca " + llvm_type + " , align " + allign, file=_file)
         if len(self.children) > 0:
             v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-            t1 = self.children[0].get_llvm_type(_type_table)[0]
+            t1 = self.children[0].get_llvm_type(_type_table)[1]
             v1 = convert_type(t1, llvm_type, v1, _file, _indent)
             print(
                 '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + register + ", align " + allign,
@@ -944,8 +944,8 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             var_name = self.get_name()
             entry = _type_table.lookup_variable(var_name)
 
-        llvm_type = entry.type.get_llvm_type()
-        t1 = self.children[1].get_llvm_type(_type_table)[0]
+        llvm_type = entry.type.get_llvm_type_ptr()
+        t1 = self.children[1].get_llvm_type(_type_table)[1]
 
         if self.equality != "=":
 
@@ -1573,6 +1573,7 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
+    print(v1, old_type, new_type)
     if v1[0] != '%' and v1[0] != '@':
         if new_type == 'float':
             return double_to_hex(float(v1))

@@ -8,7 +8,7 @@ int main(){
     char * b  = "%d";
 
     printf(a, 2, 2);
-    printf(b, 2);
+    //printf(b, 2);
     return 0;
 
 }
