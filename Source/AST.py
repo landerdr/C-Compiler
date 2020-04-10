@@ -445,7 +445,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         self.type = None
         self.name = None
         self.const = False
-        self.array = 0
+        self.array = None
 
     # Print dot format name and label
     def print_dot(self, _file=None):
@@ -495,6 +495,9 @@ class ASTNodeDefinition(ASTNodeStatement):
             llvm_type += '*'
             allign = '8'
 
+        if self.array == -1:
+            self.array = len(self.children[0].children)
+
         if not _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.line_num))
 
@@ -502,20 +505,41 @@ class ASTNodeDefinition(ASTNodeStatement):
             print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
             return
 
-
         print_type = llvm_type
-        if self.array:
-            print_type = '[ ' + self.array + ' x '  + llvm_type + ']'
+        if self.array != None:
+            print_type = '[ ' + str(self.array) + ' x '  + llvm_type + ']'
 
         print('    ' * _indent + register + " =  alloca " + print_type + " , align " + allign, file=_file)
         if len(self.children) > 0:
-            v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-            t1 = self.children[0].get_llvm_type(_type_table)[1]
-            v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-            print(
-                '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + register + ", align " + allign,
-                file=_file)
+            if not isinstance(self.children[0], ASTNodeList):
+                v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
 
+                t1 = self.children[0].get_llvm_type(_type_table)[1]
+                v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+                print(
+                    '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + register + ", align " + allign,
+                    file=_file)
+            else:
+                prev = None
+                for index in range(int(self.array)):
+                    if index < len(self.children[0].children):
+                        k = self.children[0].children[index]
+                        v1 = k.load_if_necessary(_type_table, _file, _indent)
+                        t1 = k.get_llvm_type(_type_table)[1]
+                        v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+                        new_addr = k.get_llvm_addr() + '_listitem'
+                    else:
+                        v1 = '0'
+                        t1 = "i32"
+                        new_addr = self.children[0].get_llvm_addr() + '_listitem_' + str(index)
+                        v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+
+                    if index == 0:
+                        print("    " * _indent + new_addr + " =  getelementptr inbounds [" + str(self.array) + " x " + llvm_type + "], [" + str(self.array) +  " x " + llvm_type +"]*" + register + ", i64 0, i64 " + str(index) , file=_file)
+                    else:
+                        print("    " * _indent + new_addr + " =  getelementptr inbounds " + llvm_type + ", " + llvm_type + "* " + prev + ", i64 1", file=_file)
+                    print( '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + new_addr + ", align " + allign, file=_file)
+                    prev = new_addr
 
 # If statement node
 class ASTNodeIf(ASTNodeStatement):
@@ -782,14 +806,16 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             entry.value -= 1
 
     def _reduce(self, symboltable):
-        entry = symboltable.lookup_variable(self.children[0].name)
-        if not entry:
-            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
-        if entry.value is None:
-            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
-        if entry.const:
-            raise ParserException(
-                "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
+        #ToDo: move to Left_Value??
+        if isinstance(self.children[0], ASTNodeLeftValue):
+            entry = symboltable.lookup_variable(self.children[0].name)
+            if not entry:
+                raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
+            if entry.value is None:
+                raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
+            if entry.const:
+                raise ParserException(
+                    "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_llvm_addr())
@@ -845,14 +871,16 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.delete()
 
     def _reduce(self, symboltable):
-        entry = symboltable.lookup_variable(self.children[0].name)
-        if not entry:
-            raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
-        if entry.value is None:
-            raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
-        if entry.const:
-            raise ParserException(
-                "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
+        #ToDo: move to Left_Value??
+        if isinstance(self.children[0], ASTNodeLeftValue):
+            entry = symboltable.lookup_variable(self.children[0].name)
+            if not entry:
+                raise ParserException("Non declared variable '%s' at line %s" % (self.children[0].name, self.line_num))
+            if entry.value is None:
+                raise ParserException("Non defined variable '%s' at line %s" % (self.children[0].name, self.line_num))
+            if entry.const:
+                raise ParserException(
+                    "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
@@ -875,8 +903,8 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
 
-        entry = _type_table.lookup_variable(self.children[0].name)
-        var_name = "%" + self.children[0].name
+        var_name = self.children[0].get_without_load(_type_table)
+        entry = _type_table.lookup_variable(var_name)
         if entry.register:
             var_name = entry.register
 
@@ -1072,8 +1100,12 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 params = ""
                 for i in range(len(self.children)):
                     value = self.children[i].load_if_necessary(_type_table, _file, _indent)
-                    t = self.children[i].get_llvm_type(_type_table)
-                    params += t[1] + " " + value
+                    t = self.children[i].get_llvm_type(_type_table)[1]
+                    if t == 'float':
+                        t = 'double'
+                        if value[0] == '%':
+                            value = convert_type('float', t, value, _file, _indent)
+                    params += t + " " + value
                     if i != len(self.children) - 1:
                         params += ", "
 
@@ -1119,7 +1151,6 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             t1 = self.children[0].get_llvm_type(_type_table)[1]
         else:
             register = str(self.children[0].get_without_load(_type_table))
-            print(register)
             entry = _type_table.lookup_variable_register(register)
             l = entry.array
             llvm_type = entry.type.get_llvm_type_ptr()
@@ -1260,6 +1291,13 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
 
         print('    ' * _indent + new_addr + " = load " + llvm_type + ", " + llvm_type + "* " +
               v0 + ", align 4", file=_file)
+
+
+class ASTNodeList(ASTNodeUnaryExpr):
+    def __init__(self, tt="list"):
+        super().__init__(tt)
+        self.operators = []
+        self.canReplace = False
 
 
 '''Operations'''

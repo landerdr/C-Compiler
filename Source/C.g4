@@ -96,7 +96,7 @@ loop_statement: (While LB expression RB statement)
 return_statement: Return expression? TERMINUS;
 break_statement: Break TERMINUS;
 continue_statement: Continue TERMINUS;
-variable_definition: value_type ID (LSB Int RSB)? (ASSIGNMENT expression)? TERMINUS;
+variable_definition: value_type ID (LSB Int? RSB)? (ASSIGNMENT expression)? TERMINUS;
 expression_statement: expression TERMINUS;
 
 // Expressions
@@ -144,7 +144,9 @@ unary_expression: bracket_expression
     | function_call_expression
     | equality_expression
     | dereference
-    | reference;
+    | reference
+    | list_expression;
+
 
 // Unary expressions
 // Signs
@@ -169,6 +171,8 @@ reference: BINAND left_value;
 // Left value
 left_value: ID | dereference | l_indexing_expression;
 l_indexing_expression: ID (LSB expression RSB)+;
+// Initialiser Lists
+list_expression: LCB literal_expression (COMMA expression)* RCB;
 
 // Literal
 literal_expression: ID | Int | Char | Float | String;

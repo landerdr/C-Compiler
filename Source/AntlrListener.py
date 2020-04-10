@@ -212,6 +212,8 @@ class CPrintListener(CListener):
         expr.const = ctx.value_type().CONST() is not None
         if ctx.Int() is not None:
             expr.array = ctx.Int().getText()
+        elif ctx.LSB():
+            expr.array = -1
         self.add_node(expr)
 
     def enterConditional_statement(self, ctx: CParser.Conditional_statementContext):
@@ -437,6 +439,10 @@ class CPrintListener(CListener):
 
     def enterInclude(self, ctx:CParser.IncludeContext):
         self.skip_node()
+
+    def enterList_expression(self, ctx:CParser.List_expressionContext):
+        expr = ASTNodeList()
+        self.add_node(expr)
 
     def visitErrorNode(self, node: ErrorNode):
         print("Error", node.getText())
