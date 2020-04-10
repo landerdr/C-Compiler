@@ -283,6 +283,7 @@ class CPrintListener(CListener):
         if not self.reachable.is_reachable():
             return self.skip_node()
         expr = ASTNodeIndexingExpr()
+        expr.value = None
         self.add_node(expr)
 
     def enterInverse(self, ctx: CParser.InverseContext):
@@ -427,7 +428,9 @@ class CPrintListener(CListener):
     def enterL_indexing_expression(self, ctx: CParser.L_indexing_expressionContext):
         if not self.reachable.is_reachable():
             return self.skip_node()
-        self.add_node(ASTNodeIndexingExpr)
+        expr = ASTNodeIndexingExpr()
+        expr.value = ctx.ID().getText()
+        self.add_node(expr)
 
     def enterValue_type(self, ctx: CParser.Value_typeContext):
         self.skip_node()

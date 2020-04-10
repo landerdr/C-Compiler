@@ -71,6 +71,14 @@ class TypeTable:
                 return self.tables[-i][name]
         return None
 
+    def lookup_variable_register(self, register):
+        for i in range(1, len(self.tables) + 1):
+            for j in self.tables[-i]:
+                if self.tables[-i][j].register == register:
+                    self.tables[-i][j].usage_count += 1
+                    return self.tables[-i][j]
+        return None
+
     def insert_function(self, name, value_type, **kwargs):
         if name in self.functions:
             return False

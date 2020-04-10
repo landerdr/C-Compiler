@@ -230,8 +230,11 @@ class ASTNode:
         llvm_type = entry[0]
         pointer = entry[1]
 
-        name = "%" + str(name)
-        entry2 = _type_table.lookup_variable(str(name[1:]))
+        entry2 = _type_table.lookup_variable(str(name))
+
+        if str(name)[0] != '%':
+            name = "%" + str(name)
+
         if entry2.register:
             name = entry2.register
 
@@ -246,7 +249,7 @@ class ASTNode:
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
         return self.get_llvm_addr()
 
-    def get_without_load(self, _type_table, _file=None, _indent=0):
+    def get_without_load(self, _type_table):
         return self.get_llvm_addr()
 
     def get_llvm_type(self, _type_table, _var_name=None):
@@ -492,14 +495,19 @@ class ASTNodeDefinition(ASTNodeStatement):
             llvm_type += '*'
             allign = '8'
 
-        if not _type_table.insert_variable(self.name, self.type, const=self.const, register=register):
+        if not _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array):
             raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.line_num))
 
         if len(_type_table.tables) == 1:
             print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
             return
 
-        print('    ' * _indent + register + " =  alloca " + llvm_type + " , align " + allign, file=_file)
+
+        print_type = llvm_type
+        if self.array:
+            print_type = '[ ' + self.array + ' x '  + llvm_type + ']'
+
+        print('    ' * _indent + register + " =  alloca " + print_type + " , align " + allign, file=_file)
         if len(self.children) > 0:
             v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t1 = self.children[0].get_llvm_type(_type_table)[1]
@@ -722,7 +730,7 @@ class ASTNodeLiteral(ASTNodeExpression):
             self.stringRef = "getelementptr inbounds ([" + str(l) + " x i8], [" + str(l) + " x i8]* " + string_ref + ", i32 0, i32 0)"
             _string_list.append(self.value)
 
-    def get_without_load(self, _type_table, _file=None, _indent=0):
+    def get_without_load(self, _type_table):
         if not self.isConst:
             return '%' + str(self.value)
         else:
@@ -938,12 +946,15 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         if not isinstance(self.children[0], ASTNodeLeftValue):
-            var_name = self.children[0].children[0].get_llvm_addr()[1:]
-            entry = _type_table.lookup_variable(self.children[0].get_llvm_addr())
+            if not isinstance(self.children[0], ASTNodeIndexingExpr):
+                var_name = self.children[0].children[0].get_llvm_addr()[1:]
+                entry = _type_table.lookup_variable(self.children[0].get_llvm_addr())
+            else:
+                var_name = self.children[0].get_llvm_addr()[1:]
+                entry = _type_table.lookup_variable(self.children[0].get_llvm_addr())
         else:
             var_name = self.get_name()
             entry = _type_table.lookup_variable(var_name)
-
         llvm_type = entry.type.get_llvm_type_ptr()
         t1 = self.children[1].get_llvm_type(_type_table)[1]
 
@@ -998,7 +1009,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + var_name + ", align " + allign,
             file=_file)
 
-    def get_without_load(self, _type_table, _file=None, _indent=0):
+    def get_without_load(self, _type_table):
         entry = _type_table.lookup_variable(str(self.children[0].name))
         if entry:
             if entry.register:
@@ -1095,6 +1106,36 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
     def __init__(self):
         super().__init__("Indexing expression")
+        self.canReplace = False
+        self.value = None
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        if self.value:
+            entry = _type_table.lookup_variable(self.value)
+            register = entry.register
+            l = entry.array
+            llvm_type = entry.type.get_llvm_type_ptr()
+            index = str(self.children[0].load_if_necessary(_type_table, _file, _indent))
+            t1 = self.children[0].get_llvm_type(_type_table)[1]
+        else:
+            register = str(self.children[0].get_without_load(_type_table))
+            print(register)
+            entry = _type_table.lookup_variable_register(register)
+            l = entry.array
+            llvm_type = entry.type.get_llvm_type_ptr()
+            index = str(self.children[1].load_if_necessary(_type_table, _file, _indent))
+            t1 = self.children[1].get_llvm_type(_type_table)[1]
+
+        v1 = convert_type(t1, 'i64', index, _file, _indent)
+
+        new_addr = self.get_llvm_addr()
+        print("    " * _indent + new_addr + " =  getelementptr inbounds [" + str(l) + " x " + llvm_type + "], [" + str(l) +  " x " + llvm_type +"]*" + register + ", i64 0, i64 " + v1, file=_file)
+
+        if not _type_table.insert_variable(new_addr, llvm_type):
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
+
+    def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+        return self._load(self.get_llvm_addr(), _type_table, _file, _indent, self.get_llvm_addr() + "_l")
 
 
 # Inverse expression node
@@ -1189,7 +1230,7 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         return self.children[0].get_llvm_addr()
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-        return self.children[0].get_without_load(_type_table, _file, _indent)
+        return self.children[0].get_without_load(_type_table)
 
 
 # Dereference expression node
@@ -1573,7 +1614,6 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
-    print(v1, old_type, new_type)
     if v1[0] != '%' and v1[0] != '@':
         if new_type == 'float':
             return double_to_hex(float(v1))
@@ -1583,7 +1623,7 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
             elif old_type == 'float':
                 return str(floor(float(v1)))
             return str(v1)
-        if new_type == 'i32':
+        if new_type == 'i32' or new_type == 'i64':
             return str(int(float(v1)))
     if old_type != new_type:
         prev = str(v1)
@@ -1591,7 +1631,7 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
         if _save_as:
             v1 = _save_as
         convopp = 'sitofp'
-        if new_type == 'i32':
+        if new_type == 'i32' or new_type == 'i64':
             convopp = 'sext'
             if old_type == 'float' or old_type == 'double':
                 convopp = 'fptosi'
