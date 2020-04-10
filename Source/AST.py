@@ -1114,7 +1114,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        t0 = self.children[0].get_llvm_type(_type_table)[0]
+        t0 = self.children[0].get_llvm_type(_type_table)[1]
         v1 = convert_type('i32', str(t0), '0', _file, _indent)
 
         llvm_type = 'i1'
@@ -1148,7 +1148,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = '0'
-        t0 = self.children[0].get_llvm_type(_type_table)[0]
+        t0 = self.children[0].get_llvm_type(_type_table)[1]
         t1 = 'i8'
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
@@ -1283,8 +1283,8 @@ class ASTNodeAddition(ASTNodeOp):
 
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
-        t0 = self.children[0].get_llvm_type(_type_table)[0]
-        t1 = self.children[1].get_llvm_type(_type_table)[0]
+        t0 = self.children[0].get_llvm_type(_type_table)[1]
+        t1 = self.children[1].get_llvm_type(_type_table)[1]
 
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
@@ -1366,8 +1366,8 @@ class ASTNodeMult(ASTNodeOp):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
-        t0 = self.children[0].get_llvm_type(_type_table)[0]
-        t1 = self.children[1].get_llvm_type(_type_table)[0]
+        t0 = self.children[0].get_llvm_type(_type_table)[1]
+        t1 = self.children[1].get_llvm_type(_type_table)[1]
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
@@ -1455,8 +1455,8 @@ class ASTNodeConditional(ASTNodeOp):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
-        t0 = self.children[0].get_llvm_type(_type_table)[0]
-        t1 = self.children[1].get_llvm_type(_type_table)[0]
+        t0 = self.children[0].get_llvm_type(_type_table)[1]
+        t1 = self.children[1].get_llvm_type(_type_table)[1]
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
