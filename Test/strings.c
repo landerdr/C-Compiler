@@ -5,7 +5,6 @@ int main(){
 
     char * a;
     a = "%d%d";
-
     char * b  = "%d%d";
 
     printf(a, 2);
