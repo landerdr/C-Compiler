@@ -9,6 +9,7 @@ Do: 'do';
 Return: 'return';
 Break: 'break';
 Continue: 'continue';
+Include: '#include';
 
 PLUS: '+';
 INCREMENT: '++';
@@ -55,6 +56,7 @@ COLON: ':';
 Type: ('int' | 'char' | 'float');
 CONST: 'const';
 Int: [0-9]+;
+String: '"' ~('\r' | '\n' | '"')* '"' ;
 Float: [0-9]+'.'[0-9]+;
 Char: '\''.'\'';
 ID: [_a-zA-Z][_a-zA-Z0-9]*;
@@ -62,8 +64,9 @@ WS: [ \t\r\n]+ -> skip;
 BLOCK_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
 
+include: Include LT ID '.h' GT;
 
-library: (function
+library: (include | function
     | expression_statement
     | variable_definition)* EOF;
 
@@ -167,5 +170,5 @@ left_value: ID | dereference | l_indexing_expression;
 l_indexing_expression: ID (LSB expression RSB)+;
 
 // Literal
-literal_expression: ID | Int | Char | Float;
+literal_expression: ID | Int | Char | Float | String;
 

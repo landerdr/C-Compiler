@@ -110,7 +110,7 @@ class CPrintListener(CListener):
         if not self.reachable.is_reachable():
             return self.skip_node()
         # Get txt
-        txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char())
+        txt = (ctx.ID() or ctx.Int() or ctx.Float() or ctx.Char() or ctx.String())
 
         expr = ASTNodeLiteral(txt)
         expr.line_num = ctx.start.line
@@ -126,6 +126,11 @@ class CPrintListener(CListener):
             expr.isConst = True
             expr.value = float(txt.getText())
             expr.type = FLOAT
+        if ctx.String():
+            expr.isString = True
+            expr.isConst = True
+            expr.value = txt.getText()[1:-1]
+            expr.type = CHAR
         self.add_node(expr)
 
     def enterExpression_statement(self, ctx: CParser.Expression_statementContext):
@@ -413,6 +418,9 @@ class CPrintListener(CListener):
         self.add_node(ASTNodeIndexingExpr)
 
     def enterValue_type(self, ctx: CParser.Value_typeContext):
+        self.skip_node()
+
+    def enterInclude(self, ctx:CParser.IncludeContext):
         self.skip_node()
 
     def visitErrorNode(self, node: ErrorNode):

@@ -122,9 +122,10 @@ class AST:
 
         for i in range(0, len(string_list)):
             string_ref = "@.str"
+            l = len(string_list[i]) + 1 - string_list[i].count("\\0A")*2
             if i > 0:
                 string_ref += '.' + str(i)
-            print(string_ref + " = private unnamed_addr constant [4 x i8] c\"" + string_list[i] + "\\00\", align 1",
+            print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[i] + "\\00\", align 1",
                   file=_file)
 
         print("\ndeclare i32 @printf(i8*, ...) #1\n", file=_file)
@@ -669,6 +670,8 @@ class ASTNodeLiteral(ASTNodeExpression):
         super().__init__(value)
         self.isConst = False
         self.canReplace = False
+        self.stringRef = None
+        self.isString = False
 
     def _const_propagation(self, symboltable):
         if not self.isConst:
@@ -698,24 +701,39 @@ class ASTNodeLiteral(ASTNodeExpression):
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
             self.type = entry.type
 
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+        if self.isString:
+            string_ref = "@.str"
+            self.value = self.value.replace("\\n", "\\0A")
+            l = len(self.value) + 1 - self.value.count("\\0A")*2
+            if len(_string_list) > 0:
+                string_ref += "." + str(len(_string_list))
+            self.stringRef = "getelementptr inbounds ([" + str(l) + " x i8], [" + str(l) + " x i8]* " + string_ref + ", i32 0, i32 0)"
+            _string_list.append(self.value)
+
     def get_without_load(self, _type_table, _file=None, _indent=0):
         if not self.isConst:
             return '%' + str(self.value)
         else:
+            if self.stringRef:
+                return self.stringRef
             return str(self.value)
 
     def get_llvm_type(self, _type_table, _var_name=None):
         if not self.isConst:
             entry = _type_table.lookup_variable(str(self.value))
             return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
-
         else:
+            if self.isString:
+                return 'i8', 'i8*'
             return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
         if not self.isConst:
             return self._load(self.value, _type_table, _file, _indent, _target)
         else:
+            if self.stringRef:
+                return self.stringRef
             return str(self.value)
 
 
@@ -999,18 +1017,19 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf':
+            '''
             value = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t = self.children[0].get_llvm_type(_type_table)
             printed_type = t[0]
             if t[1] != printed_type:
-                _string_list.append("%p\\0A")
+                _string_list.append("%p")
                 printed_type = t[1]
             elif printed_type == 'i8':
-                _string_list.append("%c\\0A")
+                _string_list.append("%c")
             elif printed_type == 'i32':
-                _string_list.append("%d\\0A")
+                _string_list.append("%d")
             elif printed_type == 'float':
-                _string_list.append("%f\\0A")
+                _string_list.append("%f")
 
             value = convert_type(printed_type, printed_type, value, _file, _indent)
             if printed_type == 'float':
@@ -1026,6 +1045,22 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 "    " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name +
                 "(i8* getelementptr inbounds ([4 x i8], [4 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type +
                 ' ' + value + ")", file=_file)
+                '''
+            llvm_type = 'i32'
+            params = ""
+            for i in range(len(self.children)):
+                value = self.children[i].load_if_necessary(_type_table, _file, _indent)
+                t = self.children[i].get_llvm_type(_type_table)
+                params += t[1] + " " + value
+                if i != len(self.children) - 1:
+                    params += ", "
+
+            print("    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " (i8*, ...) @" + self.name + "(",
+                      file=_file, end="")
+            print(params + ")", file=_file)
+
+            _type_table.insert_variable(self.get_llvm_addr(), 'i32')
+
         else:
             entry = _type_table.lookup_function(self.name)
             llvm_type = entry.type.get_llvm_type()
