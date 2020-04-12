@@ -132,7 +132,7 @@ class CPrintListener(CListener):
             expr.isString = True
             expr.isConst = True
             expr.value = txt.getText()[1:-1]
-            expr.type = CHAR
+            expr.type = STRING
         self.add_node(expr)
 
     def enterExpression_statement(self, ctx: CParser.Expression_statementContext):

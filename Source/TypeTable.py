@@ -6,7 +6,7 @@ BOOL = Bool()
 CHAR = Char()
 INT = Int()
 FLOAT = Float()
-
+STRING = Pointer(CHAR)
 
 class ParserException(Exception):
     pass
@@ -149,7 +149,9 @@ def get_type(val):
     if isinstance(val, int):
         return INT
     if isinstance(val, str):
-        return CHAR
+        if len(val) == 1:
+            return CHAR
+        return STRING
     if isinstance(val, bool):
         return Bool
 

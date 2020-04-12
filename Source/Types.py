@@ -148,7 +148,7 @@ class Pointer(Int):
         self.pointertype = pointertype
 
     def cast(self, value):
-        pass
+        return value
 
     def __eq__(self, other):
         return type(self) == type(other) and self.pointertype == other.pointertype
