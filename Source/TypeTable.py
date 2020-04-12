@@ -1,4 +1,5 @@
 from Source.Types import *
+import struct
 
 NONE = BaseType()
 VOID = VoidType()
@@ -7,6 +8,7 @@ CHAR = Char()
 INT = Int()
 FLOAT = Float()
 STRING = Pointer(CHAR)
+
 
 class ParserException(Exception):
     pass
@@ -51,27 +53,27 @@ class TypeTable:
                     print("Warning: Unused variable '%s'" % key)
             self.tables.pop()
 
-    def insert_variable(self, name, value_type, **kwargs):
+    def insert_variable(self, name: str, value_type, **kwargs):
         if name in self.tables[-1]:
             return False
         self.tables[-1][name] = Entry(string_to_type(value_type), **kwargs)
         return True
 
-    def insert_param(self, name, value_type, **kwargs):
+    def insert_param(self, name: str, value_type, **kwargs):
         if name in self.param:
             return False
         self.param[name] = Entry(string_to_type(value_type), **kwargs)
         self.param[name].update_value("Unknown")
         return True
 
-    def lookup_variable(self, name):
+    def lookup_variable(self, name: str):
         for i in range(1, len(self.tables) + 1):
             if name in self.tables[-i]:
                 self.tables[-i][name].usage_count += 1
                 return self.tables[-i][name]
         return None
 
-    def lookup_variable_register(self, register):
+    def lookup_variable_register(self, register: str):
         for i in range(1, len(self.tables) + 1):
             for j in self.tables[-i]:
                 if self.tables[-i][j].register == register:
@@ -79,13 +81,13 @@ class TypeTable:
                     return self.tables[-i][j]
         return None
 
-    def insert_function(self, name, value_type, **kwargs):
+    def insert_function(self, name: str, value_type: BaseType, **kwargs):
         if name in self.functions:
             return False
         self.current = name
         self.functions[name] = Entry(string_to_type(value_type), **kwargs)
 
-    def lookup_function(self, name):
+    def lookup_function(self, name: str):
         if name in self.functions:
             return self.functions[name]
         return None
@@ -98,7 +100,7 @@ class TypeTable:
 
 
 class Entry:
-    def __init__(self, value_type, **kwargs):
+    def __init__(self, value_type: BaseType, **kwargs):
         self.type = value_type
         if kwargs.get("pointer"):
             self.type = Pointer(self.type)
@@ -165,8 +167,6 @@ def get_dominant_type(type1, type2):
 
 
 # Found at https://stackoverflow.com/questions/23624212/how-to-convert-a-float-into-hex
-
-import struct
 
 
 def float_to_hex(f):
