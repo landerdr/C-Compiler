@@ -71,7 +71,7 @@ library: (include | function
     | expression_statement
     | variable_definition)* EOF;
 
-value_type: CONST? Type STAR?;
+value_type: CONST? Type STAR*;
 
 // Functions
 function: (value_type | Void) ID LB (params)? RB (compound_statement) | (TERMINUS);
@@ -169,7 +169,7 @@ bracket_expression: literal_expression | (LB expression RB);
 dereference: (STAR left_value) | (STAR LB expression RB);
 reference: BINAND left_value;
 // Left value
-left_value: ID | dereference | l_indexing_expression;
+left_value: ID | LB dereference RB | dereference | l_indexing_expression;
 l_indexing_expression: ID (LSB expression RSB)+;
 // Initialiser Lists
 list_expression: LCB literal_expression (COMMA expression)* RCB;
