@@ -9,6 +9,8 @@ int main(){
 
     printf(a, 2, 2);
     printf(b, 2);
+    printf("\nabc");
+
     return 0;
 
 }
