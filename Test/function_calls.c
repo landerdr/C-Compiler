@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 
 int f1(){
     printf(1);
@@ -24,8 +25,17 @@ float f5(){
     return 0.5;
 }
 
-char f6(){
-    return 'a';
+char* f6(char* a){
+    return a;
+}
+
+char f7(char a){
+    return a;
+}
+
+
+int f8(int a[3]){
+    return a[2];
 }
 
 int main(){
@@ -35,7 +45,11 @@ int main(){
     printf(f3(1, 2.0));
     f4();
     printf(f5());
-    printf(f6());
+    printf(f6("abc"));
+    printf(f7('a'));
+
+    int a[4] = {0, 1, 2};
+    printf("%d", f8(a));
 
     return 0;
 }
