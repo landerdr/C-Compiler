@@ -55,7 +55,7 @@ class TypeTable:
     def enter_scope(self):
         self.tables.append(self.param)
         if self.current is not None:
-            self.functions[self.current].param = self.param.keys()
+            self.functions[self.current].param = list(self.param.values())
         self.param = dict()
 
     def leave_scope(self):
