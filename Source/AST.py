@@ -526,8 +526,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         if self.array == -1:
             self.array = len(self.children[0].children)
 
-        if not _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array):
-            raise ParserException("Trying to redeclare variable %s at line %s" % (self.name, self.line_num))
+        _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array)
 
         if len(_type_table.tables) == 1:
             print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
@@ -869,9 +868,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
                 opp = 'fsub'
 
         new_addr = self.get_llvm_addr()
-        if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
-
+        _type_table.insert_variable(new_addr, llvm_type)
         var_name = self.children[0].get_without_load(_type_table)
 
         print('    ' * _indent + new_addr + "t = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
@@ -934,9 +931,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
                 opp = 'fsub'
 
         new_addr = self.get_llvm_addr()
-        if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
-
+        _type_table.insert_variable(new_addr, llvm_type)
         var_name = self.children[0].get_without_load(_type_table)
         entry = _type_table.lookup_variable(var_name)
         if entry.register:
@@ -1255,7 +1250,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
         print('    ' * _indent + v0 + 't = ' + icmp + t0 + ' ' + v0 + ', ' + v1, file=_file)
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "t , true", file=_file)
 
@@ -1289,7 +1284,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v1 + "," + v0, file=_file)
 
@@ -1312,7 +1307,7 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         new_addr = self.get_llvm_addr()
         llvm_type = child.get_llvm_type(_type_table)[0]
         if not _type_table.insert_variable(new_addr, llvm_type, pointer=True):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
     def get_llvm_addr(self):
         return self.children[0].get_llvm_addr()
@@ -1340,7 +1335,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         llvm_type = entry[0]
         v0 = child.load_if_necessary(_type_table, _file, _indent)
         if not _type_table.insert_variable(new_addr, llvm_type, pointer=False):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
         if isinstance(self.parent, ASTNodeEqualityExpr):
             if self.parent.children[0] == self and self.parent.equality == '=':
@@ -1437,7 +1432,7 @@ class ASTNodeAddition(ASTNodeOp):
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
@@ -1524,7 +1519,7 @@ class ASTNodeMult(ASTNodeOp):
 
         new_addr = self.get_llvm_addr()
         if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, llvm_type))
+            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
@@ -1650,9 +1645,7 @@ class ASTNodeConditional(ASTNodeOp):
                 last_label) + "], [" + new_addr2 + ", %" + str(label1) + " ]", file=_file)
 
             last_label = label2
-
-            if not _type_table.insert_variable(new_addr, 'i1'):
-                raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, 'i1'))
+            _type_table.insert_variable(new_addr, 'i1')
 
             return
         elif self.operators[0] == "||":
@@ -1682,14 +1675,11 @@ class ASTNodeConditional(ASTNodeOp):
 
             last_label = label2
 
-            if not _type_table.insert_variable(new_addr, 'i1'):
-                raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, 'i1'))
+            _type_table.insert_variable(new_addr, 'i1')
 
             return
 
-        if not _type_table.insert_variable(new_addr, 'i1'):
-            raise ParserException("Trying to redeclare variable '%s' at line %s" % (new_addr, 'i1'))
-
+        _type_table.insert_variable(new_addr, 'i1')
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
 

@@ -20,7 +20,10 @@ int main(){
     printf("%f\n", r[2]);
 
     char c[] = {'a', 'b', 'c'};
-    printf("%c\n", c[2]);
+    printf("%c\n", c[2]);*/
+
+    char c2[] = "abc";
+    printf(c2);
 
     return 0;
 }

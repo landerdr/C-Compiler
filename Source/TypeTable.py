@@ -60,7 +60,7 @@ class TypeTable:
         if len(self.tables) != 0:
             for key in self.tables[-1]:
                 if key[0] == '%':
-                    return
+                    continue
                 if self.tables[-1][key].usage_count == 0:
                     print("Warning: Unused variable '%s'" % key)
             self.tables.pop()
