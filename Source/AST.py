@@ -173,7 +173,7 @@ class ASTNode:
 
     # Greatly simplifies the tree structure, removes redundant children, etc
     # Checks for errors in semantics
-    def _reduce(self, symboltable):
+    def _reduce(self, symboltable: TypeTable):
         pass
 
     # Constant folds (expects reduced node)
@@ -181,11 +181,11 @@ class ASTNode:
         pass
 
     # Constant propagation (expects reduced node)
-    def _const_propagation(self, symboltable):
+    def _const_propagation(self, symboltable: TypeTable):
         pass
 
     # Optimises this node structure if possible
-    def optimise(self, symboltable, propagation=False):
+    def optimise(self, symboltable: TypeTable, propagation=False):
         # Simplify tree structure (remove long lines)
         if len(self.children) == 1 and self.canReplace and self.parent is not None:
             self.delete()
@@ -1074,6 +1074,13 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
         super().__init__("Function call expression")
         self.name = None
         self.canReplace = False
+
+    def _reduce(self, symboltable):
+        if self.name == "printf" or self.name == "scanf":
+            return
+        entry = symboltable.lookup_function(self.name)
+        if entry is None:
+            raise ParserException("No function named '%s' at line %s" % (self.name, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf':
