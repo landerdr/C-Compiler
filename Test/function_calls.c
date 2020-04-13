@@ -33,7 +33,6 @@ char f7(char a){
     return a;
 }
 
-
 int f8(int a[3]){
     return a[2];
 }
@@ -53,4 +52,3 @@ int main(){
 
     return 0;
 }
-

@@ -9,6 +9,7 @@ from Source.TypeTable import *
 
 last_label = 0
 last_branch_choice = 0
+ctr = 0
 
 
 class AST:
@@ -140,6 +141,9 @@ class AST:
 # Base node class
 class ASTNode:
     def __init__(self, _val='Undefined'):
+        global ctr
+        ctr = ctr+1
+        self.id = ctr
         self.canReplace = True
         self.parent = None
         self.index = 0
@@ -221,6 +225,7 @@ class ASTNode:
 
     def get_llvm_addr(self):
         return "%t" + str(id(self))
+        #return "%t" + str(self.id)
 
     def _load(self, name, _type_table, _file=None, _indent=0, _target=None):
         v1 = self.get_llvm_addr()
@@ -305,6 +310,16 @@ class ASTNodeFunction(ASTNode):
             print('    ' * _indent + self.get_llvm_addr() + " =  alloca i32, align 4", file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
+        if not isinstance(self.children[-1], ASTNodeReturn):
+            if isinstance(self.children[-1], ASTNodeCompound):
+                if not isinstance(self.children[-1].children[-1], ASTNodeReturn):
+                    v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+                    print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+            else:
+                v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+                print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+
+
         _type_table.leave_scope()
         print("}", file=_file)
 
