@@ -438,7 +438,9 @@ class CPrintListener(CListener):
         self.skip_node()
 
     def enterInclude(self, ctx:CParser.IncludeContext):
-        self.skip_node()
+        expr = ASTNodeInclude()
+        expr.name = ctx.HeaderFile().getText()
+        self.add_node(expr)
 
     def enterList_expression(self, ctx:CParser.List_expressionContext):
         expr = ASTNodeList()

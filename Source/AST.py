@@ -128,8 +128,6 @@ class AST:
             print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[i] + "\\00\", align 1",
                   file=_file)
 
-        print("\ndeclare i32 @printf(i8*, ...) #1\n", file=_file)
-        print("\ndeclare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
         print(
             '\nattributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }',
             file=_file)
@@ -385,9 +383,18 @@ class ASTNodeLeftValue(ASTNode):
         return self._load(self.name, _type_table, _file, _indent, _target)
 
 
+class ASTNodeInclude(ASTNode):
+
+    def __init__(self):
+        super().__init__("Include")
+        self.name = ""
+
+    def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+        print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
+        print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
+
+
 '''Statements'''
-
-
 # Base statement node
 class ASTNodeStatement(ASTNode):
     def __init__(self, _val="Statement"):
