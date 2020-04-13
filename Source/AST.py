@@ -122,10 +122,11 @@ class AST:
 
         for i in range(0, len(string_list)):
             string_ref = "@.str"
-            l = len(string_list[i]) + 1 - string_list[i].count("\\0A")*2
+            l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2
             if i > 0:
                 string_ref += '.' + str(i)
-            print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[i] + "\\00\", align 1",
+            print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[
+                i] + "\\00\", align 1",
                   file=_file)
 
         print(
@@ -249,7 +250,7 @@ class ASTNode:
             arr = str(llvm_type + ", " + llvm_type)
             l = entry2.array
             if int(l) > 0:
-                arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) +  " x " + llvm_type +"]* "
+                arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) + " x " + llvm_type + "]* "
             print("    " * _indent + v1 + " =  getelementptr inbounds " + arr + name + ", i64 0, i64 0", file=_file)
             if not _type_table.insert_variable(v1, Pointer(entry2.type)):
                 raise ParserException("Trying to redeclare variable %s" % v1)
@@ -411,6 +412,8 @@ class ASTNodeInclude(ASTNode):
 
 
 '''Statements'''
+
+
 # Base statement node
 class ASTNodeStatement(ASTNode):
     def __init__(self, _val="Statement"):
@@ -534,7 +537,7 @@ class ASTNodeDefinition(ASTNodeStatement):
 
         print_type = llvm_type
         if self.array != None:
-            print_type = '[ ' + str(self.array) + ' x '  + llvm_type + ']'
+            print_type = '[ ' + str(self.array) + ' x ' + llvm_type + ']'
 
         print('    ' * _indent + register + " =  alloca " + print_type + " , align " + allign, file=_file)
         if len(self.children) > 0:
@@ -562,11 +565,19 @@ class ASTNodeDefinition(ASTNodeStatement):
                         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
 
                     if index == 0:
-                        print("    " * _indent + new_addr + " =  getelementptr inbounds [" + str(self.array) + " x " + llvm_type + "], [" + str(self.array) +  " x " + llvm_type +"]*" + register + ", i64 0, i64 " + str(index) , file=_file)
+                        print("    " * _indent + new_addr + " =  getelementptr inbounds [" + str(
+                            self.array) + " x " + llvm_type + "], [" + str(
+                            self.array) + " x " + llvm_type + "]*" + register + ", i64 0, i64 " + str(index),
+                              file=_file)
                     else:
-                        print("    " * _indent + new_addr + " =  getelementptr inbounds " + llvm_type + ", " + llvm_type + "* " + prev + ", i64 1", file=_file)
-                    print( '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + new_addr + ", align " + allign, file=_file)
+                        print(
+                            "    " * _indent + new_addr + " =  getelementptr inbounds " + llvm_type + ", " + llvm_type + "* " + prev + ", i64 1",
+                            file=_file)
+                    print(
+                        '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + new_addr + ", align " + allign,
+                        file=_file)
                     prev = new_addr
+
 
 # If statement node
 class ASTNodeIf(ASTNodeStatement):
@@ -641,40 +652,16 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             self.replace_child(2, temp)
 
     def print_llvm_ir_in(self, _type_table, index=0, _file=None, _indent=0, _string_list=None):
-            global last_label
-            if index == 0 and self.loop_type == 'for':
-                print('    ' * _indent + "br label %" + str(self.label1), file=_file)
-                print("\n " + self.label1 + ":", file=_file)
-                global last_label
-                last_label = self.label1
-            if (index == 0 and self.loop_type == 'while') or (index == 1 and self.loop_type == 'for'):
-                v0 = self.children[index].load_if_necessary(_type_table, _file, _indent)
-                t0 = self.children[index].get_llvm_type(_type_table)[index]
-                v0 = convert_type(t0, 'i1', v0,_file, _indent)
-                llvm_type = 'i1'
-                new_addr = self.get_llvm_addr()
-                new_addr1 = '%b' + new_addr[2:]
-
-                icmp = 'icmp ne'
-                if llvm_type == 'float' or llvm_type == 'double':
-                    icmp = 'fcmp une'
-
-                print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
-                print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label2) + " " + ", label %" + str(
-                    self.label3), file=_file)
-                print("\n " + self.label2 + ":", file=_file)
-                last_label = self.label2
-
-            if index == 2 and self.loop_type == 'for':
-                print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
-                print("\n " + self.label_continue + ":", file=_file)
-
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         global last_label
-        if self.loop_type == 'do':
-            v0 = self.children[1].load_if_necessary(_type_table, _file, _indent)
-            t0 = self.children[1].get_llvm_type(_type_table)[1]
-            v0 = convert_type(t0, 'i1', v0,_file, _indent)
+        if index == 0 and self.loop_type == 'for':
+            print('    ' * _indent + "br label %" + str(self.label1), file=_file)
+            print("\n " + self.label1 + ":", file=_file)
+            global last_label
+            last_label = self.label1
+        if (index == 0 and self.loop_type == 'while') or (index == 1 and self.loop_type == 'for'):
+            v0 = self.children[index].load_if_necessary(_type_table, _file, _indent)
+            t0 = self.children[index].get_llvm_type(_type_table)[index]
+            v0 = convert_type(t0, 'i1', v0, _file, _indent)
             llvm_type = 'i1'
             new_addr = self.get_llvm_addr()
             new_addr1 = '%b' + new_addr[2:]
@@ -683,7 +670,31 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             if llvm_type == 'float' or llvm_type == 'double':
                 icmp = 'fcmp une'
 
-            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0" , file=_file)
+            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0", file=_file)
+            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label2) + " " + ", label %" + str(
+                self.label3), file=_file)
+            print("\n " + self.label2 + ":", file=_file)
+            last_label = self.label2
+
+        if index == 2 and self.loop_type == 'for':
+            print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
+            print("\n " + self.label_continue + ":", file=_file)
+
+    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        global last_label
+        if self.loop_type == 'do':
+            v0 = self.children[1].load_if_necessary(_type_table, _file, _indent)
+            t0 = self.children[1].get_llvm_type(_type_table)[1]
+            v0 = convert_type(t0, 'i1', v0, _file, _indent)
+            llvm_type = 'i1'
+            new_addr = self.get_llvm_addr()
+            new_addr1 = '%b' + new_addr[2:]
+
+            icmp = 'icmp ne'
+            if llvm_type == 'float' or llvm_type == 'double':
+                icmp = 'fcmp une'
+
+            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0", file=_file)
             print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
                 self.label2), file=_file)
             print("\n " + self.label2 + ":", file=_file)
@@ -696,13 +707,21 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         last_label = self.label3
 
 
-
-
 # Return statement node
 class ASTNodeReturn(ASTNodeStatement):
     def __init__(self):
         super().__init__("Return statement")
         self.canReplace = False
+
+    def _reduce(self, symboltable: TypeTable):
+        entry = symboltable.get_current_function()
+        if entry is None:
+            raise ParserException("Invalid location of 'return' at line %s" % self.line_num)
+        if entry.type == VOID and len(self.children) != 0:
+            raise ParserException("Invalid return statement for type 'void' at line %s" % self.line_num)
+        if not compatible_types(entry.type, self.children[0].type):
+            raise ParserException("Invalid return statement for type '%s' and type '%s' at line %s" % (
+                entry.type, self.children[0].type, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         new_val = ''
@@ -781,10 +800,11 @@ class ASTNodeLiteral(ASTNodeExpression):
         if self.isString:
             string_ref = "@.str"
             self.value = self.value.replace("\\n", "\\0A")
-            l = len(self.value) + 1 - self.value.count("\\0A")*2
+            l = len(self.value) + 1 - self.value.count("\\0A") * 2
             if len(_string_list) > 0:
                 string_ref += "." + str(len(_string_list))
-            self.stringRef = "getelementptr inbounds ([" + str(l) + " x i8], [" + str(l) + " x i8]* " + string_ref + ", i32 0, i32 0)"
+            self.stringRef = "getelementptr inbounds ([" + str(l) + " x i8], [" + str(
+                l) + " x i8]* " + string_ref + ", i32 0, i32 0)"
             _string_list.append(self.value)
 
     def get_without_load(self, _type_table):
@@ -839,7 +859,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             entry.value -= 1
 
     def _reduce(self, symboltable):
-        #ToDo: move to Left_Value??
+        # ToDo: move to Left_Value??
         if isinstance(self.children[0], ASTNodeLeftValue):
             entry = symboltable.lookup_variable(self.children[0].name)
             if not entry:
@@ -902,7 +922,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.delete()
 
     def _reduce(self, symboltable):
-        #ToDo: move to Left_Value??
+        # ToDo: move to Left_Value??
         if isinstance(self.children[0], ASTNodeLeftValue):
             entry = symboltable.lookup_variable(self.children[0].name)
             if not entry:
@@ -1152,8 +1172,9 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     if i != len(self.children) - 1:
                         params += ", "
 
-                print("    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " (i8*, ...) @" + self.name + "(",
-                          file=_file, end="")
+                print(
+                    "    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " (i8*, ...) @" + self.name + "(",
+                    file=_file, end="")
                 print(params + ")", file=_file)
 
                 _type_table.insert_variable(self.get_llvm_addr(), 'i32')
@@ -1213,10 +1234,12 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         ind = ''
         if int(l) > 0:
             ind = 'i64 0,'
-            arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) +  " x " + llvm_type +"]*"
-        print("    " * _indent + new_addr + " =  getelementptr inbounds " + arr + ' ' + register + ", " + ind + " i64 " + v1, file=_file)
+            arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) + " x " + llvm_type + "]*"
+        print(
+            "    " * _indent + new_addr + " =  getelementptr inbounds " + arr + ' ' + register + ", " + ind + " i64 " + v1,
+            file=_file)
 
-        if not _type_table.insert_variable(new_addr, entry.type.get_llvm_type() ):
+        if not _type_table.insert_variable(new_addr, entry.type.get_llvm_type()):
             raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):

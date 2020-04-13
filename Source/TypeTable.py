@@ -106,6 +106,11 @@ class TypeTable:
             return self.functions[name]
         return None
 
+    def get_current_function(self):
+        if self.current is not None:
+            return self.lookup_function(self.current)
+        return None
+
     def __str__(self):
         str = ''
         for i in self.tables:
