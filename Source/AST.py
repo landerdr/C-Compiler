@@ -322,7 +322,6 @@ class ASTNodeFunction(ASTNode):
                 v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
                 print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
 
-
         _type_table.leave_scope()
         print("}", file=_file)
 
@@ -374,12 +373,16 @@ class ASTNodeParam(ASTNode):
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.array is not None:
             self.type = Pointer(self.type)
-        print(self.type.get_llvm_type_ptr(), file=_file, end="")
-        _type_table.insert_param(self.name, self.type, register=str("%" + self.name), const=self.const)
+        t = self.type
+        if t.pointertype:
+            t = t.pointertype
+        print(t.get_llvm_type_ptr(), file=_file, end="")
+
+        _type_table.insert_param(self.name, t, register=str("%" + self.name), const=self.const)
         if isinstance(self.parent, ASTNodeFunction):
-            self.parent.param_names.append([self.name, self.type])
+            self.parent.param_names.append([self.name, t])
         else:
-            self.parent.parent.param_names.append([self.name, self.type])
+            self.parent.parent.param_names.append([self.name, t])
 
 
 class ASTNodeLeftValue(ASTNode):
@@ -810,6 +813,7 @@ class ASTNodeLiteral(ASTNodeExpression):
             if not entry:
                 raise ParserException("Non declared variable '%s' at line %s" % (self.value, self.line_num))
             if entry.value is None:
+
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
             if not self.prop_able:
                 entry.update_value("Unknown")
@@ -1189,11 +1193,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 params = ""
                 for i in range(len(self.children)):
                     value = self.children[i].load_if_necessary(_type_table, _file, _indent)
-                    if (value[0] == '%'):
-                        entry = _type_table.lookup_variable(value)
-                        t = entry.type.get_llvm_type_ptr()
-                    else:
-                        t = self.children[i].get_llvm_type(_type_table)[1]
+                    t = (self.children[i].type.get_llvm_type(), self.children[i].type.get_llvm_type_ptr())[1]
                     if t == 'float':
                         t = 'double'
                         if value[0] == '%':
@@ -1221,7 +1221,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             if llvm_type == 'void':
                 print("    " * _indent + "call " + llvm_type + " @" + self.name + "(", file=_file, end="")
             else:
-                print("    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " @" + self.name + "(",
+                print("    " * _indent + self.get_llvm_addr() + " = call " + llvm_type + " @" + self.name + "(",
                       file=_file, end="")
             print(params + ")", file=_file)
 
@@ -1351,6 +1351,8 @@ class ASTNodeReference(ASTNodeUnaryExpr):
 
     def _reduce(self, symboltable):
         self.type = Pointer(self.children[0].type)
+        entry = symboltable.lookup_variable(self.children[0].name)
+        entry.value = "Unknown"
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         child = self.children[0]
@@ -1483,6 +1485,7 @@ class ASTNodeAddition(ASTNodeOp):
                 opp = 'fsub'
 
         new_addr = self.get_llvm_addr()
+        self.type = string_to_type(llvm_type)
         _type_table.insert_variable(new_addr, llvm_type)
         print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
@@ -1642,7 +1645,7 @@ class ASTNodeConditional(ASTNodeOp):
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
-
+        print(v0)
         opp = "icmp slt"
         if self.operators[0] == "==":
             opp = "icmp eq"
