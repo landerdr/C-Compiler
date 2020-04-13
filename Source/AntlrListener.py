@@ -320,6 +320,8 @@ class CPrintListener(CListener):
         if ctx.value_type().STAR() is not None:
             expr.type = Pointer(expr.type)
         expr.const = ctx.value_type().CONST() is not None
+        if ctx.Int():
+            expr.array = int(ctx.Int().getText())
         self.add_node(expr)
 
     def enterParams(self, ctx: CParser.ParamsContext):

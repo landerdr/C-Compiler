@@ -236,13 +236,23 @@ class ASTNode:
 
         if entry2.register:
             name = entry2.register
-
-        allign = '4'
-        if pointer:
-            llvm_type += '*'
-            allign = '8'
-        print('    ' * _indent + v1 + " = load " + pointer + ", " + pointer + "* " +
-              str(name) + ", align " + allign, file=_file)
+        if entry2.array == 0:
+            allign = '4'
+            if pointer:
+                llvm_type += '*'
+                allign = '8'
+            print('    ' * _indent + v1 + " = load " + pointer + ", " + pointer + "* " +
+                  str(name) + ", align " + allign, file=_file)
+            if not _type_table.insert_variable(v1, entry2.type):
+                raise ParserException("Trying to redeclare variable %s" % v1)
+        else:
+            arr = str(llvm_type + ", " + llvm_type)
+            l = entry2.array
+            if int(l) > 0:
+                arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) +  " x " + llvm_type +"]* "
+            print("    " * _indent + v1 + " =  getelementptr inbounds " + arr + name + ", i64 0, i64 0", file=_file)
+            if not _type_table.insert_variable(v1, Pointer(entry2.type)):
+                raise ParserException("Trying to redeclare variable %s" % v1)
         return v1
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
@@ -334,6 +344,7 @@ class ASTNodeParam(ASTNode):
         self.type = NONE
         # If parameter is const
         self.const = False
+        self.array = None
 
     def _reduce(self, symboltable):
         symboltable.insert_param(self.name, self.type, const=self.const)
@@ -342,8 +353,10 @@ class ASTNodeParam(ASTNode):
         print('"', self, '"', '[label = "', self.value, ": param", self.name, '"]', file=_file)
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+        if self.array is not None:
+            self.type = Pointer(self.type)
         print(self.type.get_llvm_type_ptr(), file=_file, end="")
-        _type_table.insert_param(self.name, self.type, const=self.const)
+        _type_table.insert_param(self.name, self.type, register=str("%" + self.name), const=self.const)
         if isinstance(self.parent, ASTNodeFunction):
             self.parent.param_names.append([self.name, self.type])
         else:
@@ -1153,7 +1166,11 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             params = ""
             for i in range(len(self.children)):
                 value = self.children[i].load_if_necessary(_type_table, _file, _indent)
-                t = self.children[i].get_llvm_type(_type_table)
+                if (value[0] == '%'):
+                    p_entry = _type_table.lookup_variable(value)
+                    t = (p_entry.type.get_llvm_type(), p_entry.type.get_llvm_type_ptr())
+                else:
+                    t = self.children[i].get_llvm_type(_type_table)
                 params += t[1] + " " + value
                 if i != len(self.children) - 1:
                     params += ", "
@@ -1183,8 +1200,10 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             index = str(self.children[0].load_if_necessary(_type_table, _file, _indent))
             t1 = self.children[0].get_llvm_type(_type_table)[1]
         else:
-            register = str(self.children[0].get_without_load(_type_table))
-            entry = _type_table.lookup_variable_register(register)
+            register = str(self.children[0].load_if_necessary(_type_table, _file, _indent))
+            entry = _type_table.lookup_variable(register)
+            if not entry:
+                entry = _type_table.lookup_variable_register(register[1:])
             l = entry.array
             llvm_type = entry.type.get_llvm_type_ptr()
             index = str(self.children[1].load_if_necessary(_type_table, _file, _indent))
@@ -1193,9 +1212,14 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         v1 = convert_type(t1, 'i64', index, _file, _indent)
 
         new_addr = self.get_llvm_addr()
-        print("    " * _indent + new_addr + " =  getelementptr inbounds [" + str(l) + " x " + llvm_type + "], [" + str(l) +  " x " + llvm_type +"]*" + register + ", i64 0, i64 " + v1, file=_file)
+        arr = str(entry.type.get_llvm_type() + ", " + llvm_type)
+        ind = ''
+        if int(l) > 0:
+            ind = 'i64 0,'
+            arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) +  " x " + llvm_type +"]*"
+        print("    " * _indent + new_addr + " =  getelementptr inbounds " + arr + ' ' + register + ", " + ind + " i64 " + v1, file=_file)
 
-        if not _type_table.insert_variable(new_addr, llvm_type):
+        if not _type_table.insert_variable(new_addr, entry.type.get_llvm_type() ):
             raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):

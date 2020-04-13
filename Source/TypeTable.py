@@ -18,17 +18,29 @@ class ModuloException(Exception):
     pass
 
 
+def encap_pointers(value_type, pointer_count):
+    for i in range(pointer_count):
+        value_type = Pointer(value_type)
+    return value_type
+
+
 def string_to_type(value_type):
+    pointers = 0
+    if not isinstance(value_type, str):
+        return value_type
+    while value_type[-1] == '*':
+        value_type = value_type[:-1]
+        pointers += 1
     if value_type == "bool" or value_type == "i1":
-        return BOOL
+        return encap_pointers(BOOL, pointers)
     elif value_type == "char" or value_type == "i8":
-        return CHAR
+        return encap_pointers(CHAR, pointers)
     elif value_type == "int" or value_type == "i32":
-        return INT
+        return encap_pointers(INT, pointers)
     elif value_type == "float":
-        return FLOAT
+        return encap_pointers(FLOAT, pointers)
     elif value_type == 'void':
-        return VOID
+        return encap_pointers(VOID, pointers)
     else:
         return value_type
 

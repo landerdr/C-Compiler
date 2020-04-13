@@ -33,6 +33,11 @@ char f7(char a){
     return a;
 }
 
+
+int f8(int a[3]){
+    return a[2];
+}
+
 int main(){
 
     f1();
@@ -42,6 +47,9 @@ int main(){
     printf(f5());
     printf(f6("abc"));
     printf(f7('a'));
+
+    int a[4] = {0, 1, 2};
+    printf("%d", f8(a));
 
     return 0;
 }
