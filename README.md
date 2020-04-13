@@ -93,8 +93,10 @@ Contains all test input files.
     - [x] (mandatory) `return`
     - [x] (mandatory) `void`
 - [x] (mandatory) Scopes
-- [ ] (mandatory) Local and global variables
+- [x] (mandatory) Local and global variables
 - [ ] (mandatory) Functions
+    - [x] (mandatory) Function calls
+    - [x] (mandatory) Forward definitions
     - [ ] (mandatory) Forward declarations
     - [ ] (optional) Check whether all paths in a function body end with a return statement
 - [x] (mandatory) Unreachable code removal
@@ -103,13 +105,16 @@ Contains all test input files.
 
 #### Project 6
 - [ ] (mandatory) Arrays
+    - [x] (mandatory) definition
+    - [x] (mandatory) assignment
+    - [x] (mandatory) indexing
     - [ ] (optional) multi-dimensional arrays
     - [ ] (optional) assignments of complete arrays or array rows in case of multi-dimensional arrays
     - [ ] (optional) dynamic arrays
-- [ ] (mandatory) Import
-    - [ ] `import <stdio.h>`
-    - [ ] `int printf(char *format, ...)` with format `%[width][code]` and codes `d`, `i`, `s` and `c`.
-    - [ ] `int scanf(const char*format, ...)` same as above
+- [x] (mandatory) Import
+    - [x] `import <stdio.h>`
+    - [x] `int printf(char *format, ...)` with format `%[width][code]` and codes `d`, `i`, `s` and `c`.
+    - [x] `int scanf(const char*format, ...)` same as above
 
 ## Extra features
 - [x] Scope support in symbol table
