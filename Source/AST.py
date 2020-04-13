@@ -309,7 +309,7 @@ class ASTNodeFunction(ASTNode):
             _indent += 1
             for i in range(len(self.param_names)):
                 name = self.param_names[i][0]
-                llvm_type = self.param_names[i][1].get_llvm_type()
+                llvm_type = self.param_names[i][1].get_llvm_type_ptr()
                 print('    ' * _indent + "%" + name + " =  alloca " + llvm_type + " , align 4", file=_file)
                 print('    ' * _indent + "store " + llvm_type + " %" + str(
                     i) + ", " + llvm_type + "* %" + name + ", align 4", file=_file)
@@ -342,7 +342,7 @@ class ASTNodeParam(ASTNode):
         print('"', self, '"', '[label = "', self.value, ": param", self.name, '"]', file=_file)
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print(self.type.get_llvm_type(), file=_file, end="")
+        print(self.type.get_llvm_type_ptr(), file=_file, end="")
         _type_table.insert_param(self.name, self.type, const=self.const)
         if isinstance(self.parent, ASTNodeFunction):
             self.parent.param_names.append([self.name, self.type])
@@ -390,8 +390,11 @@ class ASTNodeInclude(ASTNode):
         self.name = ""
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
-        print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
+        if self.name == 'stdio.h':
+            print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
+            print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
+            _type_table.insert_function('printf', 'i32')
+            _type_table.insert_function('scanf', 'i32')
 
 
 '''Statements'''
@@ -692,10 +695,10 @@ class ASTNodeReturn(ASTNodeStatement):
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         new_val = ''
         entry = _type_table.lookup_function(_type_table.current)
-        llvm_type = entry.type.get_llvm_type()
+        llvm_type = entry.type.get_llvm_type_ptr()
         if len(self.children):
             rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
-            new_val = convert_type(self.children[0].get_llvm_type(_type_table)[0], llvm_type, rval, _file, _indent)
+            new_val = convert_type(self.children[0].get_llvm_type(_type_table)[1], llvm_type, rval, _file, _indent)
         print('    ' * _indent + "ret " + llvm_type + " " + new_val, file=_file)
 
 
@@ -1097,7 +1100,10 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 t = self.children[0].get_llvm_type(_type_table)
                 printed_type = t[0]
                 if t[1] != printed_type:
-                    _string_list.append("%p\\0A")
+                    if t[0] == 'i8':
+                        _string_list.append("%s\\0A")
+                    else:
+                        _string_list.append("%p\\0A")
                     printed_type = t[1]
                 elif printed_type == 'i8':
                     _string_list.append("%c\\0A")
@@ -1143,12 +1149,12 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 _type_table.insert_variable(self.get_llvm_addr(), 'i32')
         else:
             entry = _type_table.lookup_function(self.name)
-            llvm_type = entry.type.get_llvm_type()
+            llvm_type = entry.type.get_llvm_type_ptr()
             params = ""
             for i in range(len(self.children)):
                 value = self.children[i].load_if_necessary(_type_table, _file, _indent)
                 t = self.children[i].get_llvm_type(_type_table)
-                params += t[0] + " " + value
+                params += t[1] + " " + value
                 if i != len(self.children) - 1:
                     params += ", "
             if llvm_type == 'void':
