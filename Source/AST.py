@@ -412,7 +412,11 @@ class ASTNodeContinue(ASTNodeStatement):
         super().__init__("Continue")
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print('    ' * _indent + "continue", file=_file)
+        node = self
+        while not isinstance(node, ASTNodeLoopStatement):
+            node = node.parent
+
+        print('    ' * _indent + "br label %" + node.label_continue, file=_file)
 
 
 # Base expression statement node
@@ -596,6 +600,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         self.label1 = "label_" + self.get_llvm_addr()[1:] + "1"
         self.label2 = "label_" + self.get_llvm_addr()[1:] + "2"
         self.label3 = "label_" + self.get_llvm_addr()[1:] + "3"
+        self.label_continue = self.label1
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         _type_table.enter_scope()
@@ -607,6 +612,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             global last_label
             last_label = self.label1
         if self.loop_type == 'for':
+            self.label_continue = "label_" + self.get_llvm_addr()[1:] + "continue"
             temp = self.children[3]
             self.replace_child(3, self.children[2])
             self.replace_child(2, temp)
@@ -635,6 +641,10 @@ class ASTNodeLoopStatement(ASTNodeStatement):
                     self.label3), file=_file)
                 print("\n " + self.label2 + ":", file=_file)
                 last_label = self.label2
+
+            if index == 2 and self.loop_type == 'for':
+                print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
+                print("\n " + self.label_continue + ":", file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         global last_label
