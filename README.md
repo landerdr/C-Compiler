@@ -117,7 +117,6 @@ Contains all test input files.
     - [x] `int scanf(const char*format, ...)` same as above
 
 ## Extra features
-- [x] Scope support in symbol table
 - [x] Assignment operators
     - [x] `+=`
     - [x] `-=`
@@ -126,15 +125,7 @@ Contains all test input files.
     - [x] `%=`
 
 #### Supported in CFG but not (completely) in LLVM yet
-- [x] (multidimensional) Arrays
-- [x] Functions
-- [x] return statement
-- [x] Loops
-    - [x] For
-    - [x] While
-- [x] continue
-- [x] break
-- [x] if / else statements
+- [x] multidimensional Arrays
 - [x] ternary operators
 
 ## Requirements, build process & testing

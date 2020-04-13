@@ -95,7 +95,7 @@ class TypeTable:
                     return self.tables[-i][j]
         return None
 
-    def insert_function(self, name: str, value_type: BaseType, **kwargs):
+    def insert_function(self, name: str, value_type, **kwargs):
         if name in self.functions:
             return False
         self.current = name
