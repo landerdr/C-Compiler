@@ -42,6 +42,8 @@ class TypeTable:
 
     def enter_scope(self):
         self.tables.append(self.param)
+        if self.current is not None:
+            self.functions[self.current].param = self.param.keys()
         self.param = dict()
 
     def leave_scope(self):
@@ -119,6 +121,8 @@ class Entry:
         self.register = kwargs.get("register")
         # Location of variable on the stack (if applicable)
         self.location = kwargs.get("location")
+
+        self.param = None
 
         self.array = kwargs.get("array") or 0
 
