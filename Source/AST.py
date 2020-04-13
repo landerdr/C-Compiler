@@ -1116,12 +1116,14 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
     def _reduce(self, symboltable):
         if self.name == "printf" or self.name == "scanf":
+            self.type = VOID
             return
         entry = symboltable.lookup_function(self.name)
         if entry is None:
             raise ParserException("No function named '%s' at line %s" % (self.name, self.line_num))
         if len(entry.param) != len(self.children):
             raise ParserException("Invalid amount of param for function '%s' at line %s" % (self.name, self.line_num))
+        self.type = entry.type
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf' or self.name == 'scanf':
