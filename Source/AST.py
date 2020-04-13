@@ -129,6 +129,7 @@ class AST:
                   file=_file)
 
         print("\ndeclare i32 @printf(i8*, ...) #1\n", file=_file)
+        print("\ndeclare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
         print(
             '\nattributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }',
             file=_file)
@@ -1083,7 +1084,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             raise ParserException("No function named '%s' at line %s" % (self.name, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        if self.name == 'printf':
+        if self.name == 'printf' or self.name == 'scanf':
             if len(self.children) == 1:
                 value = self.children[0].load_if_necessary(_type_table, _file, _indent)
                 t = self.children[0].get_llvm_type(_type_table)
@@ -1113,6 +1114,8 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     "(i8* getelementptr inbounds ([4 x i8], [4 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type +
                     ' ' + value + ")", file=_file)
             else:
+                if self.name == 'scanf':
+                    self.name = '__isoc99_scanf'
                 llvm_type = 'i32'
                 params = ""
                 for i in range(len(self.children)):
