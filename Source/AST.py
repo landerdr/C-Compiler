@@ -1239,6 +1239,11 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         self.canReplace = False
         self.value = None
 
+    def _reduce(self, symboltable: TypeTable):
+        if self.value:
+            entry = symboltable.lookup_variable(self.value)
+            self.type = entry.type
+
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.value:
             entry = _type_table.lookup_variable(self.value)
