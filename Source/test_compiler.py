@@ -104,240 +104,240 @@ def compare(result_file: str, expected_result_file: str):
 
 
 def test_binary_operations1():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/binaryOperations1.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/binaryOperations1.c") is True
 
 
 def test_binary_operations1_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/binaryOperations1.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/binaryOperations1.c") is True
 
 
 def test_binary_operations2():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/binaryOperations2.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/binaryOperations2.c") is True
 
 
 def test_binary_operations2_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/binaryOperations2.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/binaryOperations2.c") is True
 
 
 def test_break_continue():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/breakAndContinue.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/breakAndContinue.c") is True
 
 
 def test_break_continue_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/breakAndContinue.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/breakAndContinue.c") is True
 
 
 def test_comparisons1():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/comparisons1.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/comparisons1.c") is True
 
 
 def test_comparisons1_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/comparisons1.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/comparisons1.c") is True
 
 
 def test_comparisons2():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/comparisons2.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/comparisons2.c") is True
 
 
 def test_comparisons2_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/comparisons2.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/comparisons2.c") is True
 
 
 def test_dereference_assignment():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/dereferenceAssignment.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/dereferenceAssignment.c") is True
 
 
 def test_dereference_assignment_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/dereferenceAssignment.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/dereferenceAssignment.c") is True
 
 
 def test_fibonacci_recursive():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/fibonacciRecursive.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/fibonacciRecursive.c") is True
 
 
 def test_fibonacci_recursive_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/fibonacciRecursive.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/fibonacciRecursive.c") is True
 
 
 def test_float_int_conversion():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/floatToIntConversion.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/floatToIntConversion.c") is True
 
 
 def test_float_int_conversion_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/floatToIntConversion.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/floatToIntConversion.c") is True
 
 
 def test_for():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/for.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/for.c") is True
 
 
 def test_for_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/for.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/for.c") is True
 
 
 def test_forward_declaration():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/forwardDeclaration.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/forwardDeclaration.c") is True
 
 
 def test_forward_declaration_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/forwardDeclaration.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/forwardDeclaration.c") is True
 
 
 def test_if():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/if.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/if.c") is True
 
 
 def test_if_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/if.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/if.c") is True
 
 
 def test_if_else():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/ifElse.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/ifElse.c") is True
 
 
 def test_if_else_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/ifElse.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/ifElse.c") is True
 
 
 def test_int_float_conversion():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/intToFloatConversion.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/intToFloatConversion.c") is True
 
 
 def test_int_float_conversion_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/intToFloatConversion.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/intToFloatConversion.c") is True
 
 
 def test_modulo():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/modulo.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/modulo.c") is True
 
 
 def test_modulo_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/modulo.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/modulo.c") is True
 
 
 def test_pointer_argument():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/pointerArgument.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/pointerArgument.c") is True
 
 
 def test_pointer_argument_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/pointerArgument.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/pointerArgument.c") is True
 
 
 def test_prime():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/prime.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/prime.c") is True
 
 
 def test_prime_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/prime.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/prime.c") is True
 
 
 def test_printf1():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/printf1.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/printf1.c") is True
 
 
 def test_printf1_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/printf1.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/printf1.c") is True
 
 
 def test_printf2():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/printf2.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/printf2.c") is True
 
 
 def test_printf2_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/printf2.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/printf2.c") is True
 
 
 def test_printf3():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/printf3.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/printf3.c") is True
 
 
 def test_printf3_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/printf3.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/printf3.c") is True
 
 
 def test_scoping():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/scoping.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/scoping.c") is True
 
 
 def test_scoping_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/scoping.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/scoping.c") is True
 
 
 def test_unary_operations():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/unaryOperations.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/unaryOperations.c") is True
 
 
 def test_unary_operations_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/unaryOperations.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/unaryOperations.c") is True
 
 
 def test_variables1():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables1.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables1.c") is True
 
 
 def test_variables1_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables1.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables1.c") is True
 
 
 def test_variables2():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables2.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables2.c") is True
 
 
 def test_variables2_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables2.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables2.c") is True
 
 
 def test_variables3():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables3.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables3.c") is True
 
 
 def test_variables3_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables3.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables3.c") is True
 
 
 def test_variables4():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables4.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables4.c") is True
 
 
 def test_variables4_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables4.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables4.c") is True
 
 
 def test_variables5():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables5.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables5.c") is True
 
 
 def test_variables5_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables5.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables5.c") is True
 
 
 def test_variables6():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables6.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables6.c") is True
 
 
 def test_variables6_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables6.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables6.c") is True
 
 
 def test_variables7():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables7.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables7.c") is True
 
 
 def test_variables7_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables7.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables7.c") is True
 
 
 def test_variables8():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/variables8.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/variables8.c") is True
 
 
 def test_variables8_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/variables8.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/variables8.c") is True
 
 
 def test_while():
-    assert run_command("./Test/CompilerBenchmark/CorrectCode/while.c") is True
+    assert run_command("./Test/CompilersBenchmark/CorrectCode/while.c") is True
 
 
 def test_while_prop():
-    assert run_command_prop("./Test/CompilerBenchmark/CorrectCode/while.c") is True
+    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/while.c") is True
