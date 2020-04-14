@@ -1606,9 +1606,9 @@ class ASTNodeConditional(ASTNodeOp):
                 elif opp == ">":
                     new_val = left.value > right.value
                 elif opp == "&&":
-                    new_val = left.value and right.value
+                    new_val = left.value > 0 and right.value > 0
                 elif opp == "||":
-                    new_val = left.value or right.value
+                    new_val = left.value > 0 or right.value > 0
                 elif opp == "!=":
                     new_val = left.value != right.value
                 elif opp == "<=":
