@@ -15,6 +15,7 @@ def run_command(input_file: str, output_file: str = "test.txt", expected_result_
         os.system("rm main")
         os.system("python3 Source/main.py -i %s -llvm main.ll" % input_file)
         os.system("clang main.ll -o main && ./main > %s" % output_file)
+        os.system("rm main.ll main")
         result = compare(output_file, expected_result_file)
     except Exception:
         result = False
@@ -34,6 +35,7 @@ def run_command_prop(input_file: str, output_file: str = "test.txt", expected_re
         os.system("rm main")
         os.system("python3 Source/main.py -i %s -llvm main.ll -prop" % input_file)
         os.system("clang main.ll -o main && ./main > %s" % output_file)
+        os.system("rm main.ll main")
         result = compare(output_file, expected_result_file)
     except Exception:
         result = False
