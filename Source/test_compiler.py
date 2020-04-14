@@ -11,7 +11,7 @@ def run_command(input_file: str, output_file: str = "test.txt", expected_result_
     :return:
     """
     try:
-        os.system("gcc -ansi -pedantic %s main && ./main > %s" % (input_file, expected_result_file))
+        os.system("clang -ansi -pedantic %s -o main && ./main > %s" % (input_file, expected_result_file))
         os.system("rm main")
         os.system("python3 Source/main.py -i %s -llvm main.ll" % input_file)
         os.system("clang main.ll -o main && ./main > %s" % output_file)
@@ -30,7 +30,7 @@ def run_command_prop(input_file: str, output_file: str = "test.txt", expected_re
     :return:
     """
     try:
-        os.system("gcc -ansi -pedantic %s main && ./main > %s" % (input_file, expected_result_file))
+        os.system("clang -ansi -pedantic %s -o main && ./main > %s" % (input_file, expected_result_file))
         os.system("rm main")
         os.system("python3 Source/main.py -i %s -llvm main.ll -prop" % input_file)
         os.system("clang main.ll -o main && ./main > %s" % output_file)
