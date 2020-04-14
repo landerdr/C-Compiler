@@ -1191,27 +1191,27 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     ' ' + value + ")", file=_file)
             else:
                 '''
-                if self.name == 'scanf':
-                    self.name = '__isoc99_scanf'
-                llvm_type = 'i32'
-                params = ""
-                for i in range(len(self.children)):
-                    value = self.children[i].load_if_necessary(_type_table, _file, _indent)
-                    t = (self.children[i].type.get_llvm_type(), self.children[i].type.get_llvm_type_ptr())[1]
-                    if t == 'float':
-                        t = 'double'
-                        if value[0] == '%':
-                            value = convert_type('float', t, value, _file, _indent)
-                    params += t + " " + value
-                    if i != len(self.children) - 1:
-                        params += ", "
+            if self.name == 'scanf':
+                self.name = '__isoc99_scanf'
+            llvm_type = 'i32'
+            params = ""
+            for i in range(len(self.children)):
+                value = self.children[i].load_if_necessary(_type_table, _file, _indent)
+                t = (self.children[i].type.get_llvm_type(), self.children[i].type.get_llvm_type_ptr())[1]
+                if t == 'float':
+                    t = 'double'
+                    if value[0] == '%':
+                        value = convert_type('float', t, value, _file, _indent)
+                params += t + " " + value
+                if i != len(self.children) - 1:
+                    params += ", "
 
-                print(
-                    "    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " (i8*, ...) @" + self.name + "(",
-                    file=_file, end="")
-                print(params + ")", file=_file)
+            print(
+                "    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " (i8*, ...) @" + self.name + "(",
+                file=_file, end="")
+            print(params + ")", file=_file)
 
-                _type_table.insert_variable(self.get_llvm_addr(), 'i32')
+            _type_table.insert_variable(self.get_llvm_addr(), 'i32')
         else:
             entry = _type_table.lookup_function(self.name)
             llvm_type = entry.type.get_llvm_type_ptr()
