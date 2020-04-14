@@ -864,22 +864,23 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         self.operator = None
 
     def _const_propagation(self, symboltable):
-        entry = symboltable.lookup_variable(self.children[0].name)
+        if isinstance(self.children[0], ASTNodeLeftValue):
+            entry = symboltable.lookup_variable(self.children[0].name)
 
-        if entry.value == "Unknown":
-            return
+            if entry.value == "Unknown":
+                return
 
-        new_child = ASTNodeLiteral(entry.value)
-        new_child.parent = self
-        new_child.isConst = True
-        new_child.type = entry.type
-        self.children = [new_child]
-        self.delete()
+            new_child = ASTNodeLiteral(entry.value)
+            new_child.parent = self
+            new_child.isConst = True
+            new_child.type = entry.type
+            self.children = [new_child]
+            self.delete()
 
-        if self.operator == "++":
-            entry.value += 1
-        elif self.operator == "--":
-            entry.value -= 1
+            if self.operator == "++":
+                entry.value += 1
+            elif self.operator == "--":
+                entry.value -= 1
 
     def _reduce(self, symboltable):
         # ToDo: move to Left_Value??
@@ -928,21 +929,22 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         self.operator = None
 
     def _const_propagation(self, symboltable):
-        entry = symboltable.lookup_variable(self.children[0].name)
-        if entry.value == "Unknown":
-            return
+        if isinstance(self.children[0], ASTNodeLeftValue):
+            entry = symboltable.lookup_variable(self.children[0].name)
+            if entry.value == "Unknown":
+                return
 
-        if self.operator == "++":
-            entry.value += 1
-        elif self.operator == "--":
-            entry.value -= 1
+            if self.operator == "++":
+                entry.value += 1
+            elif self.operator == "--":
+                entry.value -= 1
 
-        new_child = ASTNodeLiteral(entry.value)
-        new_child.parent = self
-        new_child.isConst = True
-        new_child.type = entry.type
-        self.children = [new_child]
-        self.delete()
+            new_child = ASTNodeLiteral(entry.value)
+            new_child.parent = self
+            new_child.isConst = True
+            new_child.type = entry.type
+            self.children = [new_child]
+            self.delete()
 
     def _reduce(self, symboltable):
         # ToDo: move to Left_Value??
