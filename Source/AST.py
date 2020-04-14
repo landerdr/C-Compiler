@@ -1157,6 +1157,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf' or self.name == 'scanf':
+            /*
             if len(self.children) == 1:
                 value = self.children[0].load_if_necessary(_type_table, _file, _indent)
                 t = self.children[0].get_llvm_type(_type_table)
@@ -1189,6 +1190,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     "(i8* getelementptr inbounds ([4 x i8], [4 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type +
                     ' ' + value + ")", file=_file)
             else:
+                */
                 if self.name == 'scanf':
                     self.name = '__isoc99_scanf'
                 llvm_type = 'i32'
