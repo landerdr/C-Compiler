@@ -123,7 +123,7 @@ class AST:
 
         for i in range(0, len(string_list)):
             string_ref = "@.str"
-            l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2 - self.value.count("\\09") * 2
+            l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2 - string_list[i].count("\\09") * 2 
             if i > 0:
                 string_ref += '.' + str(i)
             print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[
