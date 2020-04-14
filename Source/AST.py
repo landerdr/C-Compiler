@@ -893,6 +893,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             if entry.const:
                 raise ParserException(
                     "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
+            self.type = entry.type
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_llvm_addr())
@@ -957,6 +958,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
             if entry.const:
                 raise ParserException(
                     "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
+            self.type = entry.type
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
