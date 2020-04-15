@@ -94,6 +94,7 @@ class AST:
             item = prestack[-1]
 
             if isinstance(item, ASTNodeFunction) and item.fwd:
+                visited.append(item)
                 prestack.pop()
                 continue
 
