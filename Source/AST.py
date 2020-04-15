@@ -745,9 +745,9 @@ class ASTNodeReturn(ASTNodeStatement):
         entry = symboltable.get_current_function()
         if entry is None:
             raise ParserException("Invalid location of 'return' at line %s" % self.line_num)
-        if entry.type == VOID and len(self.children) != 0:
-            raise ParserException("Invalid return statement for type 'void' at line %s" % self.line_num)
-        if not compatible_types(entry.type, self.children[0].type):
+        if entry.type == VOID and len(self.children) != 0 or len(self.children) == 0 and entry.type != VOID:
+            raise ParserException("Invalid return statement for type '%s' at line %s" % (entry.type, self.line_num))
+        if len(self.children) != 0 and not compatible_types(entry.type, self.children[0].type):
             raise ParserException("Invalid return statement for type '%s' and type '%s' at line %s" % (
                 entry.type, self.children[0].type, self.line_num))
 
