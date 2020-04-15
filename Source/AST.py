@@ -1248,6 +1248,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             self.type = entry.type
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        self.type = self.children[0].type
         if self.value:
             entry = _type_table.lookup_variable(self.value)
             register = entry.register
