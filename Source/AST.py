@@ -93,6 +93,10 @@ class AST:
         while len(prestack) > 0:
             item = prestack[-1]
 
+            if isinstance(item, ASTNodeFunction) and item.fwd:
+                prestack.pop()
+                continue
+
             # if entering this node for the first time -> print stuff
             if not (item in grey):
                 grey.append(item)
