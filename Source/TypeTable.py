@@ -55,7 +55,7 @@ class TypeTable:
     def complete_function(self):
         if self.current is not None:
             current = self.functions[self.current]
-            if current is None:
+            if current.param is None:
                 current.param = list(self.param.values())
         self.param = dict()
 
