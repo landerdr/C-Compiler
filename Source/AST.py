@@ -297,8 +297,14 @@ class ASTNodeFunction(ASTNode):
         self.name = None
         # Type of node, used for quicker checking (uses child type)
         self.type = NONE
+        # Forward declaration
+        self.fwd = False
         # No clue - oli's stuff
         self.param_names = []
+
+    def _reduce(self, symboltable: TypeTable):
+        if self.fwd:
+            symboltable.complete_function()
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         print('\n' + '; Function Attrs: noinline nounwind optnone uwtable', file=_file)

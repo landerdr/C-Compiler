@@ -272,6 +272,8 @@ class CPrintListener(CListener):
         else:
             expr.type = string_to_type(ctx.Void().getText())
 
+        expr.fwd = ctx.TERMINUS() is not None
+
         self.typeTable.insert_function(expr.name, expr.type)
         self.add_node(expr)
 

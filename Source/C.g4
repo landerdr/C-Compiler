@@ -74,7 +74,7 @@ library: (include | function
 value_type: CONST? Type STAR*;
 
 // Functions
-function: (value_type | Void) ID LB (params)? RB (compound_statement) | (TERMINUS);
+function: (value_type | Void) ID LB (params)? RB (compound_statement | TERMINUS);
 params: param (COMMA param)*;
 param: value_type ID (LSB Int RSB)?;
 

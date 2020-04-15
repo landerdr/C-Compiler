@@ -52,11 +52,16 @@ class TypeTable:
         self.current = None
         self.param = dict()
 
+    def complete_function(self):
+        if self.current is not None:
+            current = self.functions[self.current]
+            if current is None:
+                current.param = list(self.param.values())
+        self.param = dict()
+
     def enter_scope(self):
         self.tables.append(self.param)
-        if self.current is not None:
-            self.functions[self.current].param += list(self.param.values())
-        self.param = dict()
+        self.complete_function()
 
     def leave_scope(self):
         if len(self.tables) != 0:
@@ -97,7 +102,7 @@ class TypeTable:
 
     def insert_function(self, name: str, value_type, **kwargs):
         if name in self.functions:
-            return False
+            return
         self.current = name
         self.functions[name] = Entry(string_to_type(value_type), **kwargs)
 
