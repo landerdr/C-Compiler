@@ -123,7 +123,7 @@ class AST:
 
         for i in range(0, len(string_list)):
             string_ref = "@.str"
-            l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2
+            l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2 - string_list[i].count("\\09") * 2 
             if i > 0:
                 string_ref += '.' + str(i)
             print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[
@@ -829,7 +829,8 @@ class ASTNodeLiteral(ASTNodeExpression):
         if self.isString:
             string_ref = "@.str"
             self.value = self.value.replace("\\n", "\\0A")
-            l = len(self.value) + 1 - self.value.count("\\0A") * 2
+            self.value = self.value.replace("\\t", "\\09")
+            l = len(self.value) + 1 - self.value.count("\\0A") * 2  - self.value.count("\\09") * 2
             if len(_string_list) > 0:
                 string_ref += "." + str(len(_string_list))
             self.stringRef = "getelementptr inbounds ([" + str(l) + " x i8], [" + str(
@@ -1253,6 +1254,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             self.type = entry.type
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+        self.type = self.children[0].type
         if self.value:
             entry = _type_table.lookup_variable(self.value)
             register = entry.register
