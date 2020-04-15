@@ -144,7 +144,7 @@ class Entry:
         # Location of variable on the stack (if applicable)
         self.location = kwargs.get("location")
 
-        self.param = list()
+        self.param = None
 
         self.array = kwargs.get("array") or 0
 
