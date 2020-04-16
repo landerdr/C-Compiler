@@ -924,6 +924,8 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             if llvm_type == 'float':
                 opp = 'fsub'
 
+        self.type = string_to_type(llvm_type)
+
         new_addr = self.get_llvm_addr()
         _type_table.insert_variable(new_addr, llvm_type)
         var_name = self.children[0].get_without_load(_type_table)
@@ -980,6 +982,8 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
+
+        self.type = string_to_type(llvm_type)
 
         opp = "add"
         if llvm_type == 'float':
