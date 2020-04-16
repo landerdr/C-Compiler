@@ -321,7 +321,9 @@ class CPrintListener(CListener):
         expr.name = ctx.ID().getText()
         expr.type = string_to_type(ctx.value_type().Type().getText())
         if ctx.value_type().STAR() is not None:
-            expr.type = Pointer(expr.type)
+            for i in range(len(ctx.value_type().STAR())):
+                expr.type = Pointer(expr.type)
+
         expr.const = ctx.value_type().CONST() is not None
         if ctx.Int():
             expr.array = int(ctx.Int().getText())

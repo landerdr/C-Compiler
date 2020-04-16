@@ -385,8 +385,7 @@ class ASTNodeParam(ASTNode):
         if self.array is not None:
             self.type = Pointer(self.type)
         t = self.type
-        if t.pointertype:
-            t = t.pointertype
+        print(t)
         print(t.get_llvm_type_ptr(), file=_file, end="")
 
         _type_table.insert_param(self.name, t, register=str("%" + self.name), const=self.const)
