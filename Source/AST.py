@@ -1794,6 +1794,11 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
             return str(v1)
         if new_type == 'i32' or new_type == 'i64':
             return str(int(float(v1)))
+        if new_type == 'i1':
+            if int(v1) > 0:
+                return '1'
+            return '0'
+        return v1
     if old_type != new_type:
         prev = str(v1)
         v1 = str(v1) + "conv"
