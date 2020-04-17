@@ -145,6 +145,7 @@ class Entry:
         self.location = kwargs.get("location")
 
         self.param = None
+        self.defined = False
 
         self.array = kwargs.get("array") or 0
 
