@@ -526,6 +526,8 @@ class ASTNodeDefinition(ASTNodeStatement):
         # If value is known, assign value
         elif isinstance(self.children[0], ASTNodeLiteral) and self.children[0].isConst:
             value = self.children[0].value
+            if self.children[0].type == CHAR:
+                value = chr(value)
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
             entry = symboltable.lookup_variable(self.children[0].get_name())
             value = entry.value
