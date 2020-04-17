@@ -324,14 +324,22 @@ class ASTNodeFunction(ASTNode):
             print('    ' * _indent + self.get_llvm_addr() + " =  alloca i32, align 4", file=_file)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
-        if not isinstance(self.children[-1], ASTNodeReturn):
-            if isinstance(self.children[-1], ASTNodeCompound):
-                if not isinstance(self.children[-1].children[-1], ASTNodeReturn):
+        if len(self.children) > 0:
+            if not isinstance(self.children[-1], ASTNodeReturn):
+                if isinstance(self.children[-1], ASTNodeCompound):
+                    if len(self.children[-1].children) > 0:
+                        if not isinstance(self.children[-1].children[-1], ASTNodeReturn):
+                            v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+                            print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+                    else:
+                        v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+                        print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+                else:
                     v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
                     print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
-            else:
-                v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+        else:
+            v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+            print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
 
         _type_table.leave_scope()
         print("}", file=_file)
@@ -386,7 +394,6 @@ class ASTNodeParam(ASTNode):
         if self.array is not None:
             self.type = Pointer(self.type)
         t = self.type
-        print(t)
         print(t.get_llvm_type_ptr(), file=_file, end="")
 
         _type_table.insert_param(self.name, t, register=str("%" + self.name), const=self.const)
@@ -441,6 +448,8 @@ class ASTNodeInclude(ASTNode):
             print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
             _type_table.insert_function('printf', 'i32')
             _type_table.insert_function('scanf', 'i32')
+        else:
+            raise ParserException("No file named %s" % self.name)
 
 
 '''Statements'''
@@ -459,8 +468,11 @@ class ASTNodeBreak(ASTNodeStatement):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
-        while not isinstance(node, ASTNodeLoopStatement):
+        while not isinstance(node, ASTNodeLoopStatement) and node != None:
             node = node.parent
+
+        if node is None:
+            raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
         print('    ' * _indent + "br label %" + node.label3, file=_file)
 
@@ -472,8 +484,11 @@ class ASTNodeContinue(ASTNodeStatement):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
-        while not isinstance(node, ASTNodeLoopStatement):
+        while not isinstance(node, ASTNodeLoopStatement) and node != None:
             node = node.parent
+
+        if node is None:
+            raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
         print('    ' * _indent + "br label %" + node.label_continue, file=_file)
 
@@ -1684,7 +1699,7 @@ class ASTNodeConditional(ASTNodeOp):
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
-        print(v0)
+
         opp = "icmp slt"
         if self.operators[0] == "==":
             opp = "icmp eq"
