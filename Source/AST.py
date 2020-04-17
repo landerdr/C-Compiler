@@ -531,6 +531,8 @@ class ASTNodeDefinition(ASTNodeStatement):
         elif isinstance(self.children[0], ASTNodeEqualityExpr):
             entry = symboltable.lookup_variable(self.children[0].get_name())
             value = entry.value
+            if entry.type == CHAR:
+                value = chr(value)
         elif not compatible_types(self.type, self.children[0].type):
             raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
@@ -1043,6 +1045,8 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             value_type = get_dominant_type(entry.type, child.type)
             self.type = entry.type
             if self.equality == "=":
+                if child.type == CHAR:
+                    value = chr(value)
                 pass
             elif self.equality == "+=":
                 value = entry.value + value
