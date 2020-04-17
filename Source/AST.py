@@ -828,8 +828,6 @@ class ASTNodeLiteral(ASTNodeExpression):
             if not self.prop_able:
                 entry.update_value("Unknown")
             self.type = entry.type
-        else:
-            self.value = self.type.cast(self.value)
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.isString:
@@ -1265,6 +1263,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             if not entry.is_array():
                 raise ParserException("Invalid operation '[]' on type '%s' at line %s" % (self.type, self.line_num))
 
+
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         self.type = self.children[0].type
         if self.value:
@@ -1314,7 +1313,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
         if isinstance(self.children[0], ASTNodeLiteral):
             if self.children[0].isConst:
                 self.children[0].value = int(not self.children[0].value)
-                self.children[0].type = INT
+                self.children[0].type = BOOL
                 self.delete()
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
@@ -1473,10 +1472,12 @@ class ASTNodeAddition(ASTNodeOp):
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right, ASTNodeLiteral) \
                     and left.isConst and right.isConst:
+                leftvalue = left.type.cast(left.value)
+                rightvalue = left.type.cast(left.value)
                 if opp == "+":
-                    new_val = left.value + right.value
+                    new_val = leftvalue + rightvalue
                 else:
-                    new_val = left.value - right.value
+                    new_val = leftvalue - rightvalue
 
                 new_child = ASTNodeLiteral(new_val)
                 new_child.isConst = True
@@ -1546,19 +1547,21 @@ class ASTNodeMult(ASTNodeOp):
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
                                                                ASTNodeLiteral) and left.isConst and right.isConst:
                 value_type = get_dominant_type(left.type, right.type)
+                leftvalue = left.type.cast(left.value)
+                rightvalue = left.type.cast(left.value)
                 if opp == "*":
-                    new_val = left.value * right.value
+                    new_val = leftvalue * rightvalue
                 elif opp == "/":
-                    if right.value == 0:
+                    if rightvalue == 0:
                         raise ParserException("Division by zero at line %s" % self.line_num)
-                    new_val = left.value / right.value
+                    new_val = leftvalue / rightvalue
                     if value_type != FLOAT:
                         new_val = int(new_val)
                 elif opp == "%":
                     if value_type == FLOAT:
                         raise ParserException(
                             "Invalid operation '%' with float argument(s) at line " + str(self.line_num))
-                    new_val = left.value % right.value
+                    new_val = leftvalue % rightvalue
                 else:
                     raise ParserException("Not implemented yet")
 
@@ -1632,22 +1635,24 @@ class ASTNodeConditional(ASTNodeOp):
             # Simplify if possible
             if isinstance(left, ASTNodeLiteral) and isinstance(right,
                                                                ASTNodeLiteral) and left.isConst and right.isConst:
+                leftvalue = left.type.cast(left.value)
+                rightvalue = left.type.cast(left.value)
                 if opp == "==":
-                    new_val = left.value == right.value
+                    new_val = leftvalue == rightvalue
                 elif opp == "<":
-                    new_val = left.value < right.value
+                    new_val = leftvalue < rightvalue
                 elif opp == ">":
-                    new_val = left.value > right.value
+                    new_val = leftvalue > rightvalue
                 elif opp == "&&":
-                    new_val = left.value > 0 and right.value > 0
+                    new_val = leftvalue > 0 and rightvalue > 0
                 elif opp == "||":
-                    new_val = left.value > 0 or right.value > 0
+                    new_val = leftvalue > 0 or rightvalue > 0
                 elif opp == "!=":
-                    new_val = left.value != right.value
+                    new_val = leftvalue != rightvalue
                 elif opp == "<=":
-                    new_val = left.value <= right.value
+                    new_val = leftvalue <= rightvalue
                 elif opp == ">=":
-                    new_val = left.value >= right.value
+                    new_val = leftvalue >= rightvalue
                 else:
                     raise ParserException("Not implemented yet")
 

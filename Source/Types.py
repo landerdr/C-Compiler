@@ -84,6 +84,8 @@ class Char(Bool):
 
     # TODO: fix char to not be int
     def cast(self, value):
+        if isinstance(int, value):
+            return value
         return ord(value)
 
     def __str__(self):
