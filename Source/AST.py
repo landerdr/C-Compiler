@@ -1303,6 +1303,9 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             self.type = entry.type
             if not entry.is_array():
                 raise ParserException("Invalid operation '[]' on type '%s' at line %s" % (self.type, self.line_num))
+            if not self.children[-1].type < FLOAT:
+                raise ParserException("Invalid operation type for indexing operation %s at line %s" % (
+                    self.children[-1].type, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         self.type = self.children[0].type
