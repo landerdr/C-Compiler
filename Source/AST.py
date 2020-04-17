@@ -824,11 +824,12 @@ class ASTNodeLiteral(ASTNodeExpression):
             if not entry:
                 raise ParserException("Non declared variable '%s' at line %s" % (self.value, self.line_num))
             if entry.value is None:
-
                 raise ParserException("Non defined variable '%s' at line %s" % (self.value, self.line_num))
             if not self.prop_able:
                 entry.update_value("Unknown")
             self.type = entry.type
+        else:
+            self.value = self.type.cast(self.value)
 
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.isString:
