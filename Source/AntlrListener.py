@@ -76,6 +76,10 @@ class CPrintListener(CListener):
         self.tt.root = expr
         self.depthStack.append(expr)
 
+    def exitLibrary(self, ctx: CParser.LibraryContext):
+        if not self.typeTable.lookup_function("main"):
+            raise ParserException("No main function defined.")
+
     def enterAdditional_expression(self, ctx: CParser.Additional_expressionContext):
         if not self.reachable.is_reachable():
             return self.skip_node()
