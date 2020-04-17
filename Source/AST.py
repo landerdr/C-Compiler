@@ -1631,7 +1631,8 @@ class ASTNodeConditional(ASTNodeOp):
             right = self.children[1]
             self.children = self.children[2:] if len(self.children) > 2 else []
 
-            if not compatible_types(left.type, right.type):
+            if not compatible_types(left.type,
+                                    right.type) or left.type.pointertype != BaseType() or right.type.pointertype != BaseType():
                 raise ParserException("Invalid operation '%s' on types %s and %s at line %s" % (
                     opp, left.type, right.type, self.line_num))
 
