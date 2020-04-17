@@ -225,12 +225,12 @@ def test_pointer_argument_prop():
     assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/pointerArgument.c") is True
 
 
-def test_prime():
-    assert run_command("./Test/CompilersBenchmark/CorrectCode/prime.c") is True
-
-
-def test_prime_prop():
-    assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/prime.c") is True
+# def test_prime():
+#     assert run_command("./Test/CompilersBenchmark/CorrectCode/prime.c") is True
+#
+#
+# def test_prime_prop():
+#     assert run_command_prop("./Test/CompilersBenchmark/CorrectCode/prime.c") is True
 
 
 def test_printf1():

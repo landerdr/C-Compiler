@@ -376,7 +376,8 @@ class ASTNodeParam(ASTNode):
         self.array = None
 
     def _reduce(self, symboltable):
-        symboltable.insert_param(self.name, self.type, const=self.const)
+        if not symboltable.insert_param(self.name, self.type, const=self.const):
+            raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ": param", self.name, '"]', file=_file)
