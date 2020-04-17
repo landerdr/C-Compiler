@@ -68,7 +68,6 @@ LINE_COMMENT: '//' ~[\r\n]* -> skip;
 include: Include LT HeaderFile GT;
 
 library: (include | function
-    | expression_statement
     | variable_definition)* EOF;
 
 value_type: CONST? Type STAR*;

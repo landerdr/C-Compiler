@@ -519,7 +519,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         # If no children -> not defined
         if len(self.children) == 0:
             # If pointer, ignore
-            if self.type.pointertype != NONE:
+            if self.type.pointertype != NONE or self.array:
                 value = "Unknown"
             elif self.const:
                 raise ParserException("Non defined const variable at line %s" % self.line_num)
@@ -1261,6 +1261,8 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         if self.value:
             entry = symboltable.lookup_variable(self.value)
             self.type = entry.type
+            if not entry.is_array():
+                raise ParserException("Invalid operation '[]' on type '%s' at line %s" % (self.type, self.line_num))
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         self.type = self.children[0].type
@@ -1463,7 +1465,7 @@ class ASTNodeAddition(ASTNodeOp):
             self.children = self.children[2:] if len(self.children) > 2 else []
 
             if not compatible_types(left.type,
-                                    right.type) or left.type.pointertype != BaseType() and right.pointertype != BaseType():
+                                    right.type) or left.type.pointertype != BaseType() or right.pointertype != BaseType():
                 raise ParserException("Invalid operation '%s' on types %s and %s at line %s" % (
                     opp, left.type, right.type, self.line_num))
 
@@ -1535,7 +1537,7 @@ class ASTNodeMult(ASTNodeOp):
             self.children = self.children[2:] if len(self.children) > 2 else []
 
             if not compatible_types(left.type,
-                                    right.type) or left.type.pointertype != BaseType() and right.pointertype != BaseType():
+                                    right.type) or left.type.pointertype != BaseType() or right.pointertype != BaseType():
                 raise ParserException("Invalid operation '%s' on types %s and %s at line %s" % (
                     opp, left.type, right.type, self.line_num))
 

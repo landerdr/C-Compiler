@@ -122,7 +122,7 @@ class CPrintListener(CListener):
             expr.type = INT
         if ctx.Char():
             expr.isConst = True
-            expr.value = ord(txt.getText()[1])
+            expr.value = str(txt.getText()[1])
             expr.type = CHAR
         if ctx.Float():
             expr.isConst = True
