@@ -470,7 +470,7 @@ class ASTNodeBreak(ASTNodeStatement):
 
     def _reduce(self, symboltable: TypeTable):
         node = self
-        while not isinstance(node, ASTNodeLoopStatement) and node != None:
+        while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
 
         if node is None:
@@ -478,7 +478,7 @@ class ASTNodeBreak(ASTNodeStatement):
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
-        while not isinstance(node, ASTNodeLoopStatement) and node != None:
+        while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
 
         if node is None:
