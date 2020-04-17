@@ -442,14 +442,16 @@ class ASTNodeInclude(ASTNode):
         super().__init__("Include")
         self.name = ""
 
+    def _reduce(self, symboltable: TypeTable):
+        if self.name != 'stdio.h':
+            raise ParserException("No file named %s" % self.name)
+
     def print_llvm_ir_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'stdio.h':
             print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
             print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
             _type_table.insert_function('printf', 'i32')
             _type_table.insert_function('scanf', 'i32')
-        else:
-            raise ParserException("No file named %s" % self.name)
 
 
 '''Statements'''
@@ -465,6 +467,14 @@ class ASTNodeStatement(ASTNode):
 class ASTNodeBreak(ASTNodeStatement):
     def __init__(self):
         super().__init__("Break")
+
+    def _reduce(self, symboltable: TypeTable):
+        node = self
+        while not isinstance(node, ASTNodeLoopStatement) and node != None:
+            node = node.parent
+
+        if node is None:
+            raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
@@ -482,9 +492,17 @@ class ASTNodeContinue(ASTNodeStatement):
     def __init__(self):
         super().__init__("Continue")
 
+    def _reduce(self, symboltable: TypeTable):
+        node = self
+        while not isinstance(node, ASTNodeLoopStatement) and node is not None:
+            node = node.parent
+
+        if node is None:
+            raise ParserException("Continue statement outside loop at line %s" % self.line_num)
+
     def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
-        while not isinstance(node, ASTNodeLoopStatement) and node != None:
+        while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
 
         if node is None:
