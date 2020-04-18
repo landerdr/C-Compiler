@@ -49,10 +49,12 @@ class TypeTable:
     def __init__(self):
         self.tables = list()
         self.functions = dict()
+        self.function_scope = False
         self.current = None
         self.param = dict()
 
     def complete_function(self, fwd=False):
+        self.function_scope = False
         if self.current is not None:
             current = self.functions[self.current]
             if current.defined and not fwd:
@@ -67,7 +69,8 @@ class TypeTable:
 
     def enter_scope(self):
         self.tables.append(self.param)
-        self.complete_function()
+        if self.function_scope:
+            self.complete_function()
 
     def leave_scope(self):
         if len(self.tables) != 0:
@@ -107,10 +110,14 @@ class TypeTable:
         return None
 
     def insert_function(self, name: str, value_type, **kwargs):
-        if name in self.functions:
-            return
         self.current = name
-        self.functions[name] = Entry(string_to_type(value_type), **kwargs)
+        self.function_scope = True
+        function = Entry(string_to_type(value_type), **kwargs)
+        if name in self.functions:
+            if function.type != self.functions[name].type:
+                raise ParserException("Trying to redeclare function '%s' with mismatched signature type" % name)
+        else:
+            self.functions[name] = function
 
     def lookup_function(self, name: str):
         if name in self.functions:
