@@ -97,7 +97,7 @@ Contains all test input files.
 - [ ] (mandatory) Functions
     - [x] (mandatory) Function calls
     - [x] (mandatory) Function definitions
-    - [ ] (mandatory) Forward declarations
+    - [x] (mandatory) Forward declarations
     - [ ] (optional) Check whether all paths in a function body end with a return statement
 - [x] (mandatory) Unreachable code removal
     - [ ] (optional) Do not generate code for variables that are not used
