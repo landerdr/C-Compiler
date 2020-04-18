@@ -58,13 +58,11 @@ class TypeTable:
             if current.defined and not fwd:
                 raise ParserException("Trying to redefine function '%s'" % self.current)
             current.defined &= not fwd
+            params = list(self.param.values())
             if current.param is None:
-                current.param = list(self.param.values())
-            else:
-                for key in current.param:
-                    if not self.param[key] or current.param[key] != self.param[key]:
-                        raise ParserException(
-                            "Function parameter signature doesn't match for function '%s'" % self.current)
+                current.param = params
+            elif str(params) != str(current.param):
+                raise ParserException("Function parameter signature doesn't match for function '%s'" % self.current)
         self.param = dict()
 
     def enter_scope(self):
