@@ -59,7 +59,7 @@ class TypeTable:
             current = self.functions[self.current]
             if current.defined and not fwd:
                 raise ParserException("Trying to redefine function '%s'" % self.current)
-            current.defined &= not fwd
+            current.defined |= not fwd
             params = list(self.param.values())
             if current.param is None:
                 current.param = params
