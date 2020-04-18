@@ -52,11 +52,19 @@ class TypeTable:
         self.current = None
         self.param = dict()
 
-    def complete_function(self):
+    def complete_function(self, fwd=False):
         if self.current is not None:
             current = self.functions[self.current]
+            if current.defined and not fwd:
+                raise ParserException("Trying to redefine function '%s'" % self.current)
+            current.defined &= not fwd
             if current.param is None:
                 current.param = list(self.param.values())
+            else:
+                for key in current.param:
+                    if not self.param[key] or current.param[key] != self.param[key]:
+                        raise ParserException(
+                            "Function parameter signature doesn't match for function '%s'" % self.current)
         self.param = dict()
 
     def enter_scope(self):
