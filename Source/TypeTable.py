@@ -71,6 +71,8 @@ class TypeTable:
         self.tables.append(self.param)
         if self.function_scope:
             self.complete_function()
+        else:
+            self.param = dict()
 
     def leave_scope(self):
         if len(self.tables) != 0:
