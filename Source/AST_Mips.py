@@ -78,7 +78,20 @@ class AST:
     def print_mips(self, _file_name=None):
         _file = open(_file_name, 'w+')
         print(
-            "; ModuleID = 'main.c'\nsource_filename = \"main.c\"\ntarget datalayout = \"e-m:e-i64:64-f80:128-n8:16:32:64-S128\"\ntarget triple = \"x86_64-pc-linux-gnu\"",
+            "\t.file	1 \"\"\n" +
+            "\t.section .mdebug.abi32\n" +
+            "\t.previous\n" +
+            "\t.nan	legacy\n" +
+            "\t.module	fp=32\n" +
+            "\t.module	nooddspreg\n" +
+            "\t.abicalls\n" +
+            "\t.text\n" +
+            "\t.align	2\n" +
+            "\t.globl	main\n" +
+            "\t.set	nomips16\n" +
+            "\t.set	nomicromips\n" +
+            "\t.ent	main\n" +
+            "\t.type	main, @function\n",
             file=_file)
 
         type_table = TypeTable()
@@ -120,7 +133,7 @@ class AST:
             # no new nodes were found -> all children visited -> time to exit this node -> print stuff
             if not found:
                 prestack.pop()
-                item.print_llvm_ir_post(type_table, _file, len(type_table.tables), string_list)
+                item.print_mips_post(type_table, _file, len(type_table.tables), string_list)
                 visited.append(item)
             else:
                 if index != 0:
@@ -225,7 +238,7 @@ class ASTNode:
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
         pass
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         pass
 
     def get_llvm_addr(self):
@@ -309,18 +322,17 @@ class ASTNodeFunction(ASTNode):
             symboltable.complete_function(fwd=True)
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print('\n' + '; Function Attrs: noinline nounwind optnone uwtable', file=_file)
-        print("define " + self.type.get_llvm_type_ptr() + " @" + self.name + "(", file=_file, end="")
+        print(self.name + ":", file=_file)
         _type_table.insert_function(self.name, self.type)
         _indent += 1
-        if len(self.children) == 1:
-            print(") #0", file=_file)
-            _type_table.enter_scope()
-            print('{', file=_file)
-        if self.name == 'main':
-            print('    ' * _indent + self.get_llvm_addr() + " =  alloca i32, align 4", file=_file)
+        _type_table.enter_scope()
+        print("\t.frame	$fp,8,$31		# vars= 0, regs= 1/0, args= 0, gp= 0\n\t.mask	0x40000000,-4\n\t.fmask	0x00000000,0\n\t.set	noreorder\n\t.set	nomacro", file=_file)
+        print("	addiu	$sp,$sp,-8\n\tsw	$fp,4($sp)\n\tmove	$fp,$sp", file=_file)
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
+
+
+
+    def print_mips_post(self, _type_table, _file=None, _indent=1, _string_list=None):
         if len(self.children) > 0:
             if not isinstance(self.children[-1], ASTNodeReturn):
                 if isinstance(self.children[-1], ASTNodeCompound):
@@ -473,7 +485,7 @@ class ASTNodeBreak(ASTNodeStatement):
         if node is None:
             raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
         while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
@@ -497,7 +509,7 @@ class ASTNodeContinue(ASTNodeStatement):
         if node is None:
             raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         node = self
         while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
@@ -524,7 +536,7 @@ class ASTNodeCompound(ASTNodeStatement):
             return
         _type_table.enter_scope()
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=1, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=1, _string_list=None):
         if isinstance(self.parent, ASTNodeFunction):
             return
         _type_table.leave_scope()
@@ -576,7 +588,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     # TODO: Update: use of new functions
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
 
         llvm_type = self.type.get_llvm_type()
         allign = '4'
@@ -603,7 +615,16 @@ class ASTNodeDefinition(ASTNodeStatement):
         _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array)
 
         if len(_type_table.tables) == 1:
-            print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
+            #print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
+            print(register[1:] + ":\n" +
+                  "\t.word	" +  v1 + "\n" +
+                  "\t.text\n" +
+                  "\t.align	2\n" +
+                  "\t.globl	main\n" +
+                  "\t.set	nomips16\n" +
+                  "\t.set	nomicromips\n" +
+                  "\t.ent	main\n" +
+                  "\t.type	main, @function", file=_file)
             return
 
         print('    ' * _indent + register + " =  alloca " + print_type + " , align " + allign, file=_file)
@@ -684,7 +705,7 @@ class ASTNodeIf(ASTNodeStatement):
             print("\n " + str(self.label2) + ":", file=_file)
             last_label = self.label2
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         print('    ' * _indent + "br label %" + str(self.label3), file=_file)
         print("\n " + str(self.label3) + ":", file=_file)
         global last_label
@@ -747,7 +768,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
             print("\n " + self.label_continue + ":", file=_file)
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         global last_label
         if self.loop_type == 'do':
             v0 = self.children[1].load_if_necessary(_type_table, _file, _indent)
@@ -790,7 +811,7 @@ class ASTNodeReturn(ASTNodeStatement):
             raise ParserException("Invalid return statement for type '%s' and type '%s' at line %s" % (
                 entry.type, self.children[0].type, self.line_num))
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         new_val = ''
         entry = _type_table.lookup_function(_type_table.current)
         llvm_type = entry.type.get_llvm_type_ptr()
@@ -942,7 +963,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
                     "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
             self.type = entry.type
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_llvm_addr())
         t0 = self.children[0].get_llvm_type(_type_table)[0]
 
@@ -1009,7 +1030,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
                     "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
             self.type = entry.type
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[0]
 
@@ -1105,7 +1126,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                     entry.type, child.type, self.line_num))
         entry.update_value(value, self.line_num)
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         if not isinstance(self.children[0], ASTNodeLeftValue):
             if not isinstance(self.children[0], ASTNodeIndexingExpr):
@@ -1210,7 +1231,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             raise ParserException("Invalid amount of param for function '%s' at line %s" % (self.name, self.line_num))
         self.type = entry.type
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf' or self.name == 'scanf':
             '''
             if len(self.children) == 1:
@@ -1304,7 +1325,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
                 raise ParserException("Invalid operation type for indexing operation %s at line %s" % (
                     self.children[-1].type, self.line_num))
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         self.type = self.children[0].type
         if self.value:
             entry = _type_table.lookup_variable(self.value)
@@ -1356,7 +1377,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
                 self.children[0].type = INT
                 self.delete()
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[1]
         v1 = convert_type('i32', str(t0), '0', _file, _indent)
@@ -1389,7 +1410,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 self.children[0].value *= -1
                 self.delete()
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = '0'
         t0 = self.children[0].get_llvm_type(_type_table)[1]
@@ -1424,7 +1445,7 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         entry = symboltable.lookup_variable(self.children[0].name)
         entry.value = "Unknown"
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         child = self.children[0]
         new_addr = self.get_llvm_addr()
         llvm_type = child.get_llvm_type(_type_table)[1]
@@ -1448,7 +1469,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         if self.type == NONE:
             raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
 
         child = self.children[0]
         new_addr = self.get_llvm_addr()
@@ -1535,7 +1556,7 @@ class ASTNodeAddition(ASTNodeOp):
 
         self.delete()
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
 
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
@@ -1620,7 +1641,7 @@ class ASTNodeMult(ASTNodeOp):
 
         self.delete()
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[1]
@@ -1710,7 +1731,7 @@ class ASTNodeConditional(ASTNodeOp):
 
         self.delete()
 
-    def print_llvm_ir_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[1]

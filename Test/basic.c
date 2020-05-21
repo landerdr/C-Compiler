@@ -1,4 +1,5 @@
 
+int j =2;
 
 int main(){
 
