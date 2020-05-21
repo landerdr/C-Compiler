@@ -3,8 +3,8 @@ from gen.CLexer import CLexer
 from gen.CListener import CListener
 from gen.CParser import CParser
 
-#from Source.self.source.AST import *
-#from Source.self.source.AST_Mips import *
+#from Source.AST import *
+#from Source.AST_Mips import *
 from Source.TypeTable import *
 
 
