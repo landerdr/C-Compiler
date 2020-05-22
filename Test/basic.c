@@ -9,9 +9,11 @@ int main() {
     //f(1, 2, 3);
     //printf(5);
     //char* c = "abcd";
-    int i = 0;
+    int i = 404;
     char* str;
+    char* str2 = "abcd";
     scanf("%s", str);
-    printf(str);
+    printf(i);
+    printf(str2);
     return 0;
 }

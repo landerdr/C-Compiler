@@ -238,26 +238,11 @@ class ASTNode:
         entry2 = _type_table.lookup_variable(str(name))
 
         if pointer != llvm_type:
-            llvm_type = entry2.type.get_llvm_type_ptr()
+            print("\tla" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
+            return v1
 
-        if str(name)[0] != '%':
-            name = "%" + str(name)
-
-        if entry2.register:
-            name = entry2.register
         if entry2.array == 0:
-            if not _type_table.insert_variable(v1, entry2.type):
-                return v1
-            print('    ' * _indent + "lw" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
-
-        else:
-            if not _type_table.insert_variable(v1, Pointer(entry2.type)):
-                return v1
-            arr = str(llvm_type + ", " + llvm_type)
-            l = entry2.array
-            if int(l) > 0:
-                arr = "[" + str(l) + " x " + llvm_type + "], [" + str(l) + " x " + llvm_type + "]* "
-            print("    " * _indent + v1 + " =  getelementptr inbounds " + arr + name + ", i64 0, i64 0", file=_file)
+            print("\tlw" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
 
         return v1
 
@@ -323,7 +308,7 @@ class ASTNodeFunction(ASTNode):
                         if not isinstance(self.children[-1].children[-1], ASTNodeReturn):
                             if self.name == "main":
                                 print("\tli $v0,10", file=_file)
-                                print("\t syscall", file=_file)
+                                print("\tsyscall", file=_file)
                                 return
                             v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
                             print("\tmovz	$31,$31,$0\n" +
@@ -336,7 +321,7 @@ class ASTNodeFunction(ASTNode):
                         v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
                         if self.name == "main":
                             print("\tli $v0,10", file=_file)
-                            print("\t syscall", file=_file)
+                            print("\tsyscall", file=_file)
                             return
                         print("\tli $2,$0")
                         print("\tmovz	$31,$31,$0\n" +
@@ -350,7 +335,7 @@ class ASTNodeFunction(ASTNode):
                     v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
                     if self.name == "main":
                         print("\tli $v0,10", file=_file)
-                        print("\t syscall", file=_file)
+                        print("\tsyscall", file=_file)
                         return
                     print("\tli $2,$0")
                     print("\tmovz	$31,$31,$0\n" +
@@ -363,7 +348,7 @@ class ASTNodeFunction(ASTNode):
             v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
             if self.name == "main":
                 print("\tli $v0,10", file=_file)
-                print("\t syscall", file=_file)
+                print("\tsyscall", file=_file)
                 return
             print("\tli $2,$0")
             print("\tmovz	$31,$31,$0\n" +
@@ -844,7 +829,7 @@ class ASTNodeReturn(ASTNodeStatement):
         entry = _type_table.lookup_function(_type_table.current)
         if _type_table.current == "main":
             print("\tli $v0,10", file=_file)
-            print("\t syscall", file=_file)
+            print("\tsyscall", file=_file)
             return
         llvm_type = entry.type.get_llvm_type_ptr()
         if len(self.children):
@@ -954,6 +939,7 @@ class ASTNodeLiteral(ASTNodeExpression):
             return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+
         if not _target:
             _target = "$t0"
         if not self.isConst:
@@ -1273,18 +1259,19 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.name == 'printf':
             value = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
-            print("\tli $v0, 1", file=_file)
-            print("\tmove $a0," + value, file=_file)
+
+            if self.children[0].type.pointertype == CHAR:
+                print("\tli $v0, 4", file=_file)
+            else:
+                print("\tli $v0, 1", file=_file)
+            print("\tmove $a0," + str(value), file=_file)
             print("\tsyscall", file=_file)
         elif self.name == 'scanf':
             print("\tli $v0,5", file=_file)
             print("\tsyscall", file=_file)
             print("\tmove $t0,$v0", file=_file)
             if len(self.children) > 0:
-                print(_type_table)
-                print(self.children[-1].value)
                 entry = _type_table.lookup_variable("str")
-                print(entry)
                 print("\tsw $t0," + str(entry.location) + "($sp)", file=_file)
 
         else:
