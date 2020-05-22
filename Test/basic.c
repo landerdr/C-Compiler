@@ -1,19 +1,31 @@
-// Type your code here, or load an example.
-int i = 1;
 
-int f(int j, int k, int l){
-    return 0;
-}
 
 int main() {
     //f(1, 2, 3);
     //printf(5);
     //char* c = "abcd";
-    int i = 404;
-    char* str;
-    char* str2 = "abcd";
-    scanf("%s", str);
+    //int i = 404;
+    float j = 2.2;
+    //scanf("%d", j);
+    //printf(j);
+
+    int i = 10;
+    i = i * j;
+    //printf("\n");
+    //printf(j);
+    //printf("\n");
+    j = j * 10;
     printf(i);
-    printf(str2);
+    printf("\n");
+    printf(j);
+
+    /*
+    char* str2 = "abcd";
+    scanf("%d", j);
+    //i = i + j;
+    i = i * j;
+    printf(i);
+    printf(str2);*/
     return 0;
+
 }

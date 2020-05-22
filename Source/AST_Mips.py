@@ -82,6 +82,7 @@ class AST:
         type_table.enter_scope()
 
         string_list = []
+        float_list = []
 
         prestack = [self.root]
         grey = []
@@ -100,7 +101,7 @@ class AST:
             # if entering this node for the first time -> print stuff
             if not (item in grey):
                 grey.append(item)
-                item.print_mips_pre(type_table, _file, len(type_table.tables), string_list)
+                item.print_mips_pre(type_table, _file, len(type_table.tables), string_list, float_list)
 
             # check if a child hasn't been visited yet
             found = False
@@ -119,19 +120,26 @@ class AST:
             # no new nodes were found -> all children visited -> time to exit this node -> print stuff
             if not found:
                 prestack.pop()
-                item.print_mips_post(type_table, _file, len(type_table.tables), string_list)
+                item.print_mips_post(type_table, _file, len(type_table.tables), string_list, float_list)
                 visited.append(item)
             else:
                 if index != 0:
-                    item.print_mips_in(type_table, index - 1, _file, len(type_table.tables), string_list)
-        print(".data", file=_file)
+                    item.print_mips_in(type_table, index - 1, _file, len(type_table.tables), string_list, float_list)
+        print("\n.data", file=_file)
         for i in range(0, len(string_list)):
             string_ref = "str"
-            l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2 - string_list[i].count("\\09") * 2 
             if i > 0:
                 string_ref += '_' + str(i)
-            print("\t" + string_ref + ": .ascii " + "\"" + string_list[i] + "\\000\"",
+            print("\t" + string_ref + ": .ascii " + "\"" + string_list[i] + "\"",
                   file=_file)
+
+        for i in range(0, len(float_list)):
+            float_ref = "flt"
+            if i > 0:
+                float_ref += '_' + str(i)
+            print("\t" + float_ref + ": .float " + str(float_list[i]),
+                  file=_file)
+
         print(".text", file=_file)
 
 
@@ -214,18 +222,17 @@ class ASTNode:
         self.children = []
 
     # Prints it's equivalent as llvm IR code
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         pass
 
-    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
+    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
         pass
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         pass
 
     def get_llvm_addr(self):
-        return "%t" + str(id(self))
-        #return "%t" + str(self.id)
+        return "$t0"
 
     def _load(self, name, _type_table, _file=None, _indent=0, _target=None):
         v1 = self.get_llvm_addr()
@@ -242,7 +249,12 @@ class ASTNode:
             return v1
 
         if entry2.array == 0:
-            print("\tlw" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
+            if llvm_type == 'float':
+                if not _target:
+                    v1 = "$f1"
+                print("\tl.s" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
+            else:
+                print("\tlw" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
 
         return v1
 
@@ -288,7 +300,7 @@ class ASTNodeFunction(ASTNode):
         if self.fwd:
             symboltable.complete_function(fwd=True)
 
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         print("c_" + self.name + ":", file=_file)
         _type_table.insert_function(self.name, self.type)
         _indent += 1
@@ -299,7 +311,7 @@ class ASTNodeFunction(ASTNode):
               "\tsw      $fp,24($sp)\n" +
               "\tmove    $fp,$sp", file=_file)
 
-    def print_mips_post(self, _type_table, _file=None, _indent=1, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
 
         if len(self.children) > 0:
             if not isinstance(self.children[-1], ASTNodeReturn):
@@ -360,12 +372,13 @@ class ASTNodeFunction(ASTNode):
 
         _type_table.leave_scope()
 
-    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
+    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
         if prev_index < len(self.children) - 2:
             pass
         else:
             _type_table.enter_scope()
             _indent += 1
+            print("# Parameters", file=_file)
             for i in range(len(self.param_names)):
                 if i >= 4:
                     return
@@ -375,6 +388,7 @@ class ASTNodeFunction(ASTNode):
                     _type_table.offset = 8
                 else:
                     _type_table.offset += 4
+
                 print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
 
 
@@ -404,7 +418,7 @@ class ASTNodeParam(ASTNode):
     def print_dot(self, _file=None):
         print('"', self, '"', '[label = "', self.value, ": param", self.name, '"]', file=_file)
 
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         if self.array is not None:
             self.type = Pointer(self.type)
         t = self.type
@@ -459,7 +473,7 @@ class ASTNodeInclude(ASTNode):
         if self.name != 'stdio.h':
             raise ParserException("No file named %s" % self.name)
 
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         if self.name == 'stdio.h':
             print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
             print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
@@ -489,7 +503,7 @@ class ASTNodeBreak(ASTNodeStatement):
         if node is None:
             raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         node = self
         while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
@@ -513,7 +527,7 @@ class ASTNodeContinue(ASTNodeStatement):
         if node is None:
             raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         node = self
         while not isinstance(node, ASTNodeLoopStatement) and node is not None:
             node = node.parent
@@ -535,12 +549,12 @@ class ASTNodeCompound(ASTNodeStatement):
     def __init__(self, _val="Compound statement"):
         super().__init__(_val)
 
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         if isinstance(self.parent, ASTNodeFunction):
             return
         _type_table.enter_scope()
 
-    def print_mips_post(self, _type_table, _file=None, _indent=1, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         if isinstance(self.parent, ASTNodeFunction):
             return
         _type_table.leave_scope()
@@ -592,7 +606,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             raise ParserException("Trying to redeclare variable '%s' at line %s" % (self.name, self.line_num))
 
     # TODO: Update: use of new functions
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
 
         llvm_type = self.type.get_llvm_type()
         allign = '4'
@@ -622,6 +636,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array, location=_type_table.offset)
 
         if len(_type_table.tables) == 1:
+            print("# Global", file=_file)
             print(".data", file=_file)
             print("\t" + register[1:] + ":", file=_file, end="")
             if self.type == CHAR:
@@ -640,14 +655,14 @@ class ASTNodeDefinition(ASTNodeStatement):
 
         if len(self.children) > 0:
             if not isinstance(self.children[0], ASTNodeList):
+                print("# Var Definition",  self.name, file=_file)
                 v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-
                 t1 = self.children[0].get_llvm_type(_type_table)[1]
                 v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-
-                print(
-                    '\t' + "sw " + v1 + "," + str(_type_table.offset) + "($fp)",
-                    file=_file)
+                if llvm_type == "float":
+                    print('\t' + "s.s " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
+                else:
+                    print('\t' + "sw " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
             else:
                 prev = None
                 for index in range(int(self.array)):
@@ -690,7 +705,7 @@ class ASTNodeIf(ASTNodeStatement):
         self.label2 = None
         self.label3 = None
 
-    def print_mips_in(self, _type_table, index=0, _file=None, _indent=0, _string_list=None):
+    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
         global last_label
         if index == 0:
             v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
@@ -718,7 +733,7 @@ class ASTNodeIf(ASTNodeStatement):
             print("\n " + str(self.label2) + ":", file=_file)
             last_label = self.label2
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         print('    ' * _indent + "br label %" + str(self.label3), file=_file)
         print("\n " + str(self.label3) + ":", file=_file)
         global last_label
@@ -737,7 +752,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         self.label3 = "label_" + self.get_llvm_addr()[1:] + "3"
         self.label_continue = self.label1
 
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         _type_table.enter_scope()
         if self.loop_type == 'do':
             self.label3 = self.label2
@@ -752,7 +767,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             self.replace_child(3, self.children[2])
             self.replace_child(2, temp)
 
-    def print_mips_in(self, _type_table, index=0, _file=None, _indent=0, _string_list=None):
+    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
         global last_label
         if index == 0 and self.loop_type == 'for':
             print('    ' * _indent + "br label %" + str(self.label1), file=_file)
@@ -781,7 +796,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
             print("\n " + self.label_continue + ":", file=_file)
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         global last_label
         if self.loop_type == 'do':
             v0 = self.children[1].load_if_necessary(_type_table, _file, _indent)
@@ -824,7 +839,7 @@ class ASTNodeReturn(ASTNodeStatement):
             raise ParserException("Invalid return statement for type '%s' and type '%s' at line %s" % (
                 entry.type, self.children[0].type, self.line_num))
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         new_val = ''
         entry = _type_table.lookup_function(_type_table.current)
         if _type_table.current == "main":
@@ -876,6 +891,7 @@ class ASTNodeLiteral(ASTNodeExpression):
         self.canReplace = False
         self.prop_able = False
         self.stringRef = None
+        self.floatRef = None
         self.isString = False
 
     def _const_propagation(self, symboltable):
@@ -910,16 +926,21 @@ class ASTNodeLiteral(ASTNodeExpression):
         else:
             self.value = self.type.cast(self.value)
 
-    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         if self.isString:
             string_ref = "str"
-            self.value = self.value.replace("\\n", "\\0A")
-            self.value = self.value.replace("\\t", "\\09")
-            l = len(self.value) + 1 - self.value.count("\\0A") * 2  - self.value.count("\\09") * 2
             if len(_string_list) > 0:
-                string_ref += "." + str(len(_string_list))
+                string_ref += "_" + str(len(_string_list))
             self.stringRef = string_ref
             _string_list.append(self.value)
+
+        if self.type == FLOAT and self.isConst:
+            float_ref = "flt"
+            if len(_float_list) > 0:
+                float_ref += "_" + str(len(_float_list))
+            self.floatRef = float_ref
+            _float_list.append(self.value)
+
 
     def get_without_load(self, _type_table):
         if not self.isConst:
@@ -939,14 +960,19 @@ class ASTNodeLiteral(ASTNodeExpression):
             return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-
-        if not _target:
-            _target = "$t0"
         if not self.isConst:
             return self._load(self.value, _type_table, _file, _indent, _target)
         else:
+            if self.type == FLOAT:
+                if not _target:
+                    _target = "$f1"
+                print("\tl.s\t" + _target + "," + str(self.floatRef), file=_file )
+                return _target
+            if not _target:
+                _target = "$t0"
+
             if self.stringRef:
-                print("\tlw\t" + _target + "," + str(self.stringRef), file=_file )
+                print("\tla\t" + _target + "," + str(self.stringRef), file=_file )
                 return _target
             print("\tli\t" + _target + "," + str(self.value), file=_file )
             return _target
@@ -991,7 +1017,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
                     "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
             self.type = entry.type
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_llvm_addr())
         t0 = self.children[0].get_llvm_type(_type_table)[0]
 
@@ -1058,7 +1084,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
                     "Incompatible operation '%s' with type const type at line %s" % (self.operator, self.line_num))
             self.type = entry.type
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[0]
 
@@ -1154,7 +1180,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                     entry.type, child.type, self.line_num))
         entry.update_value(value, self.line_num)
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         if not isinstance(self.children[0], ASTNodeLeftValue):
             if not isinstance(self.children[0], ASTNodeIndexingExpr):
@@ -1167,7 +1193,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             var_name = self.get_name()
             entry = _type_table.lookup_variable(var_name)
         llvm_type = entry.type.get_llvm_type_ptr()
-        t1 = self.children[1].get_llvm_type(_type_table)[1]
+        t1 = self.children[1].type.get_llvm_type()
 
         if self.equality != "=":
 
@@ -1204,18 +1230,16 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
 
             print('    ' * _indent + new_v1 + " = " + opp + " " + t1 + " " + v0 + ", " + v1, file=_file)
             v1 = new_v1
-
+        if t1 == "float":
+            v1 = "$f1"
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-        pointer = entry.type.get_llvm_type_ptr()
-        var_name = "%" + var_name
-        if entry.register:
-            var_name = entry.register
-        allign = '4'
+        if llvm_type == "float":
+            print("\tswc1 ", v1 + "," + str(entry.location) + "($sp)", file=_file)
+        else:
+            print("\tsw ", v1 + "," + str(entry.location) + "($sp)", file=_file)
 
-        if pointer != entry.type.get_llvm_type():
-            llvm_type = pointer
-            allign = '8'
-        print("sw ", v1 + "," + entry.location + "($sp)", file=_file)
+    def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
+        print("# Equality expression ("+ str(self.children[0].name) + self.equality + ")", file=_file)
 
     def get_without_load(self, _type_table):
         entry = _type_table.lookup_variable(str(self.children[0].name))
@@ -1256,23 +1280,42 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             raise ParserException("Invalid amount of param for function '%s' at line %s" % (self.name, self.line_num))
         self.type = entry.type
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         if self.name == 'printf':
-            value = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
+            print("# Printf " + str(self.children[0].type), file=_file)
+            target = "$t0"
+            if self.children[0].type == FLOAT:
+                target = "$f1"
+            value = self.children[0].load_if_necessary(_type_table, _file, _indent, target)
 
             if self.children[0].type.pointertype == CHAR:
                 print("\tli $v0, 4", file=_file)
+                print("\tmove $a0," + str(value), file=_file)
+            elif self.children[0].type == FLOAT:
+                print("\tli $v0, 2", file=_file)
+                print("\tmov.s $f12," + str(value), file=_file)
             else:
                 print("\tli $v0, 1", file=_file)
-            print("\tmove $a0," + str(value), file=_file)
+                print("\tmove $a0," + str(value), file=_file)
             print("\tsyscall", file=_file)
         elif self.name == 'scanf':
-            print("\tli $v0,5", file=_file)
-            print("\tsyscall", file=_file)
-            print("\tmove $t0,$v0", file=_file)
-            if len(self.children) > 0:
-                entry = _type_table.lookup_variable("str")
-                print("\tsw $t0," + str(entry.location) + "($sp)", file=_file)
+            print("# Scanf " + str(self.children[0].type), file=_file)
+            if self.children[1].type == FLOAT:
+                print("\tli $v0,6", file=_file)
+                print("\tsyscall", file=_file)
+                print("\tmov.s $f1,$f0", file=_file)
+                if len(self.children) > 0:
+                    entry = _type_table.lookup_variable(str(self.children[-1].value))
+                    print("\tswc1 $f1," + str(entry.location) + "($sp)", file=_file)
+            else:
+                print("\tli $v0,5", file=_file)
+                print("\tsyscall", file=_file)
+                print("\tmove $t0,$v0", file=_file)
+                if len(self.children) > 0:
+                    entry = _type_table.lookup_variable(str(self.children[-1].value))
+                    print("\tsw $t0," + str(entry.location) + "($sp)", file=_file)
+
+
 
         else:
             i = len(self.children) - 1
@@ -1302,7 +1345,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
                 raise ParserException("Invalid operation type for indexing operation %s at line %s" % (
                     self.children[-1].type, self.line_num))
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         self.type = self.children[0].type
         if self.value:
             entry = _type_table.lookup_variable(self.value)
@@ -1354,7 +1397,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
                 self.children[0].type = INT
                 self.delete()
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[1]
         v1 = convert_type('i32', str(t0), '0', _file, _indent)
@@ -1387,7 +1430,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 self.children[0].value *= -1
                 self.delete()
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = '0'
         t0 = self.children[0].get_llvm_type(_type_table)[1]
@@ -1422,7 +1465,7 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         entry = symboltable.lookup_variable(self.children[0].name)
         entry.value = "Unknown"
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         child = self.children[0]
         new_addr = self.get_llvm_addr()
         llvm_type = child.get_llvm_type(_type_table)[1]
@@ -1446,7 +1489,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         if self.type == NONE:
             raise ParserException("Trying to dereference non pointer value at line %s" % self.line_num)
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
 
         child = self.children[0]
         new_addr = self.get_llvm_addr()
@@ -1533,10 +1576,10 @@ class ASTNodeAddition(ASTNodeOp):
 
         self.delete()
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
 
-        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
+        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1")
         t0 = self.children[0].get_llvm_type(_type_table)[1]
         t1 = self.children[1].get_llvm_type(_type_table)[1]
 
@@ -1545,7 +1588,7 @@ class ASTNodeAddition(ASTNodeOp):
         v1 = new_var[1]
         llvm_type = new_var[2]
 
-        opp = "addiu"
+        opp = "addu"
         if llvm_type == 'float':
             opp = 'fadd'
         if self.operators[0] == '-':
@@ -1553,10 +1596,10 @@ class ASTNodeAddition(ASTNodeOp):
             if llvm_type == 'float':
                 opp = 'fsub'
 
-        new_addr = self.get_llvm_addr()
+        new_addr = "$t0"
         self.type = string_to_type(llvm_type)
         _type_table.insert_variable(new_addr, llvm_type)
-        print('    ' * _indent + opp + "\t" + new_addr + "," + v0 + "," + v1, file=_file)
+        print('\t' + opp + "\t" + new_addr + "," + v0 + "," + v1, file=_file)
         #print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
 
@@ -1618,19 +1661,31 @@ class ASTNodeMult(ASTNodeOp):
 
         self.delete()
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
+
         t0 = self.children[0].get_llvm_type(_type_table)[1]
         t1 = self.children[1].get_llvm_type(_type_table)[1]
+
+        if t0 == "float":
+            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$f1")
+        else:
+            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
+
+        if t1 == "float":
+            v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$f2")
+        else:
+            v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1")
+
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
+        new_addr = self.get_llvm_addr()
 
         opp = "mul"
         if llvm_type == 'float':
-            opp = 'fmul'
+            opp = 'mul.s'
+            new_addr = "$f1"
         if self.operators[0] == '/':
             opp = 'sdiv'
             if llvm_type == 'float':
@@ -1641,11 +1696,10 @@ class ASTNodeMult(ASTNodeOp):
             if llvm_type == 'float':
                 raise ModuloException('Trying to use modulo on float type')
 
-        new_addr = self.get_llvm_addr()
+
         _type_table.insert_variable(new_addr, llvm_type)
 
-
-        print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
+        print('\t' + opp + "\t" + new_addr + "," + v0 + "," + v1, file=_file)
 
 
 # Conditional expression node
@@ -1708,7 +1762,7 @@ class ASTNodeConditional(ASTNodeOp):
 
         self.delete()
 
-    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
+    def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         t0 = self.children[0].get_llvm_type(_type_table)[1]
@@ -1816,73 +1870,41 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
         llvm_type = 'float'
     if t0 == 'double' or t1 == 'double':
         llvm_type = 'double'
+    v0_conv = v0
+    v1_conv = v1
+    if llvm_type == "float":
+        v0_conv = "$f1"
+    if llvm_type == "float":
+        v1_conv = "$f2"
 
-    v0 = convert_type(t0, llvm_type, v0, _file, _indent)
-    v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-
+    v0 = convert_type(t0, llvm_type, v0, _file, _indent, v0_conv )
+    v1 = convert_type(t1, llvm_type, v1, _file, _indent, v1_conv )
     return v0, v1, llvm_type
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
     if new_type == 'void' :
         return ''
+    if old_type != new_type:
+        if new_type == "float":
+            if not _save_as:
+                _save_as = "$f1"
+            #print("# Int to float", file=_file)
+            print("\tmtc1 " + v1 + "," + _save_as, file=_file)
+            print("\tcvt.s.w " + _save_as + "," + _save_as, file=_file)
+            return _save_as
+        if new_type == "i32":
+            if not _save_as:
+                _save_as = "$t0"
+            #print("# Float to int", file=_file)
+            print("\tcvt.w.s " + v1 + "," + v1, file=_file)
+            print("\tmfc1 " + _save_as + "," + v1 , file=_file)
+            return _save_as
+
     if old_type[-1] == '*' or new_type[-1] == '*' or v1[0] == "$":
         return v1
-    if v1[0] != '%' and v1[0] != '@':
-        if new_type == 'float':
-            return double_to_hex(float(v1))
-        if new_type == 'i8':
-            if old_type == 'i32':
-                return v1
-            elif old_type == 'float':
-                return str(floor(float(v1)))
-            return str(v1)
-        if new_type == 'i32' or new_type == 'i64':
-            return str(int(float(v1)))
-        if new_type == 'i1':
-            if int(v1) > 0:
-                return '1'
-            return '0'
-        return v1
-    if old_type != new_type:
-        prev = str(v1)
-        v1 = str(v1) + "conv"
-        if _save_as:
-            v1 = _save_as
-        convopp = 'sitofp'
-        if new_type == 'i32' or new_type == 'i64':
-            convopp = 'sext'
-            if old_type == 'float' or old_type == 'double':
-                convopp = 'fptosi'
-            if old_type == 'i1':
-                convopp = 'zext'
 
-        if new_type == 'double':
-            if old_type == 'float':
-                convopp = 'fpext'
 
-        if new_type == 'float':
-            if old_type == 'double':
-                convopp = 'fptrunc'
 
-        if new_type == 'i8':
-            if old_type == 'i1':
-                print('    ' * _indent + prev + "con = zext i1 " + prev + " to i32", file=_file)
-                convopp = 'trunc'
-                print('    ' * _indent + v1 + " = " + convopp + " i32 " + prev + "con to " + new_type, file=_file)
-                return v1
-
-            if old_type == 'i32':
-                convopp = 'trunc'
-
-            if old_type == 'double' or old_type == 'float':
-                convopp = 'fptosi'
-
-        if new_type == 'i1':
-            convopp = 'zext'
-            if old_type == 'i32':
-                convopp = 'trunc'
-
-        print('    ' * _indent + v1 + " = " + convopp + " " + old_type + " " + prev + " to " + new_type, file=_file)
 
     return v1
