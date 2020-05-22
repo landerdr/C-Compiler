@@ -77,22 +77,6 @@ class AST:
     # (Hopefully) Prints it's equivalent as llvm IR code
     def print_mips(self, _file_name=None):
         _file = open(_file_name, 'w+')
-        print(
-            "\t.file	1 \"\"\n" +
-            "\t.section .mdebug.abi32\n" +
-            "\t.previous\n" +
-            "\t.nan	legacy\n" +
-            "\t.module	fp=32\n" +
-            "\t.module	nooddspreg\n" +
-            "\t.abicalls\n" +
-            "\t.text\n" +
-            "\t.align	2\n" +
-            "\t.globl	main\n" +
-            "\t.set	nomips16\n" +
-            "\t.set	nomicromips\n" +
-            "\t.ent	main\n" +
-            "\t.type	main, @function\n",
-            file=_file)
 
         type_table = TypeTable()
         type_table.enter_scope()
@@ -102,6 +86,8 @@ class AST:
         prestack = [self.root]
         grey = []
         visited = []
+
+        print("j c_main", file=_file)
 
         while len(prestack) > 0:
             item = prestack[-1]
@@ -138,19 +124,15 @@ class AST:
             else:
                 if index != 0:
                     item.print_mips_in(type_table, index - 1, _file, len(type_table.tables), string_list)
-
+        print(".data", file=_file)
         for i in range(0, len(string_list)):
-            string_ref = "@.str"
+            string_ref = "str"
             l = len(string_list[i]) + 1 - string_list[i].count("\\0A") * 2 - string_list[i].count("\\09") * 2 
             if i > 0:
-                string_ref += '.' + str(i)
-            print(string_ref + " = private unnamed_addr constant [" + str(l) + " x i8] c\"" + string_list[
-                i] + "\\00\", align 1",
+                string_ref += '_' + str(i)
+            print("\t" + string_ref + ": .ascii " + "\"" + string_list[i] + "\\000\"",
                   file=_file)
-
-        print(
-            '\nattributes #0 = { noinline nounwind optnone uwtable "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+fxsr,+mmx,+sse,+sse2,+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }',
-            file=_file)
+        print(".text", file=_file)
 
 
 '''Core'''
@@ -322,62 +304,100 @@ class ASTNodeFunction(ASTNode):
             symboltable.complete_function(fwd=True)
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
-        print(self.name + ":", file=_file)
+        print("c_" + self.name + ":", file=_file)
         _type_table.insert_function(self.name, self.type)
         _indent += 1
         _type_table.enter_scope()
-        print("\t.frame	$fp,8,$31		# vars= 0, regs= 1/0, args= 0, gp= 0\n\t.mask	0x40000000,-4\n\t.fmask	0x00000000,0\n\t.set	noreorder\n\t.set	nomacro", file=_file)
-        print("	addiu	$sp,$sp,-8\n\tsw	$fp,4($sp)\n\tmove	$fp,$sp", file=_file)
 
-
-
+        print("\taddiu   $sp,$sp,-32\n" +
+              "\tsw      $31,28($sp)\n" +
+              "\tsw      $fp,24($sp)\n" +
+              "\tmove    $fp,$sp", file=_file)
 
     def print_mips_post(self, _type_table, _file=None, _indent=1, _string_list=None):
+
         if len(self.children) > 0:
             if not isinstance(self.children[-1], ASTNodeReturn):
                 if isinstance(self.children[-1], ASTNodeCompound):
                     if len(self.children[-1].children) > 0:
                         if not isinstance(self.children[-1].children[-1], ASTNodeReturn):
+                            if self.name == "main":
+                                print("\tli $v0,10", file=_file)
+                                print("\t syscall", file=_file)
+                                return
                             v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                            print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+                            print("\tmovz	$31,$31,$0\n" +
+                                  "\tmove	$sp,$fp\n" +
+                                  "\tlw	$fp,20($sp)\n" +
+                                  "\taddiu	$sp,$sp,24\n" +
+                                  "\tjr	$31\n" +
+                                  "\tnop\n", file=_file)
                     else:
                         v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                        print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+                        if self.name == "main":
+                            print("\tli $v0,10", file=_file)
+                            print("\t syscall", file=_file)
+                            return
+                        print("\tli $2,$0")
+                        print("\tmovz	$31,$31,$0\n" +
+                              "\tmove	$sp,$fp\n" +
+                              "\tlw	$fp,20($sp)\n" +
+                              "\taddiu	$sp,$sp,24\n" +
+                              "\tjr	$31\n" +
+                              "\tnop\n", file=_file)
+
                 else:
                     v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                    print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+                    if self.name == "main":
+                        print("\tli $v0,10", file=_file)
+                        print("\t syscall", file=_file)
+                        return
+                    print("\tli $2,$0")
+                    print("\tmovz	$31,$31,$0\n" +
+                          "\tmove	$sp,$fp\n" +
+                          "\tlw	$fp,20($sp)\n" +
+                          "\taddiu	$sp,$sp,24\n" +
+                          "\tjr	$31\n" +
+                          "\tnop\n", file=_file)
         else:
             v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-            print('    ' * _indent + "ret " + self.type.get_llvm_type_ptr() + " " + v, file=_file)
+            if self.name == "main":
+                print("\tli $v0,10", file=_file)
+                print("\t syscall", file=_file)
+                return
+            print("\tli $2,$0")
+            print("\tmovz	$31,$31,$0\n" +
+                  "\tmove	$sp,$fp\n" +
+                  "\tlw	$fp,20($sp)\n" +
+                  "\taddiu	$sp,$sp,24\n" +
+                  "\tjr	$31\n" +
+                  "\tnop\n", file=_file)
 
         _type_table.leave_scope()
-        print("}", file=_file)
 
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
         if prev_index < len(self.children) - 2:
-            print(",", file=_file, end="")
-
+            pass
         else:
-            print(") #0 ", file=_file)
-            if self.name != 'main':
-                print("{", file=_file)
             _type_table.enter_scope()
             _indent += 1
             for i in range(len(self.param_names)):
+                if i >= 4:
+                    return
                 name = self.param_names[i][0]
                 llvm_type = self.param_names[i][1].get_llvm_type_ptr()
-                print('    ' * _indent + "%" + name + " =  alloca " + llvm_type + " , align 4", file=_file)
-                print('    ' * _indent + "store " + llvm_type + " %" + str(
-                    i) + ", " + llvm_type + "* %" + name + ", align 4", file=_file)
+                if (_type_table.offset == None):
+                    _type_table.offset = 8
+                else:
+                    _type_table.offset += 4
+                print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
+
 
 
 # Base list of parameters node
 class ASTNodeParams(ASTNode):
     def __init__(self):
         super().__init__("Params")
-
-    def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None):
-        print(", ", file=_file, end="")
 
 
 # Single parameter node
@@ -403,7 +423,6 @@ class ASTNodeParam(ASTNode):
         if self.array is not None:
             self.type = Pointer(self.type)
         t = self.type
-        print(t.get_llvm_type_ptr(), file=_file, end="")
 
         _type_table.insert_param(self.name, t, register=str("%" + self.name), const=self.const)
         if isinstance(self.parent, ASTNodeFunction):
@@ -604,38 +623,45 @@ class ASTNodeDefinition(ASTNodeStatement):
         if len(_type_table.tables) == 1:
             register = "@" + self.name
             if len(self.children) > 0:
-                v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+                v1 = self.children[0].get_without_load(_type_table)
                 t1 = self.children[0].get_llvm_type(_type_table)[0]
                 v1 = convert_type(t1, llvm_type, v1, _file, _indent)
             else:
                 print(register + "= common global " + print_type + "zeroinitializer, align 4", file=_file)
                 _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array)
                 return
-
-        _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array)
+        if _type_table.offset == None:
+            _type_table.offset = 8
+        else:
+            _type_table.offset += 4
+        _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array, location=_type_table.offset)
 
         if len(_type_table.tables) == 1:
-            #print(register + "= global " + llvm_type + " " + v1 + ", align " + allign, file=_file)
-            print(register[1:] + ":\n" +
-                  "\t.word	" +  v1 + "\n" +
-                  "\t.text\n" +
-                  "\t.align	2\n" +
-                  "\t.globl	main\n" +
-                  "\t.set	nomips16\n" +
-                  "\t.set	nomicromips\n" +
-                  "\t.ent	main\n" +
-                  "\t.type	main, @function", file=_file)
+            print(".data", file=_file)
+            print("\t" + register[1:] + ":", file=_file, end="")
+            if self.type == CHAR:
+                if v1 == 0 or v1 == "$0":
+                    print("\t.space	1",file=_file)
+                else:
+                    print("\t.byte	" + v1 + "\n",file=_file)
+            else:
+                if v1 == 0 or v1 == "$0":
+                    print("\t.space	4",file=_file)
+                else:
+                    print("\t.word	" + v1,file=_file)
+
+            print(".text\n", file=_file)
             return
 
-        print('    ' * _indent + register + " =  alloca " + print_type + " , align " + allign, file=_file)
         if len(self.children) > 0:
             if not isinstance(self.children[0], ASTNodeList):
                 v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
 
                 t1 = self.children[0].get_llvm_type(_type_table)[1]
                 v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+
                 print(
-                    '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + register + ", align " + allign,
+                    '\t' + "sw " + v1 + "," + str(_type_table.offset) + "($fp)",
                     file=_file)
             else:
                 prev = None
@@ -661,9 +687,11 @@ class ASTNodeDefinition(ASTNodeStatement):
                         print(
                             "    " * _indent + new_addr + " =  getelementptr inbounds " + llvm_type + ", " + llvm_type + "* " + prev + ", i64 1",
                             file=_file)
-                    print(
-                        '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + new_addr + ", align " + allign,
-                        file=_file)
+                    if _type_table.offset == None:
+                        _type_table.offset = 8
+                    else:
+                        _type_table.offset += 4
+                    print("sw      $2," + str(  _type_table.offset) + "($fp)", file=_file)
                     prev = new_addr
 
 
@@ -814,11 +842,22 @@ class ASTNodeReturn(ASTNodeStatement):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
         new_val = ''
         entry = _type_table.lookup_function(_type_table.current)
+        if _type_table.current == "main":
+            print("\tli $v0,10", file=_file)
+            print("\t syscall", file=_file)
+            return
         llvm_type = entry.type.get_llvm_type_ptr()
         if len(self.children):
             rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
             new_val = convert_type(self.children[0].get_llvm_type(_type_table)[1], llvm_type, rval, _file, _indent)
-        print('    ' * _indent + "ret " + llvm_type + " " + new_val, file=_file)
+        print("\tmovz	$31,$31,$0\n" +
+              "\tmove	$sp,$fp\n" +
+              "\tlw	$fp,20($sp)\n" +
+              "\taddiu	$sp,$sp,24\n" +
+              "\tjr	$31\n" +
+              "\tnop\n" , file=_file)
+
+
 
 
 '''Expressions'''
@@ -888,14 +927,13 @@ class ASTNodeLiteral(ASTNodeExpression):
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None):
         if self.isString:
-            string_ref = "@.str"
+            string_ref = "str"
             self.value = self.value.replace("\\n", "\\0A")
             self.value = self.value.replace("\\t", "\\09")
             l = len(self.value) + 1 - self.value.count("\\0A") * 2  - self.value.count("\\09") * 2
             if len(_string_list) > 0:
                 string_ref += "." + str(len(_string_list))
-            self.stringRef = "getelementptr inbounds ([" + str(l) + " x i8], [" + str(
-                l) + " x i8]* " + string_ref + ", i32 0, i32 0)"
+            self.stringRef = string_ref
             _string_list.append(self.value)
 
     def get_without_load(self, _type_table):
@@ -916,12 +954,16 @@ class ASTNodeLiteral(ASTNodeExpression):
             return self.type.get_llvm_type(), self.type.get_llvm_type_ptr()
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
+        if not _target:
+            _target = "$t0"
         if not self.isConst:
             return self._load(self.value, _type_table, _file, _indent, _target)
         else:
             if self.stringRef:
-                return self.stringRef
-            return str(self.value)
+                print("\tlw\t" + _target + "," + str(self.stringRef), file=_file )
+                return _target
+            print("\tli\t" + _target + "," + str(self.value), file=_file )
+            return _target
 
 
 # Postcrement expression node (In/Decrement behind var)
@@ -1187,10 +1229,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if pointer != entry.type.get_llvm_type():
             llvm_type = pointer
             allign = '8'
-
-        print(
-            '    ' * _indent + "store " + llvm_type + " " + v1 + ", " + llvm_type + "* " + var_name + ", align " + allign,
-            file=_file)
+        print("sw ", v1 + "," + entry.location + "($sp)", file=_file)
 
     def get_without_load(self, _type_table):
         entry = _type_table.lookup_variable(str(self.children[0].name))
@@ -1232,80 +1271,31 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
         self.type = entry.type
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None):
-        if self.name == 'printf' or self.name == 'scanf':
-            '''
-            if len(self.children) == 1:
-                value = self.children[0].load_if_necessary(_type_table, _file, _indent)
-                t = self.children[0].get_llvm_type(_type_table)
-                printed_type = t[0]
-                if t[1] != printed_type:
-                    if t[0] == 'i8':
-                        _string_list.append("%s\\0A")
-                    else:
-                        _string_list.append("%p\\0A")
-                    printed_type = t[1]
-                elif printed_type == 'i8':
-                    _string_list.append("%c\\0A")
-                elif printed_type == 'i32':
-                    _string_list.append("%d\\0A")
-                elif printed_type == 'float':
-                    _string_list.append("%f\\0A")
+        if self.name == 'printf':
+            value = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
+            print("\tli $v0, 1", file=_file)
+            print("\tmove $a0," + value, file=_file)
+            print("\tsyscall", file=_file)
+        elif self.name == 'scanf':
+            print("\tli $v0,5", file=_file)
+            print("\tsyscall", file=_file)
+            print("\tmove $t0,$v0", file=_file)
+            if len(self.children) > 0:
+                print(_type_table)
+                print(self.children[-1].value)
+                entry = _type_table.lookup_variable("str")
+                print(entry)
+                print("\tsw $t0," + str(entry.location) + "($sp)", file=_file)
 
-                value = convert_type(printed_type, printed_type, value, _file, _indent)
-                if printed_type == 'float':
-                    printed_type = 'double'
-                    if value[0] == '%':
-                        value = convert_type('float', printed_type, value, _file, _indent)
-
-                string_ref = "@.str"
-                if len(_string_list) > 1:
-                    string_ref += "." + str(len(_string_list) - 1)
-
-                print(
-                    "    " * _indent + self.get_llvm_addr() + " = call i32 (i8*, ...) @" + self.name +
-                    "(i8* getelementptr inbounds ([4 x i8], [4 x i8]* " + string_ref + ", i32 0, i32 0)," + printed_type +
-                    ' ' + value + ")", file=_file)
-            else:
-                '''
-            if self.name == 'scanf':
-                self.name = '__isoc99_scanf'
-            llvm_type = 'i32'
-            params = ""
-            for i in range(len(self.children)):
-                value = self.children[i].load_if_necessary(_type_table, _file, _indent)
-                t = (self.children[i].type.get_llvm_type(), self.children[i].type.get_llvm_type_ptr())[1]
-                if t == 'float':
-                    t = 'double'
-                    if value[0] == '%':
-                        value = convert_type('float', t, value, _file, _indent)
-                params += t + " " + value
-                if i != len(self.children) - 1:
-                    params += ", "
-
-            print(
-                "    " * _indent + self.get_llvm_addr() + "= call " + llvm_type + " (i8*, ...) @" + self.name + "(",
-                file=_file, end="")
-            print(params + ")", file=_file)
-
-            _type_table.insert_variable(self.get_llvm_addr(), 'i32')
         else:
-            entry = _type_table.lookup_function(self.name)
-            llvm_type = entry.type.get_llvm_type_ptr()
-            params = ""
-            for i in range(len(self.children)):
-                value = self.children[i].load_if_necessary(_type_table, _file, _indent)
-                t = (self.children[i].type.get_llvm_type(), self.children[i].type.get_llvm_type_ptr())
-                params += t[1] + " " + value
-                if i != len(self.children) - 1:
-                    params += ", "
-            if llvm_type == 'void':
-                print("    " * _indent + "call " + llvm_type + " @" + self.name + "(", file=_file, end="")
-            else:
-                print("    " * _indent + self.get_llvm_addr() + " = call " + llvm_type + " @" + self.name + "(",
-                      file=_file, end="")
-            print(params + ")", file=_file)
+            i = len(self.children) - 1
+            while i >= 0:
+                value = self.children[i].load_if_necessary(_type_table, _file, _indent, "$" +str(4 + i))
+                i = i - 1
 
-            _type_table.insert_variable(self.get_llvm_addr(), entry.type)
+            print("\tjal c_" + self.name, file=_file)
+
+            #_type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
 # Indexing expression node
@@ -1847,9 +1837,9 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
-    if new_type == 'void':
+    if new_type == 'void' :
         return ''
-    if old_type[-1] == '*' or new_type[-1] == '*':
+    if old_type[-1] == '*' or new_type[-1] == '*' or v1[0] == "$":
         return v1
     if v1[0] != '%' and v1[0] != '@':
         if new_type == 'float':

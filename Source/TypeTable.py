@@ -52,6 +52,7 @@ class TypeTable:
         self.function_scope = False
         self.current = None
         self.param = dict()
+        self.offset = 0
 
     def complete_function(self, fwd=False):
         self.function_scope = False
@@ -114,6 +115,7 @@ class TypeTable:
     def insert_function(self, name: str, value_type, **kwargs):
         self.current = name
         self.function_scope = True
+        self.offset = None
         function = Entry(string_to_type(value_type), **kwargs)
         if name in self.functions:
             if function.type != self.functions[name].type:
