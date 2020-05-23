@@ -32,7 +32,7 @@ class MipsStack(TypeTable):
         :return:
         """
         print("\taddiu $sp, $sp, -4", file=self.output)
-        print(f"\tlw ${register}, ($sp)", file=self.output)
+        print(f"\tsw ${register}, ($sp)", file=self.output)
 
     def update_on_stack(self, register: str, offset: int):
         """
