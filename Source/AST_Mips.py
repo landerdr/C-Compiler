@@ -1,7 +1,7 @@
 """Abstract Syntax Tree"""
 from math import floor
 
-from Source.TypeTable import *
+from Source.MipsStack import *
 
 # ToDo: add print_llvm_ir where necessary
 # ToDo: make print_llvm_ir differentiate between data types
@@ -78,7 +78,7 @@ class AST:
     def print_mips(self, _file_name=None):
         _file = open(_file_name, 'w+')
 
-        type_table = TypeTable()
+        type_table = MipsStack()
         type_table.enter_scope()
 
         string_list = []
