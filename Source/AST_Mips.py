@@ -1682,12 +1682,12 @@ class ASTNodeMult(ASTNodeOp):
         llvm_type = new_var[2]
         new_addr = self.get_llvm_addr()
 
-        opp = "mult"
+        opp = "mul"
         if llvm_type == 'float':
             opp = 'mul.s'
             new_addr = "$f1"
         if self.operators[0] == '/':
-            opp = 'div'
+            opp = 'sdiv'
             if llvm_type == 'float':
                 opp = 'fdiv'
 
