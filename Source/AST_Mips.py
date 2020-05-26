@@ -78,7 +78,7 @@ class AST:
     def print_mips(self, _file_name=None):
         _file = open(_file_name, 'w+')
 
-        type_table = MipsStack()
+        type_table = MipsStack(_file)
         type_table.enter_scope()
 
         string_list = []
@@ -390,7 +390,6 @@ class ASTNodeFunction(ASTNode):
                     _type_table.offset += 4
 
                 print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
-
 
 
 # Base list of parameters node
@@ -856,8 +855,6 @@ class ASTNodeReturn(ASTNodeStatement):
               "\taddiu	$sp,$sp,24\n" +
               "\tjr	$31\n" +
               "\tnop\n" , file=_file)
-
-
 
 
 '''Expressions'''

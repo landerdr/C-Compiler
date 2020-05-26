@@ -69,5 +69,5 @@ class MipsStack(TypeTable):
         self.update_on_stack(register, e.location)
 
     def mips_insert_variable(self, name: str, value_type, **kwargs):
-        location = -sum([len(x) for x in self.tables]) * 4
+        location = -(sum([len(x) for x in self.tables]) + 1) * 4
         self.insert_variable(name, value_type, location=location, **kwargs)
