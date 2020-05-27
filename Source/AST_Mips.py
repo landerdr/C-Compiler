@@ -131,10 +131,11 @@ class AST:
                 print("\t" + i + "_" + str(j) + ": .asciiz " + "\"" + string_list[i][j] + "\"",
                       file=_file)
 
+
+        print("\tflt: .float 0", file=_file)
         for i in range(0, len(float_list)):
             float_ref = "flt"
-            if i > 0:
-                float_ref += '_' + str(i)
+            float_ref += '_' + str(i)
             print("\t" + float_ref + ": .float " + str(float_list[i]),
                   file=_file)
 
@@ -500,7 +501,7 @@ class ASTNodeBreak(ASTNodeStatement):
         if node is None:
             raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
-        print('    ' * _indent + "br label %" + node.label3, file=_file)
+        print("\tj " + node.label3, file=_file)
 
 
 # Continue statement node
@@ -524,7 +525,7 @@ class ASTNodeContinue(ASTNodeStatement):
         if node is None:
             raise ParserException("Continue statement outside loop at line %s" % self.line_num)
 
-        print('    ' * _indent + "br label %" + node.label_continue, file=_file)
+        print("\tj " + node.label_continue, file=_file)
 
 
 # Base expression statement node
@@ -622,7 +623,6 @@ class ASTNodeDefinition(ASTNodeStatement):
             _type_table.offset = 8
         else:
             _type_table.offset += 4
-        #_type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array, location=_type_table.offset)
         _type_table.mips_insert_variable(self.name, self.type)
 
         if len(_type_table.tables) == 1:
@@ -650,12 +650,7 @@ class ASTNodeDefinition(ASTNodeStatement):
                 t1 = self.children[0].get_llvm_type(_type_table)[1]
                 v1 = convert_type(t1, llvm_type, v1, _file, _indent)
                 _type_table.set_variable(self.name, v1)
-                '''
-                if llvm_type == "float":
-                    print('\t' + "swc1 " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
-                else:
-                    print('\t' + "sw " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
-                '''
+
             else:
                 prev = None
                 for index in range(int(self.array)):
@@ -700,7 +695,6 @@ class ASTNodeIf(ASTNodeStatement):
         self.label3 = None
 
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
-        global last_label
         if prev_index == 0:
             v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             t0 = self.children[0].get_llvm_type(_type_table)[0]
@@ -715,23 +709,18 @@ class ASTNodeIf(ASTNodeStatement):
             if llvm_type == 'float' or llvm_type == 'double':
                 icmp = 'fcmp une'
 
-            print('\t' + "beq " + new_addr1 + ", " + str(1) + ", " + str(self.label1) , file=_file)
-            #print('\t' + "beq " + new_addr1 + 1 + str(self.label1) , file=_file)
+            print('\t' + "beq " + new_addr1 + ", 1" + ", " + str(self.label1), file=_file)
             print('\t' + "j " + str(self.label2) , file=_file)
             print("\n " + self.label1 + ":", file=_file)
-            last_label = self.label1
 
         if prev_index == 1:
             self.label3 = "label_" + self.get_id() + "_3"
             print('\t' + "j " + str(self.label3) , file=_file)
             print("\n " + str(self.label2) + ":", file=_file)
-            last_label = self.label2
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         print('\t' + "j " + str(self.label3) , file=_file)
         print("\n " + str(self.label3) + ":", file=_file)
-        global last_label
-        last_label = self.label3
 
 
 # Loop statement node
@@ -741,9 +730,9 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         self.loop_type = None
         self.Condition = None
         self.body = None
-        self.label1 = "label_" + self.get_id()[1:] + "1"
-        self.label2 = "label_" + self.get_id()[1:] + "2"
-        self.label3 = "label_" + self.get_id()[1:] + "3"
+        self.label1 = "label_" + self.get_id() + "_1"
+        self.label2 = "label_" + self.get_id() + "_2"
+        self.label3 = "label_" + self.get_id() + "_3"
         self.label_continue = self.label1
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
@@ -751,10 +740,8 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         if self.loop_type == 'do':
             self.label3 = self.label2
         if self.loop_type == 'while' or self.loop_type == 'do':
-            print('    ' * _indent + "br label %" + str(self.label1), file=_file)
+            print('\tj ' + str(self.label1), file=_file)
             print("\n " + self.label1 + ":", file=_file)
-            global last_label
-            last_label = self.label1
         if self.loop_type == 'for':
             self.label_continue = "label_" + self.get_id()[1:] + "continue"
             temp = self.children[3]
@@ -762,59 +749,37 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             self.replace_child(2, temp)
 
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
-        global last_label
         if prev_index == 0 and self.loop_type == 'for':
-            print('    ' * _indent + "br label %" + str(self.label1), file=_file)
+            print('\tj ' + str(self.label1), file=_file)
             print("\n " + self.label1 + ":", file=_file)
-            global last_label
-            last_label = self.label1
         if (prev_index == 0 and self.loop_type == 'while') or (prev_index == 1 and self.loop_type == 'for'):
             v0 = self.children[prev_index].load_if_necessary(_type_table, _file, _indent)
             t0 = self.children[prev_index].get_llvm_type(_type_table)[prev_index]
-            v0 = convert_type(t0, 'i1', v0, _file, _indent)
-            llvm_type = 'i1'
-            new_addr = self.get_id()
-            new_addr1 = '%b' + new_addr[2:]
+            v0 = convert_type(t0, 'bool', v0, _file, _indent)
 
-            icmp = 'icmp ne'
-            if llvm_type == 'float' or llvm_type == 'double':
-                icmp = 'fcmp une'
-
-            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0", file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label2) + " " + ", label %" + str(
-                self.label3), file=_file)
+            print('\tbeq ' + v0 + ', 1, ' + self.label2, file=_file)
+            print('\tj ' + self.label3, file=_file)
             print("\n " + self.label2 + ":", file=_file)
-            last_label = self.label2
 
         if prev_index == 2 and self.loop_type == 'for':
-            print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
+            print("\tj " + str(self.label_continue), file=_file)
             print("\n " + self.label_continue + ":", file=_file)
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
-        global last_label
         if self.loop_type == 'do':
             v0 = self.children[1].load_if_necessary(_type_table, _file, _indent)
             t0 = self.children[1].get_llvm_type(_type_table)[1]
-            v0 = convert_type(t0, 'i1', v0, _file, _indent)
-            llvm_type = 'i1'
-            new_addr = self.get_id()
-            new_addr1 = '%b' + new_addr[2:]
+            v0 = convert_type(t0, 'bool', v0, _file, _indent)
 
-            icmp = 'icmp ne'
-            if llvm_type == 'float' or llvm_type == 'double':
-                icmp = 'fcmp une'
+            print('\tbeq ' + v0 + ', 1, ' + self.label1, file=_file)
+            print('\tj ' + self.label2, file=_file)
 
-            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", 0", file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(self.label1) + " " + ", label %" + str(
-                self.label2), file=_file)
             print("\n " + self.label2 + ":", file=_file)
-            last_label = self.label2
             _type_table.leave_scope()
             return
 
-        print('    ' * _indent + "br label %" + str(self.label1), file=_file)
+        print('\tj ' + str(self.label1), file=_file)
         print("\n " + str(self.label3) + ":", file=_file)
-        last_label = self.label3
 
 
 # Return statement node
@@ -927,9 +892,7 @@ class ASTNodeLiteral(ASTNodeExpression):
             _string_list[self.stringRef] = strs
 
         if self.type == FLOAT and self.isConst:
-            float_ref = "flt"
-            if len(_float_list) > 0:
-                float_ref += "_" + str(len(_float_list))
+            float_ref = "flt_" + str(len(_float_list))
             self.floatRef = float_ref
             _float_list.append(self.value)
 
@@ -1318,7 +1281,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     target = "$f1"
                 value = self.children[0].load_if_necessary(_type_table, _file, _indent, target)
 
-                if self.children[j].type.pointertype == CHAR:
+                if self.children[0].type.pointertype == CHAR:
                     print("\tli $v0, 4", file=_file)
                     print("\tmove $a0," + str(value), file=_file)
                 elif self.children[0].type == FLOAT:
@@ -1331,7 +1294,6 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     print("\tli $v0, 1", file=_file)
                     print("\tmove $a0," + str(value), file=_file)
                 print("\tsyscall", file=_file)
-
 
         elif self.name == 'scanf':
             print("# Scanf " + str(self.children[0].type), file=_file)
@@ -1616,7 +1578,6 @@ class ASTNodeAddition(ASTNodeOp):
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1")
         t0 = self.children[0].get_llvm_type(_type_table)[1]
         t1 = self.children[1].get_llvm_type(_type_table)[1]
-        print(t0, self.children[0], t1, self.children[1])
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
@@ -1802,109 +1763,81 @@ class ASTNodeConditional(ASTNodeOp):
         self.delete()
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
-        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
-        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1")
+        print("# Conditional", file=_file)
         t0 = self.children[0].get_llvm_type(_type_table)[1]
+        r0 = "$t0"
+        if t0 == "float":
+            r0 = "$f1"
         t1 = self.children[1].get_llvm_type(_type_table)[1]
-        new_var = convert_types(t0, t1, v0, v1, _file, _indent)
-        v0 = new_var[0]
-        v1 = new_var[1]
-        llvm_type = new_var[2]
+        r1 = "$t1"
+        if t1 == "float":
+            r1 = "$f2"
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, r0)
+        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, r1)
+
+        llvm_type = "bool"
+
+        if self.operators[0] != "&&" and self.operators[0] != "||":
+            new_var = convert_types(t0, t1, v0, v1, _file, _indent)
+            v0 = new_var[0]
+            v1 = new_var[1]
+            llvm_type = new_var[2]
+        else:
+            v0 = convert_type(t0, "bool", v0, _file, _indent, "$t0")
+            v1 = convert_type(t1, "bool", v1, _file, _indent, "$t1")
+
+        inverse = False
 
         opp = "slt"
         if self.operators[0] == "==":
             opp = "seq"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp oeq'
+                opp = 'c.eq.s'
         elif self.operators[0] == "<":
             opp = "slt"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp olt'
+                opp = 'c.lt.s'
         elif self.operators[0] == ">":
             opp = "sgt"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp ogt'
+                opp = 'c.le.s'
+                inverse = True
         elif self.operators[0] == "!=":
             opp = "sne"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp une'
+                opp = 'c.ne.s'
         elif self.operators[0] == "<=":
             opp = "sle"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp ole'
+                opp = 'c.le.s'
         elif self.operators[0] == ">=":
             opp = "sge"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'fcmp oge'
-
-        new_addr = "$t0"
-        global last_label
-        if self.operators[0] == "&&":
-            new_addr1 = '%b' + new_addr[2:]
-            new_addr2 = '%bb' + new_addr[3:]
-            val = convert_type('i32', llvm_type, '0', _file, _indent)
-            label1 = "label_" + self.get_id()[1:] + "1"
-            label2 = "label_" + self.get_id()[1:] + "2"
-
-            icmp = 'icmp ne'
-            if llvm_type == 'float' or llvm_type == 'double':
-                icmp = 'fcmp une'
-
-            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label1) + " " + ", label %" + str(label2),
-                  file=_file)
-            print("\n " + label1 + ":", file=_file)
-
-            print('    ' * _indent + new_addr2 + " =  " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
-            print('    ' * _indent + "br " + "label %" + str(label2) + " ", file=_file)
-            print("\n " + label2 + ":", file=_file)
-
-            print('    ' * _indent + new_addr + " = phi i1 [ false, %" + str(
-                last_label) + "], [" + new_addr2 + ", %" + str(label1) + " ]", file=_file)
-
-            last_label = label2
-            _type_table.insert_variable(new_addr, 'i1')
-
-            return
+                opp = 'c.lt.s'
+                inverse = True
+        elif self.operators[0] == "&&":
+            opp = "and"
         elif self.operators[0] == "||":
-            new_addr1 = '%b' + new_addr[2:]
-            new_addr2 = '%bb' + new_addr[3:]
-            val = convert_type('i32', llvm_type, '0', _file, _indent)
-            label1 = "label_" + self.get_id()[1:] + "1"
-            label2 = "label_" + self.get_id()[1:] + "2"
+            opp = "or"
+        new_addr = "$t0"
 
-            icmp = 'icmp ne'
-            if llvm_type == 'float' or llvm_type == 'double':
-                icmp = 'fcmp une'
+        if llvm_type == 'float' or llvm_type == 'double':
 
-            print('    ' * _indent + new_addr1 + " = " + icmp + " " + llvm_type + " " + v0 + ", " + val, file=_file)
-            print('    ' * _indent + "br i1 " + new_addr1 + ", label %" + str(label2) + " " + ", label %" + str(label1),
-                  file=_file)
-            print("\n" + label1 + ":", file=_file)
-
-            print('    ' * _indent + new_addr2 + " = " + icmp + " " + llvm_type + " " + v1 + ", " + val, file=_file)
-            print('    ' * _indent + "br " + "label %" + str(label2) + " ", file=_file)
-            print("\n" + label2 + ":", file=_file)
-
-            print(
-                '    ' * _indent + new_addr + " = phi i1 [ true, %" + str(
-                    last_label) + "], [" + new_addr2 + ", %" + str(
-                    label1) + " ]", file=_file)
-
-            last_label = label2
-
-            _type_table.insert_variable(new_addr, 'i1')
-
-            return
-
-        print('\t' + opp + " " + new_addr + " " + v0 + "," + v1, file=_file)
-        print(_type_table)
+            br_name = 'eq_' + self.get_id()
+            print('\tli ' + new_addr + ", " + str(int(not inverse)), file=_file)
+            print('\t' + opp + " " + " " + v0 + "," + v1, file=_file)
+            print('\tbc1t ' + br_name, file=_file)
+            print('\tli ' + new_addr + ", " + str(int(inverse)), file=_file)
+            print( br_name + ":", file=_file)
+        else:
+            print('\t' + opp + " " + new_addr + ", " + v0 + "," + v1, file=_file)
         _type_table.mips_insert_variable(self.get_id(), self.type)
         _type_table.set_variable(self.get_id(), new_addr)
 
+
 def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
-    llvm_type = 'i8'
-    if t0 == 'i32' or t1 == 'i32':
+    llvm_type = 'bool'
+    if t0 == 'i32' or t1 == 'i32' or t0 == 'int' or t1 == 'int':
         llvm_type = 'i32'
     if t0 == 'float' or t1 == 'float':
         llvm_type = 'float'
@@ -1939,6 +1872,24 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
             #print("# Float to int", file=_file)
             print("\tcvt.w.s " + v1 + "," + v1, file=_file)
             print("\tmfc1 " + _save_as + "," + v1 , file=_file)
+            return _save_as
+        if new_type == "bool" or new_type == "i1":
+            if old_type == "float":
+                global  last_label
+                last_label = last_label + 1
+                if not _save_as:
+                    _save_as = "$f3"
+                br_name = 'conv_' + str(last_label)
+                print('\tli ' + _save_as + ", 0", file=_file)
+                print('\tl.s $f3, flt', file=_file)
+                print('\tc.le.s ' + " " + v1 + ", $f3", file=_file)
+                print('\tbc1t ' + br_name, file=_file)
+                print('\tli ' + _save_as + ", 1", file=_file)
+                print( br_name + ":", file=_file)
+            else:
+                if not _save_as:
+                    _save_as = "$t0"
+                print("\tsgt " + _save_as + ", " + v1, ", 0", file=_file)
             return _save_as
 
     if old_type[-1] == '*' or new_type[-1] == '*' or v1[0] == "$":
