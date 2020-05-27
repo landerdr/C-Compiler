@@ -1283,7 +1283,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     elif self.children[j].type == CHAR:
                         print("\tli $v0, 11", file=_file)
                         print("\tmove $a0," + str(value), file=_file)
-                    else:
+                    elif value != '':
                         print("\tli $v0, 1", file=_file)
                         print("\tmove $a0," + str(value), file=_file)
                     print("\tsyscall", file=_file)

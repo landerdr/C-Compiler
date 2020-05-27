@@ -49,6 +49,10 @@ def compare(result_file: str, expected_result_file: str):
     :param expected_result_file:
     :return: if the two files match
     """
+    print("------results")
+    print(result_file)
+    print("------excpected")
+    print(expected_result_file)
     return filecmp.cmp(result_file, expected_result_file)
 
 
