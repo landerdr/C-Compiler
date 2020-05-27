@@ -1,15 +1,10 @@
 
 int main() {
 
-    float i = 0.0;
-
-    if (++i == 1){
-        printf(i);
-    }
-    //i --;
-
+    float i = 1;
+    int j = 1;
+    i = -i;
     printf(i);
-
 
     return 0;
 

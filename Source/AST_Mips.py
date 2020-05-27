@@ -1400,22 +1400,34 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
                 self.delete()
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
-        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+
+        v0 = "$t0"
+        new_addr = "$t0"
+        if self.type == FLOAT:
+            v0 = "$f1"
+            #new_addr = "$f1"
+
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, v0)
         t0 = self.children[0].get_llvm_type(_type_table)[1]
-        v1 = convert_type('i32', str(t0), '0', _file, _indent)
-
+        self.type = INT
         llvm_type = 'i1'
-        opp = "xor"
-        icmp = 'icmp ne '
-        if str(t0) == 'float' or t0 == 'double':
-            opp = 'xor'
-            icmp = 'fcmp une '
+        opp = "seq"
 
-        new_addr = self.get_id()
-        if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
-        print('    ' * _indent + v0 + 't = ' + icmp + t0 + ' ' + v0 + ', ' + v1, file=_file)
-        print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "t , true", file=_file)
+        _type_table.mips_insert_variable(self.get_id(), llvm_type)
+        if str(t0) == 'float' or t0 == 'double':
+            br_name = 'eq_' + self.get_id()
+            opp = 'c.eq.s'
+            print('\tli ' + new_addr + ", 1", file=_file)
+            print('\tl.s $f3, flt', file=_file)
+            print('\tc.le.s ' + " " + v0 + ", $f3", file=_file)
+            print('\tbc1t ' + br_name, file=_file)
+            print('\tli ' + new_addr + ", 0", file=_file)
+            print( br_name + ":", file=_file)
+            v1 = "$f2"
+        else:
+            v1 = "0"
+            print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
+        _type_table.set_variable(self.get_id(), new_addr)
 
 
 # Negative expression node
@@ -1433,23 +1445,28 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
                 self.delete()
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
-        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-        v1 = '0'
+
+        opp = "sub"
+        new_addr = "$t0"
+        v0 = "$t0"
+        if self.type == FLOAT:
+            opp = 'sub.s'
+            new_addr = "$f1"
+            v0 = "$f1"
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, v0)
+        print("\tli $t1, 0", file=_file)
+        v1 = '$t1'
         t0 = self.children[0].get_llvm_type(_type_table)[1]
-        t1 = 'i8'
+        t1 = 'i32'
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
-        opp = "sub"
-        if llvm_type == 'float':
-            opp = 'fsub'
 
-        new_addr = self.get_id()
-        if not _type_table.insert_variable(new_addr, llvm_type):
-            raise ParserException("Trying to redeclare variable '%s'" % new_addr)
+        _type_table.mips_insert_variable(self.get_id(), llvm_type)
 
-        print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v1 + "," + v0, file=_file)
+        print('\t' + opp + " " + new_addr + ", " + v1 + ", " + v0, file=_file)
+        _type_table.set_variable(self.get_id(), new_addr)
 
 
 # Reference expression node
@@ -1808,7 +1825,8 @@ class ASTNodeConditional(ASTNodeOp):
         elif self.operators[0] == "!=":
             opp = "sne"
             if llvm_type == 'float' or llvm_type == 'double':
-                opp = 'c.ne.s'
+                opp = 'c.eq.s'
+                inverse = True
         elif self.operators[0] == "<=":
             opp = "sle"
             if llvm_type == 'float' or llvm_type == 'double':
