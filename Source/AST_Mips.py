@@ -466,8 +466,8 @@ class ASTNodeInclude(ASTNode):
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         if self.name == 'stdio.h':
-            print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
-            print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
+            #print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
+            #print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
             _type_table.insert_function('printf', 'i32')
             _type_table.insert_function('scanf', 'i32')
 
