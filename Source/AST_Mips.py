@@ -81,7 +81,7 @@ class AST:
         type_table = MipsStack(_file)
         type_table.enter_scope()
 
-        string_list = []
+        string_list = {}
         float_list = []
 
         prestack = [self.root]
@@ -126,12 +126,10 @@ class AST:
                 if index != 0:
                     item.print_mips_in(type_table, index - 1, _file, len(type_table.tables), string_list, float_list)
         print("\n.data", file=_file)
-        for i in range(0, len(string_list)):
-            string_ref = "str"
-            if i > 0:
-                string_ref += '_' + str(i)
-            print("\t" + string_ref + ": .asciiz " + "\"" + string_list[i] + "\"",
-                  file=_file)
+        for i in string_list:
+            for j in range(len(string_list[i])):
+                print("\t" + i + "_" + str(j) + ": .asciiz " + "\"" + string_list[i][j] + "\"",
+                      file=_file)
 
         for i in range(0, len(float_list)):
             float_ref = "flt"
@@ -765,14 +763,14 @@ class ASTNodeLoopStatement(ASTNodeStatement):
 
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None,_float_list = None):
         global last_label
-        if index == 0 and self.loop_type == 'for':
+        if prev_index == 0 and self.loop_type == 'for':
             print('    ' * _indent + "br label %" + str(self.label1), file=_file)
             print("\n " + self.label1 + ":", file=_file)
             global last_label
             last_label = self.label1
-        if (index == 0 and self.loop_type == 'while') or (index == 1 and self.loop_type == 'for'):
-            v0 = self.children[index].load_if_necessary(_type_table, _file, _indent)
-            t0 = self.children[index].get_llvm_type(_type_table)[index]
+        if (prev_index == 0 and self.loop_type == 'while') or (prev_index == 1 and self.loop_type == 'for'):
+            v0 = self.children[prev_index].load_if_necessary(_type_table, _file, _indent)
+            t0 = self.children[prev_index].get_llvm_type(_type_table)[prev_index]
             v0 = convert_type(t0, 'i1', v0, _file, _indent)
             llvm_type = 'i1'
             new_addr = self.get_id()
@@ -788,7 +786,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             print("\n " + self.label2 + ":", file=_file)
             last_label = self.label2
 
-        if index == 2 and self.loop_type == 'for':
+        if prev_index == 2 and self.loop_type == 'for':
             print('    ' * _indent + "br label %" + str(self.label_continue), file=_file)
             print("\n " + self.label_continue + ":", file=_file)
 
@@ -922,11 +920,11 @@ class ASTNodeLiteral(ASTNodeExpression):
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         if self.isString:
-            string_ref = "str"
-            if len(_string_list) > 0:
-                string_ref += "_" + str(len(_string_list))
-            self.stringRef = string_ref
-            _string_list.append(self.value)
+            self.stringRef = "str_" + str(len(_string_list))
+            import re
+            strs = re.split('%d|%s|%f|%c',self.value)
+            #strs = self.value.split("%d")
+            _string_list[self.stringRef] = strs
 
         if self.type == FLOAT and self.isConst:
             float_ref = "flt"
@@ -965,7 +963,7 @@ class ASTNodeLiteral(ASTNodeExpression):
                 _target = "$t0"
 
             if self.stringRef:
-                print("\tla\t" + _target + "," + str(self.stringRef), file=_file )
+                print("\tla\t" + _target + "," + str(self.stringRef) + "_0", file=_file )
                 return _target
             print("\tli\t" + _target + "," + str(self.value), file=_file )
             return _target
@@ -1236,7 +1234,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         '''
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
-        print("# Equality expression ("+ str(self.children[0].name) + self.equality + ")", file=_file)
+        print("# Equality expression (" + str(self.children[0]) + self.equality + ")", file=_file)
 
     def get_without_load(self, _type_table):
         entry = _type_table.lookup_variable(str(self.children[0].name))
@@ -1280,21 +1278,61 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         if self.name == 'printf':
             print("# Printf " + str(self.children[0].type), file=_file)
-            target = "$t0"
-            if self.children[0].type == FLOAT:
-                target = "$f1"
-            value = self.children[0].load_if_necessary(_type_table, _file, _indent, target)
+            if (self.children[0].stringRef):
+                sl = []
+                ss = "str_0"
+                for i in _string_list:
+                    if i == self.children[0].stringRef:
+                        sl = _string_list[i]
+                        ss = i
+                        break
+                for i in range(len(sl)):
+                    print("\tli $v0, 4", file=_file)
+                    print("\tla $a0," + ss + "_" + str(i), file=_file)
+                    print("\tsyscall", file=_file)
+                    j = i + 1
+                    if j >= len(self.children):
+                        continue
 
-            if self.children[0].type.pointertype == CHAR:
-                print("\tli $v0, 4", file=_file)
-                print("\tmove $a0," + str(value), file=_file)
-            elif self.children[0].type == FLOAT:
-                print("\tli $v0, 2", file=_file)
-                print("\tmov.s $f12," + str(value), file=_file)
+                    target = "$t0"
+                    if self.children[j].type == FLOAT:
+                        target = "$f1"
+                    value = self.children[j].load_if_necessary(_type_table, _file, _indent, target)
+
+                    if self.children[j].type.pointertype == CHAR:
+                        print("\tli $v0, 4", file=_file)
+                        print("\tmove $a0," + str(value), file=_file)
+                    elif self.children[j].type == FLOAT:
+                        print("\tli $v0, 2", file=_file)
+                        print("\tmov.s $f12," + str(value), file=_file)
+                    elif self.children[j].type == CHAR:
+                        print("\tli $v0, 11", file=_file)
+                        print("\tmove $a0," + str(value), file=_file)
+                    else:
+                        print("\tli $v0, 1", file=_file)
+                        print("\tmove $a0," + str(value), file=_file)
+                    print("\tsyscall", file=_file)
             else:
-                print("\tli $v0, 1", file=_file)
-                print("\tmove $a0," + str(value), file=_file)
-            print("\tsyscall", file=_file)
+                target = "$t0"
+                if self.children[0].type == FLOAT:
+                    target = "$f1"
+                value = self.children[0].load_if_necessary(_type_table, _file, _indent, target)
+
+                if self.children[j].type.pointertype == CHAR:
+                    print("\tli $v0, 4", file=_file)
+                    print("\tmove $a0," + str(value), file=_file)
+                elif self.children[0].type == FLOAT:
+                    print("\tli $v0, 2", file=_file)
+                    print("\tmov.s $f12," + str(value), file=_file)
+                elif self.children[0].type == CHAR:
+                    print("\tli $v0, 11", file=_file)
+                    print("\tmove $a0," + str(value), file=_file)
+                else:
+                    print("\tli $v0, 1", file=_file)
+                    print("\tmove $a0," + str(value), file=_file)
+                print("\tsyscall", file=_file)
+
+
         elif self.name == 'scanf':
             print("# Scanf " + str(self.children[0].type), file=_file)
             if self.children[1].type == FLOAT:
