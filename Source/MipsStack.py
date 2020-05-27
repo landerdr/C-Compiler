@@ -25,32 +25,41 @@ class MipsStack(TypeTable):
         print("\tlw $fp, ($sp)", file=self.output)
         print("\taddiu $sp, $sp, 4", file=self.output)
 
-    def store_to_stack(self, register: str):
+    def store_to_stack(self, register: str, type = None):
         """
         Stores value in register to stack
         :param register: location of value to be stored
         :return:
         """
         print("\taddiu $sp, $sp, -4", file=self.output)
-        print(f"\tsw ${register}, ($sp)", file=self.output)
+        if type == FLOAT:
+            print(f"\ts.s {register}, ($sp)", file=self.output)
+            return
+        print(f"\tsw {register}, ($sp)", file=self.output)
 
-    def update_on_stack(self, register: str, offset: int):
+    def update_on_stack(self, register: str, offset: int, type = None):
         """
         Updates value on the stack
         :param register: location of value to be stored
         :param offset: location of the value to be updated
         :return:
         """
-        print(f"\tsw ${register}, {offset}($fp)", file=self.output)
+        if type == FLOAT:
+            print(f"\ts.s {register}, {offset}($fp)", file=self.output)
+            return
+        print(f"\tsw {register}, {offset}($fp)", file=self.output)
 
-    def unload_from_stack(self, register: str, offset: int):
+    def unload_from_stack(self, register: str, offset: int, type = None):
         """
         Retrieves value from stack
         :param register: location to write value to
         :param offset: location of value on the stack
         :return:
         """
-        print(f"\tlw ${register}, {offset}($fp)", file=self.output)
+        if type == FLOAT:
+            print(f"\tl.s {register} {offset}($fp)", file=self.output)
+            return
+        print(f"\tlw {register}, {offset}($fp)", file=self.output)
 
     def break_scope(self, offset: int):
         """
@@ -62,11 +71,12 @@ class MipsStack(TypeTable):
 
     def get_variable(self, variable_name: str, register: str):
         e = self.lookup_variable(variable_name)
-        self.unload_from_stack(register, e.location)
+        self.unload_from_stack(register, e.location, e.type)
+        return e
 
     def set_variable(self, variable_name: str, register: str):
         e = self.lookup_variable(variable_name)
-        self.update_on_stack(register, e.location)
+        self.update_on_stack(register, e.location, e.type)
 
     def mips_insert_variable(self, name: str, value_type, **kwargs):
         location = -(sum([len(x) for x in self.tables]) + 1) * 4

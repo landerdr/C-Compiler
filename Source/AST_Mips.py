@@ -231,13 +231,17 @@ class ASTNode:
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         pass
 
-    def get_llvm_addr(self):
-        return "$t0"
+    def get_id(self):
+        return str(self.id)
 
     def _load(self, name, _type_table, _file=None, _indent=0, _target=None):
-        v1 = self.get_llvm_addr()
+        v1 = "$t0"
         if _target:
             v1 = _target
+
+        e = _type_table.get_variable(str(name), v1)
+        return v1
+        '''
         entry = self.get_llvm_type(_type_table, str(name))
         llvm_type = entry[0]
         pointer = entry[1]
@@ -254,21 +258,26 @@ class ASTNode:
                     v1 = "$f1"
                 print("\tl.s" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
             else:
+
                 print("\tlw" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
 
         return v1
+        '''
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-        return self.get_llvm_addr()
+        if not _target:
+            _target = "$t0"
+        _type_table.get_variable(self.get_id(), _target)
+        return _target
 
     def get_without_load(self, _type_table):
-        return self.get_llvm_addr()
+        return self.get_id()
 
     def get_llvm_type(self, _type_table, _var_name=None):
         if _var_name:
             entry = _type_table.lookup_variable(_var_name)
             return entry.type.get_llvm_type(), entry.type.get_llvm_type_ptr()
-        entry = _type_table.lookup_variable(self.get_llvm_addr())
+        entry = _type_table.lookup_variable(self.get_id())
         if isinstance(entry.type, str):
             return entry.type, entry.type
         else:
@@ -306,11 +315,6 @@ class ASTNodeFunction(ASTNode):
         _indent += 1
         _type_table.enter_scope()
 
-        print("\taddiu   $sp,$sp,-32\n" +
-              "\tsw      $31,28($sp)\n" +
-              "\tsw      $fp,24($sp)\n" +
-              "\tmove    $fp,$sp", file=_file)
-
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
 
         if len(self.children) > 0:
@@ -324,9 +328,6 @@ class ASTNodeFunction(ASTNode):
                                 return
                             v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
                             print("\tmovz	$31,$31,$0\n" +
-                                  "\tmove	$sp,$fp\n" +
-                                  "\tlw	$fp,20($sp)\n" +
-                                  "\taddiu	$sp,$sp,24\n" +
                                   "\tjr	$31\n" +
                                   "\tnop\n", file=_file)
                     else:
@@ -337,9 +338,6 @@ class ASTNodeFunction(ASTNode):
                             return
                         print("\tli $2,$0")
                         print("\tmovz	$31,$31,$0\n" +
-                              "\tmove	$sp,$fp\n" +
-                              "\tlw	$fp,20($sp)\n" +
-                              "\taddiu	$sp,$sp,24\n" +
                               "\tjr	$31\n" +
                               "\tnop\n", file=_file)
 
@@ -351,9 +349,6 @@ class ASTNodeFunction(ASTNode):
                         return
                     print("\tli $2,$0")
                     print("\tmovz	$31,$31,$0\n" +
-                          "\tmove	$sp,$fp\n" +
-                          "\tlw	$fp,20($sp)\n" +
-                          "\taddiu	$sp,$sp,24\n" +
                           "\tjr	$31\n" +
                           "\tnop\n", file=_file)
         else:
@@ -364,9 +359,6 @@ class ASTNodeFunction(ASTNode):
                 return
             print("\tli $2,$0")
             print("\tmovz	$31,$31,$0\n" +
-                  "\tmove	$sp,$fp\n" +
-                  "\tlw	$fp,20($sp)\n" +
-                  "\taddiu	$sp,$sp,24\n" +
                   "\tjr	$31\n" +
                   "\tnop\n", file=_file)
 
@@ -617,7 +609,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         print_type = llvm_type
         if self.array != None:
             print_type = '[ ' + str(self.array) + ' x ' + llvm_type + ']'
-        register = "%var_" + self.name + "_" + self.get_llvm_addr()[1:]
+        register = "%var_" + self.name + "_" + self.get_id()[1:]
         if len(_type_table.tables) == 1:
             register = "@" + self.name
             if len(self.children) > 0:
@@ -632,7 +624,8 @@ class ASTNodeDefinition(ASTNodeStatement):
             _type_table.offset = 8
         else:
             _type_table.offset += 4
-        _type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array, location=_type_table.offset)
+        #_type_table.insert_variable(self.name, self.type, const=self.const, register=register, array=self.array, location=_type_table.offset)
+        _type_table.mips_insert_variable(self.name, self.type)
 
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
@@ -658,10 +651,13 @@ class ASTNodeDefinition(ASTNodeStatement):
                 v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
                 t1 = self.children[0].get_llvm_type(_type_table)[1]
                 v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+                _type_table.set_variable(self.name, v1)
+                '''
                 if llvm_type == "float":
-                    print('\t' + "s.s " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
+                    print('\t' + "swc1 " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
                 else:
                     print('\t' + "sw " + v1 + "," + str(_type_table.offset) + "($fp)",file=_file)
+                '''
             else:
                 prev = None
                 for index in range(int(self.array)):
@@ -670,11 +666,11 @@ class ASTNodeDefinition(ASTNodeStatement):
                         v1 = k.load_if_necessary(_type_table, _file, _indent)
                         t1 = k.get_llvm_type(_type_table)[1]
                         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
-                        new_addr = k.get_llvm_addr() + '_listitem'
+                        new_addr = k.get_id() + '_listitem'
                     else:
                         v1 = '0'
                         t1 = "i32"
-                        new_addr = self.children[0].get_llvm_addr() + '_listitem_' + str(index)
+                        new_addr = self.children[0].get_id() + '_listitem_' + str(index)
                         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
 
                     if index == 0:
@@ -690,7 +686,8 @@ class ASTNodeDefinition(ASTNodeStatement):
                         _type_table.offset = 8
                     else:
                         _type_table.offset += 4
-                    print("sw      $2," + str(  _type_table.offset) + "($fp)", file=_file)
+                    _type_table.set_variable(self.name, "$2")
+                    #print("sw      $2," + str(_type_table.offset) + "($fp)", file=_file)
                     prev = new_addr
 
 
@@ -711,10 +708,10 @@ class ASTNodeIf(ASTNodeStatement):
             t0 = self.children[0].get_llvm_type(_type_table)[0]
             v0 = convert_type(t0, 'i1', v0, _file, _indent)
             llvm_type = 'i1'
-            new_addr = self.get_llvm_addr()
+            new_addr = self.get_id()
             new_addr1 = '%b' + new_addr[2:]
-            self.label1 = "label_" + self.get_llvm_addr()[1:] + "1"
-            self.label2 = "label_" + self.get_llvm_addr()[1:] + "2"
+            self.label1 = "label_" + self.get_id()[1:] + "1"
+            self.label2 = "label_" + self.get_id()[1:] + "2"
             self.label3 = self.label2
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
@@ -727,7 +724,7 @@ class ASTNodeIf(ASTNodeStatement):
             last_label = self.label1
 
         if index == 1:
-            self.label3 = "label_" + self.get_llvm_addr()[1:] + "3"
+            self.label3 = "label_" + self.get_id()[1:] + "3"
             print('    ' * _indent + "br label %" + str(self.label3), file=_file)
             print("\n " + str(self.label2) + ":", file=_file)
             last_label = self.label2
@@ -746,9 +743,9 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         self.loop_type = None
         self.Condition = None
         self.body = None
-        self.label1 = "label_" + self.get_llvm_addr()[1:] + "1"
-        self.label2 = "label_" + self.get_llvm_addr()[1:] + "2"
-        self.label3 = "label_" + self.get_llvm_addr()[1:] + "3"
+        self.label1 = "label_" + self.get_id()[1:] + "1"
+        self.label2 = "label_" + self.get_id()[1:] + "2"
+        self.label3 = "label_" + self.get_id()[1:] + "3"
         self.label_continue = self.label1
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
@@ -761,7 +758,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             global last_label
             last_label = self.label1
         if self.loop_type == 'for':
-            self.label_continue = "label_" + self.get_llvm_addr()[1:] + "continue"
+            self.label_continue = "label_" + self.get_id()[1:] + "continue"
             temp = self.children[3]
             self.replace_child(3, self.children[2])
             self.replace_child(2, temp)
@@ -778,7 +775,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             t0 = self.children[index].get_llvm_type(_type_table)[index]
             v0 = convert_type(t0, 'i1', v0, _file, _indent)
             llvm_type = 'i1'
-            new_addr = self.get_llvm_addr()
+            new_addr = self.get_id()
             new_addr1 = '%b' + new_addr[2:]
 
             icmp = 'icmp ne'
@@ -802,7 +799,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
             t0 = self.children[1].get_llvm_type(_type_table)[1]
             v0 = convert_type(t0, 'i1', v0, _file, _indent)
             llvm_type = 'i1'
-            new_addr = self.get_llvm_addr()
+            new_addr = self.get_id()
             new_addr1 = '%b' + new_addr[2:]
 
             icmp = 'icmp ne'
@@ -938,7 +935,6 @@ class ASTNodeLiteral(ASTNodeExpression):
             self.floatRef = float_ref
             _float_list.append(self.value)
 
-
     def get_without_load(self, _type_table):
         if not self.isConst:
             return '%' + str(self.value)
@@ -973,6 +969,7 @@ class ASTNodeLiteral(ASTNodeExpression):
                 return _target
             print("\tli\t" + _target + "," + str(self.value), file=_file )
             return _target
+
 
 
 # Postcrement expression node (In/Decrement behind var)
@@ -1015,7 +1012,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
             self.type = entry.type
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
-        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_llvm_addr())
+        v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, self.get_id())
         t0 = self.children[0].get_llvm_type(_type_table)[0]
 
         new_var = convert_types(t0, 'i8', v0, '1', _file, _indent)
@@ -1033,7 +1030,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
 
         self.type = string_to_type(llvm_type)
 
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         _type_table.insert_variable(new_addr, llvm_type)
         var_name = self.children[0].get_without_load(_type_table)
 
@@ -1100,7 +1097,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
             if llvm_type == 'float':
                 opp = 'fsub'
 
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         _type_table.insert_variable(new_addr, llvm_type)
         var_name = self.children[0].get_without_load(_type_table)
 
@@ -1181,11 +1178,11 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         if not isinstance(self.children[0], ASTNodeLeftValue):
             if not isinstance(self.children[0], ASTNodeIndexingExpr):
-                var_name = self.children[0].children[0].get_llvm_addr()[1:]
-                entry = _type_table.lookup_variable(self.children[0].get_llvm_addr())
+                var_name = self.children[0].children[0].get_id()[1:]
+                entry = _type_table.lookup_variable(self.children[0].get_id())
             else:
-                var_name = self.children[0].get_llvm_addr()[1:]
-                entry = _type_table.lookup_variable(self.children[0].get_llvm_addr())
+                var_name = self.children[0].get_id()[1:]
+                entry = _type_table.lookup_variable(self.children[0].get_id())
         else:
             var_name = self.get_name()
             entry = _type_table.lookup_variable(var_name)
@@ -1197,7 +1194,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             if t1 == 'float' and isinstance(self.children[1], ASTNodeLiteral):
                 t1 = 'double'
 
-            new_v1 = self.get_llvm_addr()
+            new_v1 = self.get_id()
             v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
             converted = convert_types(llvm_type, t1, v0, v1, _file, _indent)
 
@@ -1230,10 +1227,13 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if t1 == "float":
             v1 = "$f1"
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+        _type_table.set_variable(var_name, v1)
+        '''
         if llvm_type == "float":
             print("\tswc1 ", v1 + "," + str(entry.location) + "($sp)", file=_file)
         else:
             print("\tsw ", v1 + "," + str(entry.location) + "($sp)", file=_file)
+        '''
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         print("# Equality expression ("+ str(self.children[0].name) + self.equality + ")", file=_file)
@@ -1256,7 +1256,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if self.equality == '=':
             return self._load(self.children[0].name, _type_table, _file, _indent, _target)
         else:
-            return self.get_llvm_addr()
+            return self.get_id()
 
 
 # Function call expression node
@@ -1363,7 +1363,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
 
         v1 = convert_type(t1, 'i64', index, _file, _indent)
 
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         arr = str(entry.type.get_llvm_type() + ", " + llvm_type)
         ind = ''
         if int(l) > 0:
@@ -1376,7 +1376,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         _type_table.insert_variable(new_addr, entry.type.get_llvm_type())
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-        return self._load(self.get_llvm_addr(), _type_table, _file, _indent, self.get_llvm_addr() + "_l")
+        return self._load(self.get_id(), _type_table, _file, _indent, self.get_id() + "_l")
 
 
 # Inverse expression node
@@ -1406,7 +1406,7 @@ class ASTNodeInverseExpr(ASTNodeUnaryExpr):
             opp = 'xor'
             icmp = 'fcmp une '
 
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s'" % new_addr)
         print('    ' * _indent + v0 + 't = ' + icmp + t0 + ' ' + v0 + ', ' + v1, file=_file)
@@ -1440,7 +1440,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         if llvm_type == 'float':
             opp = 'fsub'
 
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         if not _type_table.insert_variable(new_addr, llvm_type):
             raise ParserException("Trying to redeclare variable '%s'" % new_addr)
 
@@ -1464,12 +1464,12 @@ class ASTNodeReference(ASTNodeUnaryExpr):
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         child = self.children[0]
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         llvm_type = child.get_llvm_type(_type_table)[1]
         _type_table.insert_variable(new_addr, Pointer(string_to_type(llvm_type)))
 
-    def get_llvm_addr(self):
-        return self.children[0].get_llvm_addr()
+    def get_id(self):
+        return self.children[0].get_id()
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
         return self.children[0].get_without_load(_type_table)
@@ -1489,7 +1489,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
 
         child = self.children[0]
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         entry = child.get_llvm_type(_type_table)
         llvm_type = entry[1]
         v0 = child.load_if_necessary(_type_table, _file, _indent)
@@ -1504,7 +1504,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
               v0 + ", align 4", file=_file)
 
     def get_without_load(self, _type_table):
-        return self.children[0].get_llvm_addr()
+        return self.children[0].get_id()
 
 
 class ASTNodeList(ASTNodeUnaryExpr):
@@ -1574,12 +1574,11 @@ class ASTNodeAddition(ASTNodeOp):
         self.delete()
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
-
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1")
         t0 = self.children[0].get_llvm_type(_type_table)[1]
         t1 = self.children[1].get_llvm_type(_type_table)[1]
-
+        print(t0, self.children[0], t1, self.children[1])
         new_var = convert_types(t0, t1, v0, v1, _file, _indent)
         v0 = new_var[0]
         v1 = new_var[1]
@@ -1587,16 +1586,18 @@ class ASTNodeAddition(ASTNodeOp):
 
         opp = "addu"
         if llvm_type == 'float':
-            opp = 'fadd'
+            opp = 'add.s'
         if self.operators[0] == '-':
             opp = 'sub'
             if llvm_type == 'float':
-                opp = 'fsub'
+                opp = 'sub.s'
 
         new_addr = "$t0"
         self.type = string_to_type(llvm_type)
-        _type_table.insert_variable(new_addr, llvm_type)
-        print('\t' + opp + "\t" + new_addr + "," + v0 + "," + v1, file=_file)
+        #_type_table.insert_variable(new_addr, llvm_type)
+        print('\t' + opp + " " + new_addr + "," + v0 + "," + v1, file=_file)
+        _type_table.mips_insert_variable(self.get_id(), self.type)
+        _type_table.set_variable(self.get_id(), new_addr)
         #print('    ' * _indent + new_addr + " = " + opp + " " + llvm_type + " " + v0 + "," + v1, file=_file)
 
 
@@ -1677,26 +1678,29 @@ class ASTNodeMult(ASTNodeOp):
         v0 = new_var[0]
         v1 = new_var[1]
         llvm_type = new_var[2]
-        new_addr = self.get_llvm_addr()
 
+        new_addr = "$t0"
         opp = "mul"
         if llvm_type == 'float':
             opp = 'mul.s'
             new_addr = "$f1"
         if self.operators[0] == '/':
-            opp = 'sdiv'
+            opp = 'div'
             if llvm_type == 'float':
-                opp = 'fdiv'
+                opp = 'div.s'
 
         elif self.operators[0] == '%':
-            opp = 'srem'
             if llvm_type == 'float':
                 raise ModuloException('Trying to use modulo on float type')
+            print('\t' + "div" + " " + new_addr + "," + v0 + "," + v1, file=_file)
+            print('\t' + "mfhi " + new_addr, file=_file)
+            _type_table.mips_insert_variable(self.get_id(), self.type)
+            _type_table.set_variable(self.get_id(), new_addr)
+            return
 
-
-        _type_table.insert_variable(new_addr, llvm_type)
-
-        print('\t' + opp + "\t" + new_addr + "," + v0 + "," + v1, file=_file)
+        print('\t' + opp + " " + new_addr + "," + v0 + "," + v1, file=_file)
+        _type_table.mips_insert_variable(self.get_id(), self.type)
+        _type_table.set_variable(self.get_id(), new_addr)
 
 
 # Conditional expression node
@@ -1795,14 +1799,14 @@ class ASTNodeConditional(ASTNodeOp):
             if llvm_type == 'float' or llvm_type == 'double':
                 opp = 'fcmp oge'
 
-        new_addr = self.get_llvm_addr()
+        new_addr = self.get_id()
         global last_label
         if self.operators[0] == "&&":
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             val = convert_type('i32', llvm_type, '0', _file, _indent)
-            label1 = "label_" + self.get_llvm_addr()[1:] + "1"
-            label2 = "label_" + self.get_llvm_addr()[1:] + "2"
+            label1 = "label_" + self.get_id()[1:] + "1"
+            label2 = "label_" + self.get_id()[1:] + "2"
 
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
@@ -1828,8 +1832,8 @@ class ASTNodeConditional(ASTNodeOp):
             new_addr1 = '%b' + new_addr[2:]
             new_addr2 = '%bb' + new_addr[3:]
             val = convert_type('i32', llvm_type, '0', _file, _indent)
-            label1 = "label_" + self.get_llvm_addr()[1:] + "1"
-            label2 = "label_" + self.get_llvm_addr()[1:] + "2"
+            label1 = "label_" + self.get_id()[1:] + "1"
+            label2 = "label_" + self.get_id()[1:] + "2"
 
             icmp = 'icmp ne'
             if llvm_type == 'float' or llvm_type == 'double':
@@ -1900,8 +1904,5 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
 
     if old_type[-1] == '*' or new_type[-1] == '*' or v1[0] == "$":
         return v1
-
-
-
 
     return v1

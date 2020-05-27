@@ -10,11 +10,11 @@ int main() {
     //printf(j);
 
     int i = 10;
-    i = i * j;
     //printf("\n");
     //printf(j);
     //printf("\n");
-    j = j * 10;
+    //j = j * 10;
+    j = i % 9;
     printf(i);
     printf("\n");
     printf(j);
