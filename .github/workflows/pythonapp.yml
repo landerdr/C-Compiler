@@ -38,8 +38,17 @@ jobs:
         run: |
           chmod +x ./build.sh
           ./build.sh
-      - name: Test with pytest
+      - name: Download mars
+        run: |
+          wget -nc https://courses.missouristate.edu/KenVollmar/mars/MARS_4_5_Aug2014/Mars4_5.jar
+          mv Mars4_5.jar mars.jar
+      - name: Test llvm with pytest
         run: |
           pip install pytest
           export PYTHONPATH="$PWD"
-          pytest ./Source/test_compiler.py
+          pytest ./Source/test_llvm.py
+      - name: Test MIPS with pytest
+        run: |
+          pip install pytest
+          export PYTHONPATH="$PWD"
+          pytest ./Source/test_mips.py
