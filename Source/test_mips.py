@@ -50,9 +50,11 @@ def compare(result_file: str, expected_result_file: str):
     :return: if the two files match
     """
     print("------results")
-    print(result_file)
+    t = open(result_file, "r")
+    print(t.read())
     print("------excpected")
-    print(expected_result_file)
+    t = open(expected_result_file, "r")
+    print(t.read())
     return filecmp.cmp(result_file, expected_result_file)
 
 
