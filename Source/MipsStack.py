@@ -41,7 +41,7 @@ class MipsStack(TypeTable):
         :param offset: location of the value to be updated
         :return:
         """
-        print(f"\tsw ${register} {offset}($fp)", file=self.output)
+        print(f"\tsw ${register}, {offset}($fp)", file=self.output)
 
     def unload_from_stack(self, register: str, offset: int):
         """
@@ -50,7 +50,7 @@ class MipsStack(TypeTable):
         :param offset: location of value on the stack
         :return:
         """
-        print(f"\tlw ${register} {offset}($fp)", file=self.output)
+        print(f"\tlw ${register}, {offset}($fp)", file=self.output)
 
     def break_scope(self, offset: int):
         """
