@@ -1,10 +1,15 @@
 
 int main() {
 
-    float i = 1;
-    int j = 1;
-    i = -i;
-    printf(i);
+    for (int i = 0; i < 8; i ++){
+        if (i == 2){
+            continue;
+        }
+        if (i == 5){
+            break;
+        }
+        printf(i);
+    }
 
     return 0;
 

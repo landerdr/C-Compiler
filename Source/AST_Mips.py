@@ -291,6 +291,7 @@ class ASTNodeLib(ASTNode):
         super().__init__("Lib")
 
 
+# TODO
 # Base function declaration node
 class ASTNodeFunction(ASTNode):
     def __init__(self):
@@ -391,6 +392,7 @@ class ASTNodeParams(ASTNode):
         super().__init__("Params")
 
 
+# TODO
 # Single parameter node
 class ASTNodeParam(ASTNode):
     def __init__(self):
@@ -422,6 +424,7 @@ class ASTNodeParam(ASTNode):
             self.parent.parent.param_names.append([self.name, t])
 
 
+# TODO
 class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
@@ -455,6 +458,7 @@ class ASTNodeLeftValue(ASTNode):
         return self._load(self.name, _type_table, _file, _indent, _target)
 
 
+# TODO
 class ASTNodeInclude(ASTNode):
 
     def __init__(self):
@@ -552,6 +556,7 @@ class ASTNodeCompound(ASTNodeStatement):
         _type_table.leave_scope()
 
 
+# TODO
 # Definition statement node
 class ASTNodeDefinition(ASTNodeStatement):
     def __init__(self):
@@ -784,6 +789,7 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         print("\n " + str(self.label3) + ":", file=_file)
 
 
+# TODO
 # Return statement node
 class ASTNodeReturn(ASTNodeStatement):
     def __init__(self):
@@ -935,7 +941,6 @@ class ASTNodeLiteral(ASTNodeExpression):
             return _target
 
 
-
 # Postcrement expression node (In/Decrement behind var)
 class ASTNodePostcrement(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1007,6 +1012,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         var_name = self.children[0].get_without_load(_type_table)
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
         _type_table.set_variable(var_name, new_addr)
+
 
 # Precrement expression node (In/Decrement in front of var)
 class ASTNodePrecrement(ASTNodeUnaryExpr):
@@ -1080,7 +1086,7 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         _type_table.set_variable(var_name, new_addr)
 
 
-
+# TODO +=, -=, *=, etc
 # Equality expression node
 class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1225,6 +1231,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             return self.get_id()
 
 
+# TODO
 # Function call expression node
 class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1330,6 +1337,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             #_type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
+# TODO
 # Indexing expression node
 class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1469,6 +1477,7 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         _type_table.set_variable(self.get_id(), new_addr)
 
 
+# TODO
 # Reference expression node
 class ASTNodeReference(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1497,6 +1506,7 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         return self.children[0].get_without_load(_type_table)
 
 
+# TODO
 # Dereference expression node
 class ASTNodeDereference(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1529,6 +1539,7 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         return self.children[0].get_id()
 
 
+# TODO
 class ASTNodeList(ASTNodeUnaryExpr):
     def __init__(self, tt="list"):
         super().__init__(tt)
