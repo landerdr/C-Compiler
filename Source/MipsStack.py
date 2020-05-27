@@ -57,7 +57,7 @@ class MipsStack(TypeTable):
         :return:
         """
         if type == FLOAT:
-            print(f"\tl.s {register} {offset}($fp)", file=self.output)
+            print(f"\tl.s {register}, {offset}($fp)", file=self.output)
             return
         print(f"\tlw {register}, {offset}($fp)", file=self.output)
 
