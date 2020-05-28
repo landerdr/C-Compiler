@@ -1015,6 +1015,14 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         _type_table.set_variable(self.get_id(), v0)
         var_name = self.children[0].get_without_load(_type_table)
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
+        if isinstance(self.children[0], ASTNodeDereference):
+            register = new_addr
+            _type_table.get_variable(var_name, "$t3")
+            if type == FLOAT:
+                print(f"\ts.s {register}, -0($t3)", file=_file)
+                return
+            print(f"\tsw {register}, -0($t3)", file=_file)
+            return
         _type_table.set_variable(var_name, new_addr)
 
 
@@ -1086,6 +1094,15 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
 
         var_name = self.children[0].get_without_load(_type_table)
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
+        if isinstance(self.children[0], ASTNodeDereference):
+            register = new_addr
+            _type_table.set_variable(self.get_id(), new_addr)
+            _type_table.get_variable(var_name, "$t3")
+            if type == FLOAT:
+                print(f"\ts.s {register}, -0($t3)", file=_file)
+                return
+            print(f"\tsw {register}, -0($t3)", file=_file)
+            return
         _type_table.set_variable(self.get_id(), new_addr)
         _type_table.set_variable(var_name, new_addr)
 
