@@ -1,4 +1,4 @@
-import filecmp
+import re
 import os
 
 
@@ -62,8 +62,8 @@ def compare(result_file: str, expected_result_file: str):
         return False
 
     for i in range(len(result)):
-        result_line = result[i].split(r"(; )|(;)|(%)|( )")
-        expected_line = expected[i].split(r"(; )|(;)|(%)|( )")
+        result_line = re.split(r"(; )|(;)|(%)|( )", result[i])
+        expected_line = re.split(r"(; )|(;)|(%)|( )", expected[i])
 
         print(result_line, expected_line)
 
