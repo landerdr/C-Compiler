@@ -65,6 +65,8 @@ def compare(result_file: str, expected_result_file: str):
         result_line = result[i].split(r"(; )|(;)|(%)|( )")
         expected_line = expected[i].split(r"(; )|(;)|(%)|( )")
 
+        print(result_line, expected_line)
+
         if len(result_line) != len(expected_line):
             return False
 
