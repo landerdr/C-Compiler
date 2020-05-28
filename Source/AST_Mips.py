@@ -1327,14 +1327,20 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
 
         else:
-            i = len(self.children) - 1
-            while i >= 0:
-                value = self.children[i].load_if_necessary(_type_table, _file, _indent, "$" +str(4 + i))
-                i = i - 1
+            _type_table.store_and_update_fp()
+            # i = len(self.children) - 1
+            # while i >= 0:
+            #     value = self.children[i].load_if_necessary(_type_table, _file, _indent, "$" +str(4 + i))
+            #     i = i - 1
+
+            for child in self.children:
+                child.load_if_necessary(_type_table, _file, _indent, "$t0")
+                _type_table.store_to_stack("$t0", child.type)
 
             print("\tjal c_" + self.name, file=_file)
+            _type_table.unload_and_update_fp()
 
-            #_type_table.insert_variable(self.get_llvm_addr(), entry.type)
+            # _type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
 # TODO
