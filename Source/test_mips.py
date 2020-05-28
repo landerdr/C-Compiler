@@ -50,12 +50,37 @@ def compare(result_file: str, expected_result_file: str):
     :return: if the two files match
     """
     print("------results")
-    t = open(result_file, "r")
-    print(t.read())
+    with open(result_file, "r") as fp:
+        result = [line for line in fp]
+    print(result)
     print("------excpected")
-    t = open(expected_result_file, "r")
-    print(t.read())
-    return filecmp.cmp(result_file, expected_result_file)
+    with open(expected_result_file, "r") as fp:
+        expected = [line for line in fp]
+    print(expected)
+
+    if len(result) != len(expected):
+        return False
+
+    for i in range(len(result)):
+        result_line = result[i].split(r"(; )|(;)|(%)|( )")
+        expected_line = expected[i].split(r"(; )|(;)|(%)|( )")
+
+        if len(result_line) != len(expected_line):
+            return False
+
+        for j in range(len(result_line)):
+            r = result_line[j]
+            e = expected_line[j]
+
+            if r == e:
+                continue
+
+            if float(r) == float(e):
+                continue
+
+            return False
+
+    return True
 
 
 # def run_test(input_file: str, output_file: str, expected_result_file: str):
