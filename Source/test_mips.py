@@ -62,8 +62,8 @@ def compare(result_file: str, expected_result_file: str):
         return False
 
     for i in range(len(result)):
-        result_line = re.split(r"(; )|(;)|(%)|( )", result[i])
-        expected_line = re.split(r"(; )|(;)|(%)|( )", expected[i])
+        result_line = re.split(r"(;)|(%)|(\n)", result[i])
+        expected_line = re.split(r"(;)|(%)|(\n)", expected[i])
 
         print(result_line, expected_line)
 
