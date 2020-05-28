@@ -457,6 +457,8 @@ class ASTNodeLeftValue(ASTNode):
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
         return self._load(self.name, _type_table, _file, _indent, _target)
 
+    def get_id(self):
+        return str(self.name)
 
 # TODO
 class ASTNodeInclude(ASTNode):
@@ -940,6 +942,8 @@ class ASTNodeLiteral(ASTNodeExpression):
             print("\tli\t" + _target + "," + str(self.value), file=_file )
             return _target
 
+    def get_id(self):
+        return str(self.value)
 
 # Postcrement expression node (In/Decrement behind var)
 class ASTNodePostcrement(ASTNodeUnaryExpr):
@@ -1150,11 +1154,15 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
         if not isinstance(self.children[0], ASTNodeLeftValue):
             if not isinstance(self.children[0], ASTNodeIndexingExpr):
-                var_name = self.children[0].children[0].get_id()[1:]
-                entry = _type_table.lookup_variable(self.children[0].get_id())
+                var_name = self.children[0].get_without_load(_type_table)
+                entry = _type_table.lookup_variable(self.children[0].get_without_load(_type_table))
+
+
+
             else:
-                var_name = self.children[0].get_id()[1:]
+                var_name = self.children[0].get_id()
                 entry = _type_table.lookup_variable(self.children[0].get_id())
+
         else:
             var_name = self.get_name()
             entry = _type_table.lookup_variable(var_name)
@@ -1199,13 +1207,16 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if t1 == "float":
             v1 = "$f1"
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
+        if isinstance(self.children[0], ASTNodeDereference):
+            register = v1
+            _type_table.get_variable(var_name, "$t3")
+            if type == FLOAT:
+                print(f"\ts.s {register}, -0($t3)", file=_file)
+                return
+            print(f"\tsw {register}, -0($t3)", file=_file)
+            return
         _type_table.set_variable(var_name, v1)
-        '''
-        if llvm_type == "float":
-            print("\tswc1 ", v1 + "," + str(entry.location) + "($sp)", file=_file)
-        else:
-            print("\tsw ", v1 + "," + str(entry.location) + "($sp)", file=_file)
-        '''
+
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list = None):
         print("# Equality expression (" + str(self.children[0]) + self.equality + ")", file=_file)
@@ -1253,7 +1264,8 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
         if self.name == 'printf':
             print("# Printf " + str(self.children[0].type), file=_file)
-            if (self.children[0].stringRef):
+
+            if isinstance(self.children[0], ASTNodeLiteral) and self.children[0].stringRef:
                 sl = []
                 ss = "str_0"
                 for i in _string_list:
@@ -1500,16 +1512,14 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         entry.value = "Unknown"
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
+        print("#Reference", file=_file)
         child = self.children[0]
-        new_addr = self.get_id()
         llvm_type = child.get_llvm_type(_type_table)[1]
-        _type_table.insert_variable(new_addr, Pointer(string_to_type(llvm_type)))
-
-    def get_id(self):
-        return self.children[0].get_id()
-
-    def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-        return self.children[0].get_without_load(_type_table)
+        e = _type_table.lookup_variable(child.get_without_load(_type_table))
+        offset = e.location
+        print(f'\tla $t0, {offset}($fp)', file=_file)
+        _type_table.mips_insert_variable(self.get_id(), Pointer(string_to_type(llvm_type)))
+        _type_table.set_variable(self.get_id(), "$t0")
 
 
 # TODO
@@ -1532,14 +1542,13 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         llvm_type = entry[1]
         v0 = child.load_if_necessary(_type_table, _file, _indent)
 
-        _type_table.insert_variable(new_addr, llvm_type[:-1])
+        print("\tlw $t0, -0(" + v0 + ")", file=_file)
 
+        _type_table.mips_insert_variable(self.get_id(), llvm_type[:-1])
+        _type_table.set_variable(self.get_id(), "$t0")
         if isinstance(self.parent, ASTNodeEqualityExpr):
             if self.parent.children[0] == self and self.parent.equality == '=':
                 return
-
-        print('    ' * _indent + new_addr + " = load " + llvm_type[:-1] + ", " + llvm_type + " " +
-              v0 + ", align 4", file=_file)
 
     def get_without_load(self, _type_table):
         return self.children[0].get_id()
