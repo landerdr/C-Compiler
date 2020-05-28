@@ -104,6 +104,15 @@ class TypeTable:
                 return self.tables[-i][name]
         return None
 
+    def is_global_variable(self, name: str):
+        for i in range(1, len(self.tables) + 1):
+            if name in self.tables[-i]:
+                #self.tables[-i][name].usage_count += 1
+                if i == len(self.tables):
+                    return True
+                return False
+        return False
+
     def lookup_variable_register(self, register: str):
         for i in range(1, len(self.tables) + 1):
             for j in self.tables[-i]:

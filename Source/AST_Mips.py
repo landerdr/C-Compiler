@@ -637,7 +637,7 @@ class ASTNodeDefinition(ASTNodeStatement):
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
             print(".data", file=_file)
-            print("\t" + register[1:] + ":", file=_file, end="")
+            print("\tg_" + register[1:] + ":", file=_file, end="")
             if self.type == CHAR:
                 if v1 == 0 or v1 == "$0":
                     print("\t.space	1",file=_file)
