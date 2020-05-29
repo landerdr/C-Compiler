@@ -1144,25 +1144,27 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
 
             opp = 'add'
             if t1 == 'double' or t1 == 'float':
-                opp = 'fadd'
+                opp = 'add.s'
             if self.equality == "-=":
                 opp = "sub"
                 if t1 == 'double' or t1 == 'float':
-                    opp = 'fsub'
+                    opp = 'sub.s'
             if self.equality == "/=":
-                opp = 'sdiv'
+                opp = 'div'
                 if t1 == 'double' or t1 == 'float':
-                    opp = 'fdiv'
+                    opp = 'div.s'
             if self.equality == "*=":
                 opp = 'mul'
                 if t1 == 'double' or t1 == 'float':
-                    opp = 'fmul'
+                    opp = 'mul.s'
             if self.equality == "%=":
-                opp = 'srem'
+                opp = 'div'
                 if t1 == 'double' or t1 == 'float':
                     raise ModuloException('Trying to use modulo on float type')
 
-            print('    ' * _indent + new_v1 + " = " + opp + " " + t1 + " " + v0 + ", " + v1, file=_file)
+            print('    ' * _indent + f"{opp} {new_v1}, {v0}, {v1}", file=_file)
+            if self.equality == "%=":
+                print('    ' * _indent + f"mfhi {new_v1}", file=_file)
             v1 = new_v1
         if t1 == "float":
             v1 = "$f1"
