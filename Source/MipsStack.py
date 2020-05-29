@@ -49,6 +49,18 @@ class MipsStack(TypeTable):
             return
         print(f"\tsw {register}, {offset}($fp)", file=self.output)
 
+    def store_on_adress(self, register: str, adress: str, type = None):
+            """
+            Updates value on the stack
+            :param register: location of value to be stored
+            :param offset: location of the value to be updated
+            :return:
+            """
+            if type == FLOAT:
+                print(f"\ts.s {register}, {adress}", file=self.output)
+                return
+            print(f"\tsw {register}, {adress}", file=self.output)
+
     def unload_from_stack(self, register: str, offset: int, type = None):
         """
         Retrieves value from stack

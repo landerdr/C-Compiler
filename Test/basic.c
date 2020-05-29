@@ -1,21 +1,28 @@
 
-void f(){
+#include <stdio.h>
 
-    int i = 4;
-
-    int* j = &i;
-    *j = 2;
-    printf(*j);
-
+int f(int a) {
+    //printf(a);
+	if (a < 2 ) {
+	    //printf("yay");
+		return a;
+	}
+	else {
+	    //printf(a);
+		return f(a-1) + f(a-2);
+		//return 2;
+	}
 }
 
-
-
-int main() {
-
-    f();
-    f();
-
-    return 0;
-
+// Recursive fibonnaci
+int main(){
+	int n;
+    //printf("Enter a number:");
+	scanf("%d",&n);
+	int i = 1;
+	while(i++ <= n){
+	    //printf(i);
+		printf("fib(%d)\t= %d;\n", i, f(i));
+	}
+	return 0;
 }

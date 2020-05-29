@@ -240,28 +240,6 @@ class ASTNode:
 
         e = _type_table.get_variable(str(name), v1)
         return v1
-        '''
-        entry = self.get_llvm_type(_type_table, str(name))
-        llvm_type = entry[0]
-        pointer = entry[1]
-
-        entry2 = _type_table.lookup_variable(str(name))
-
-        if pointer != llvm_type:
-            print("\tla" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
-            return v1
-
-        if entry2.array == 0:
-            if llvm_type == 'float':
-                if not _target:
-                    v1 = "$f1"
-                print("\tl.s" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
-            else:
-
-                print("\tlw" + "\t" + v1 + "," + str(entry2.location) + "($fp)" , file=_file)
-
-        return v1
-        '''
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
         if not _target:
@@ -378,12 +356,12 @@ class ASTNodeFunction(ASTNode):
                     return
                 name = self.param_names[i][0]
                 llvm_type = self.param_names[i][1].get_llvm_type_ptr()
-                if (_type_table.offset == None):
-                    _type_table.offset = 8
-                else:
-                    _type_table.offset += 4
-
-                print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
+                _type_table.mips_insert_variable(name, self.param_names[i][1])
+                print("\tlw $t0, " + str(i*4) + "($sp)", file=_file)
+                _type_table.set_variable(name, "$t0")
+                #print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
+            _type_table.mips_insert_variable("$ra", INT)
+            _type_table.set_variable("$ra", "$ra")
 
 
 # Base list of parameters node
@@ -417,7 +395,7 @@ class ASTNodeParam(ASTNode):
             self.type = Pointer(self.type)
         t = self.type
 
-        _type_table.insert_param(self.name, t, register=str("%" + self.name), const=self.const)
+        _type_table.mips_insert_variable(self.name, t)
         if isinstance(self.parent, ASTNodeFunction):
             self.parent.param_names.append([self.name, t])
         else:
@@ -809,6 +787,7 @@ class ASTNodeReturn(ASTNodeStatement):
                 entry.type, self.children[0].type, self.line_num))
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
+        print("# Return", file=_file)
         new_val = ''
         entry = _type_table.lookup_function(_type_table.current)
         if _type_table.current == "main":
@@ -818,13 +797,11 @@ class ASTNodeReturn(ASTNodeStatement):
         llvm_type = entry.type.get_llvm_type_ptr()
         if len(self.children):
             rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
+            print("\tmove $a0, " + rval, file=_file)
             new_val = convert_type(self.children[0].get_llvm_type(_type_table)[1], llvm_type, rval, _file, _indent)
-        print("\tmovz	$31,$31,$0\n" +
-              "\tmove	$sp,$fp\n" +
-              "\tlw	$fp,20($sp)\n" +
-              "\taddiu	$sp,$sp,24\n" +
-              "\tjr	$31\n" +
-              "\tnop\n" , file=_file)
+        _type_table.get_variable("$ra", "$t1")
+        print("\tjr	$t1\n" +
+              "\tnop\n", file=_file)
 
 
 '''Expressions'''
@@ -1343,32 +1320,38 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                 print("\tsyscall", file=_file)
                 print("\tmov.s $f1,$f0", file=_file)
                 if len(self.children) > 0:
-                    entry = _type_table.lookup_variable(str(self.children[-1].value))
-                    print("\tswc1 $f1," + str(entry.location) + "($sp)", file=_file)
+                    entry = _type_table.get_variable(str(self.children[-1].get_id()), "$t1")
+                    print("\tswc1 $f1," + "0($t1)", file=_file)
             else:
                 print("\tli $v0,5", file=_file)
                 print("\tsyscall", file=_file)
                 print("\tmove $t0,$v0", file=_file)
                 if len(self.children) > 0:
-                    entry = _type_table.lookup_variable(str(self.children[-1].value))
-                    print("\tsw $t0," + str(entry.location) + "($sp)", file=_file)
+                    entry = _type_table.get_variable(str(self.children[-1].get_id()), "$t1")
+                    print("\tsw $t0," + "0($t1)", file=_file)
 
 
 
         else:
+            _type_table.mips_insert_variable("$fp", INT)
+            _type_table.set_variable("$fp", "$fp")
+
             _type_table.store_and_update_fp()
-            # i = len(self.children) - 1
-            # while i >= 0:
-            #     value = self.children[i].load_if_necessary(_type_table, _file, _indent, "$" +str(4 + i))
-            #     i = i - 1
 
             for child in self.children:
-                child.load_if_necessary(_type_table, _file, _indent, "$t0")
+                #child.load_if_necessary(_type_table, _file, _indent, "$t0")
+                e = _type_table.lookup_variable(child.get_id())
+                _type_table.get_variable("$fp", "$t1")
+                _type_table.unload_global("$t0", str(e.location) + "($t1)")
                 _type_table.store_to_stack("$t0", child.type)
+                #_type_table.store_on_adress("$t0", "($sp)")
+
 
             print("\tjal c_" + self.name, file=_file)
             _type_table.unload_and_update_fp()
 
+            _type_table.mips_insert_variable(self.get_id(), self.type)
+            _type_table.set_variable(self.get_id(), "$a0")
             # _type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
@@ -1639,6 +1622,7 @@ class ASTNodeAddition(ASTNodeOp):
         self.delete()
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None,_float_list = None):
+        print("# Addition", file=_file)
         v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0")
         v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1")
         t0 = self.children[0].get_llvm_type(_type_table)[1]
