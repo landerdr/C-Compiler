@@ -598,7 +598,7 @@ class ASTNodeDefinition(ASTNodeStatement):
             if not isinstance(self.children[0], ASTNodeList):
                 print("# Var Definition", self.name, file=_file)
                 v1 = self.children[0].load_if_necessary(_type_table, _file, _indent)
-                t1 = self.children[0].get_llvm_type(_type_table)[1]
+                t1 = self.children[0].get_llvm_type(_type_table)[0]
                 v1 = convert_type(t1, llvm_type, v1, _file, _indent)
                 _type_table.set_variable(self.name, v1)
 
@@ -1166,7 +1166,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = v1
             _type_table.get_variable(var_name, "$t3")
-            if type == FLOAT:
+            if self.type == FLOAT:
                 print(f"\ts.s {register}, -0($t3)", file=_file)
                 return
             print(f"\tsw {register}, -0($t3)", file=_file)
