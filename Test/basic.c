@@ -2,8 +2,8 @@
 // Should print the numbers 1 2 3
 
 int main(){
-    int k[5];
-    k[4] = 3;
-    printf(k[4]);
+    int i = 5;
+    i += 6;
+    printf(i);
 
 }

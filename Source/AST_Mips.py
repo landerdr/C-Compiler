@@ -1135,7 +1135,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 t1 = 'double'
 
             new_v1 = self.get_id()
-            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t1")
             converted = convert_types(llvm_type, t1, v0, v1, _file, _indent)
 
             v0 = converted[0]
@@ -1162,10 +1162,10 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 if t1 == 'double' or t1 == 'float':
                     raise ModuloException('Trying to use modulo on float type')
 
-            print('    ' * _indent + f"{opp} {new_v1}, {v0}, {v1}", file=_file)
+            print('    ' * _indent + f"{opp} {v1}, {v0}, {v1}", file=_file)
             if self.equality == "%=":
                 print('    ' * _indent + f"mfhi {new_v1}", file=_file)
-            v1 = new_v1
+
         if t1 == "float":
             v1 = "$f1"
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
