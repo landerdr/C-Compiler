@@ -961,7 +961,7 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
         if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = new_addr
-            var_name = self.children[0].get_id()
+            #var_name = self.children[0].get_id()
             _type_table.get_variable(var_name, "$t3")
             if type == FLOAT:
                 print(f"\ts.s {register}, -0($t3)", file=_file)
@@ -1041,7 +1041,6 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
         if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = new_addr
-            var_name = str(self.children[0].get_id())
             _type_table.set_variable(self.get_id(), new_addr)
             _type_table.get_variable(var_name, "$t3")
             if type == FLOAT:
@@ -1374,7 +1373,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         return _target
 
     def get_without_load(self, _type_table):
-        return self.children[0].get_id()
+        return self.get_id()
 
 # Inverse expression node
 class ASTNodeInverseExpr(ASTNodeUnaryExpr):
