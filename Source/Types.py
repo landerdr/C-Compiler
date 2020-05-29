@@ -86,6 +86,8 @@ class Char(Bool):
     def cast(self, value):
         if isinstance(value, int):
             return value
+        if isinstance(value, float):
+            return int(value)
         return ord(value)
 
     def __str__(self):
