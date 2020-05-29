@@ -560,12 +560,14 @@ class ASTNodeDefinition(ASTNodeStatement):
 
         llvm_type = self.type.get_llvm_type()
 
-        _type_table.mips_insert_variable(self.name, self.type, no_sp=True)
+        _type_table.mips_insert_variable(self.name, self.type, no_sp=True, array=self.array)
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
             print(".data", file=_file)
             print("\tg_" + self.name + ":", file=_file, end="")
-            v1 = str(self.children[0].value)
+            v1 = 0
+            if len(self.children):
+                v1 = str(self.children[0].value)
             if self.type == CHAR:
                 if v1 == 0 or v1 == "$0":
                     print("\t.space	1", file=_file)
@@ -623,12 +625,12 @@ class ASTNodeDefinition(ASTNodeStatement):
                         print("\taddu $t1, $t1, 4", file=_file)
 
                     print("\tsw " + v1 + ", " + name + "($t1)", file = _file )
-                _type_table.mips_insert_variable(self.name, self.type)
+                _type_table.mips_insert_variable(self.name, self.type, array=self.array)
                 print("\tla $t0, " + name, file=_file)
                 _type_table.set_variable(self.name, "$t0")
         else:
             if self.array:
-                _type_table.mips_insert_variable(self.name, self.type)
+                _type_table.mips_insert_variable(self.name, self.type, array=self.array)
                 print("\tla $t0, " + name, file=_file)
                 _type_table.set_variable(self.name, "$t0")
 
@@ -957,8 +959,9 @@ class ASTNodePostcrement(ASTNodeUnaryExpr):
         _type_table.set_variable(self.get_id(), v0)
         var_name = self.children[0].get_without_load(_type_table)
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
-        if isinstance(self.children[0], ASTNodeDereference):
+        if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = new_addr
+            var_name = self.children[0].get_id()
             _type_table.get_variable(var_name, "$t3")
             if type == FLOAT:
                 print(f"\ts.s {register}, -0($t3)", file=_file)
@@ -1036,8 +1039,9 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
 
         var_name = self.children[0].get_without_load(_type_table)
         print('\t' + opp + " " + new_addr + ", " + v0 + ", " + v1, file=_file)
-        if isinstance(self.children[0], ASTNodeDereference):
+        if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = new_addr
+            var_name = str(self.children[0].get_id())
             _type_table.set_variable(self.get_id(), new_addr)
             _type_table.get_variable(var_name, "$t3")
             if type == FLOAT:
