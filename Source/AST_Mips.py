@@ -3,10 +3,6 @@ from math import floor
 
 from Source.MipsStack import *
 
-# ToDo: add print_llvm_ir where necessary
-# ToDo: make print_llvm_ir differentiate between data types
-# ToDo: make print_llvm_it differentiate between operator types
-
 last_label = 0
 last_branch_choice = 0
 ctr = 0
@@ -236,6 +232,8 @@ class ASTNode:
         v1 = "$t0"
         if _target:
             v1 = _target
+        elif self.type == FLOAT:
+            v1 = "$f1"
 
         e = _type_table.get_variable(str(name), v1)
         return v1
@@ -268,7 +266,6 @@ class ASTNodeLib(ASTNode):
         super().__init__("Lib")
 
 
-# TODO
 # Base function declaration node
 class ASTNodeFunction(ASTNode):
     def __init__(self):
@@ -327,8 +324,15 @@ class ASTNodeFunction(ASTNode):
                 name = self.param_names[i][0]
                 llvm_type = self.param_names[i][1].get_llvm_type_ptr()
                 _type_table.mips_insert_variable(name, self.param_names[i][1])
-                print("\tlw $t0, " + str((len(self.param_names)-i)*4) + "($fp)", file=_file)
-                _type_table.set_variable(name, "$t0")
+
+                t = "$t0"
+                o = "lw "
+                if self.param_names[i][1] == FLOAT:
+                    t = "$f1"
+                    o = "l.s "
+
+                print("\t" + o + t + ", " + str((len(self.param_names)-i)*4) + "($fp)", file=_file)
+                _type_table.set_variable(name, t)
                 #print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
 
 
@@ -339,7 +343,6 @@ class ASTNodeParams(ASTNode):
         super().__init__("Params")
 
 
-# TODO
 # Single parameter node
 class ASTNodeParam(ASTNode):
     def __init__(self):
@@ -364,14 +367,13 @@ class ASTNodeParam(ASTNode):
             self.type = Pointer(self.type)
         t = self.type
 
-        #_type_table.mips_insert_variable(self.name, t)
         if isinstance(self.parent, ASTNodeFunction):
             self.parent.param_names.append([self.name, t])
         else:
             self.parent.parent.param_names.append([self.name, t])
 
 
-# TODO
+# TODO arrays
 class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
@@ -408,7 +410,7 @@ class ASTNodeLeftValue(ASTNode):
         return str(self.name)
 
 
-# TODO
+# TODO better printf/scanf inclusion
 class ASTNodeInclude(ASTNode):
 
     def __init__(self):
@@ -506,7 +508,7 @@ class ASTNodeCompound(ASTNodeStatement):
         _type_table.leave_scope()
 
 
-# TODO
+# TODO arrays
 # Definition statement node
 class ASTNodeDefinition(ASTNodeStatement):
     def __init__(self):
@@ -739,7 +741,6 @@ class ASTNodeLoopStatement(ASTNodeStatement):
         print("\n " + str(self.label3) + ":", file=_file)
 
 
-# TODO
 # Return statement node
 class ASTNodeReturn(ASTNodeStatement):
     def __init__(self):
@@ -767,8 +768,11 @@ class ASTNodeReturn(ASTNodeStatement):
         llvm_type = entry.type.get_llvm_type_ptr()
         if len(self.children):
             rval = self.children[0].load_if_necessary(_type_table, _file, _indent)
-            print("\tmove $a0, " + rval, file=_file)
             new_val = convert_type(self.children[0].get_llvm_type(_type_table)[1], llvm_type, rval, _file, _indent)
+            a = "move $a0"
+            if entry.type == FLOAT:
+                a = "mov.s $f12"
+            print("\t" + a + ", " + new_val, file=_file)
         _type_table.get_variable("$ra", "$t1")
         print("\tjr	$t1\n" +
               "\tnop\n", file=_file)
@@ -1204,7 +1208,6 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             return self.get_id()
 
 
-# TODO
 # Function call expression node
 class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1308,11 +1311,14 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
 
             for child in self.children:
-                #child.load_if_necessary(_type_table, _file, _indent, "$t0")
+                t = "$t0"
+                if child.type == FLOAT:
+                    t = "$f1"
+                l = child.load_if_necessary(_type_table, _file, _indent, t)
                 e = _type_table.lookup_variable(child.get_id())
-                _type_table.get_variable(child.get_id(), "$t0")
+                #_type_table.get_variable(child.get_id(), "$t0")
                 #_type_table.unload_global("$t0", str(e.location) + "($t1)")
-                _type_table.store_to_stack("$t0", child.type)
+                _type_table.store_to_stack(l, child.type)
                 #_type_table.store_on_adress("$t0", "($sp)")
 
             _type_table.store_and_update_fp()
@@ -1321,7 +1327,11 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             _type_table.unload_and_update_fp()
 
             _type_table.mips_insert_variable(self.get_id(), self.type)
-            _type_table.set_variable(self.get_id(), "$a0")
+            f = _type_table.lookup_function(self.name)
+            r = "$a0"
+            if f.type == FLOAT:
+                r = "$f12"
+            _type_table.set_variable(self.get_id(), r)
             # _type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
@@ -1465,7 +1475,6 @@ class ASTNodeNegativeExpr(ASTNodeUnaryExpr):
         _type_table.set_variable(self.get_id(), new_addr)
 
 
-# TODO
 # Reference expression node
 class ASTNodeReference(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1492,7 +1501,6 @@ class ASTNodeReference(ASTNodeUnaryExpr):
         _type_table.set_variable(self.get_id(), "$t0")
 
 
-# TODO
 # Dereference expression node
 class ASTNodeDereference(ASTNodeUnaryExpr):
     def __init__(self):
