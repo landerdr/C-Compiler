@@ -627,9 +627,10 @@ class ASTNodeDefinition(ASTNodeStatement):
                 print("\tla $t0, " + name, file=_file)
                 _type_table.set_variable(self.name, "$t0")
         else:
-            _type_table.mips_insert_variable(self.name, self.type)
-            print("\tla $t0, " + name, file=_file)
-            _type_table.set_variable(self.name, "$t0")
+            if self.array:
+                _type_table.mips_insert_variable(self.name, self.type)
+                print("\tla $t0, " + name, file=_file)
+                _type_table.set_variable(self.name, "$t0")
 
 
 # If statement node
