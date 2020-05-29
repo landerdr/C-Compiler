@@ -315,7 +315,7 @@ class ASTNodeFunction(ASTNode):
                             print("\tli $v0,10", file=_file)
                             print("\tsyscall", file=_file)
                             return
-                        print("\tli $2,$0")
+                        print("\tli $a0, 0", file=_file)
                         print("\tmovz	$31,$31,$0\n" +
                               "\tjr	$31\n" +
                               "\tnop\n", file=_file)
@@ -326,7 +326,7 @@ class ASTNodeFunction(ASTNode):
                         print("\tli $v0,10", file=_file)
                         print("\tsyscall", file=_file)
                         return
-                    print("\tli $2,$0")
+                    print("\tli $a0, 0", file=_file)
                     print("\tmovz	$31,$31,$0\n" +
                           "\tjr	$31\n" +
                           "\tnop\n", file=_file)
@@ -336,7 +336,7 @@ class ASTNodeFunction(ASTNode):
                 print("\tli $v0,10", file=_file)
                 print("\tsyscall", file=_file)
                 return
-            print("\tli $2,$0")
+            print("\tli $a0, 0", file=_file)
             print("\tmovz	$31,$31,$0\n" +
                   "\tjr	$31\n" +
                   "\tnop\n", file=_file)
@@ -356,7 +356,7 @@ class ASTNodeFunction(ASTNode):
                 name = self.param_names[i][0]
                 llvm_type = self.param_names[i][1].get_llvm_type_ptr()
                 _type_table.mips_insert_variable(name, self.param_names[i][1])
-                print("\tlw $t0, " + str(i*4) + "($sp)", file=_file)
+                print("\tlw $t0, " + str((len(self.param_names)-i)*4) + "($fp)", file=_file)
                 _type_table.set_variable(name, "$t0")
                 #print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
             _type_table.mips_insert_variable("$ra", INT)
@@ -394,7 +394,7 @@ class ASTNodeParam(ASTNode):
             self.type = Pointer(self.type)
         t = self.type
 
-        _type_table.mips_insert_variable(self.name, t)
+        #_type_table.mips_insert_variable(self.name, t)
         if isinstance(self.parent, ASTNodeFunction):
             self.parent.param_names.append([self.name, t])
         else:
@@ -1331,19 +1331,21 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
 
         else:
-            _type_table.mips_insert_variable("$fp", INT)
-            _type_table.set_variable("$fp", "$fp")
+            print("# Function call", file=_file)
+            #_type_table.mips_insert_variable("$fp", INT)
+            #print("\tmove $t0, $fp", file=_file)
+            #_type_table.set_variable("$fp", "$t0")
 
-            _type_table.store_and_update_fp()
 
             for child in self.children:
                 #child.load_if_necessary(_type_table, _file, _indent, "$t0")
                 e = _type_table.lookup_variable(child.get_id())
-                _type_table.get_variable("$fp", "$t1")
-                _type_table.unload_global("$t0", str(e.location) + "($t1)")
+                _type_table.get_variable(child.get_id(), "$t0")
+                #_type_table.unload_global("$t0", str(e.location) + "($t1)")
                 _type_table.store_to_stack("$t0", child.type)
                 #_type_table.store_on_adress("$t0", "($sp)")
 
+            _type_table.store_and_update_fp()
 
             print("\tjal c_" + self.name, file=_file)
             _type_table.unload_and_update_fp()

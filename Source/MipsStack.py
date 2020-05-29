@@ -107,4 +107,6 @@ class MipsStack(TypeTable):
 
     def mips_insert_variable(self, name: str, value_type, **kwargs):
         location = -(sum([len(x) for x in self.tables]) + 1) * 4
+        print("move $sp, $fp", file=self.output)
+        print("\taddiu $sp, $sp, " + str(location), file=self.output)
         self.insert_variable(name, value_type, location=location, **kwargs)

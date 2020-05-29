@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 int f(int a) {
-    //printf(a);
 	if (a < 2 ) {
 	    //printf("yay");
 		return a;

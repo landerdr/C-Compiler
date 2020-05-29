@@ -125,6 +125,7 @@ class TypeTable:
         self.current = name
         self.function_scope = True
         self.offset = None
+
         function = Entry(string_to_type(value_type), **kwargs)
         if name in self.functions:
             if function.type != self.functions[name].type:
