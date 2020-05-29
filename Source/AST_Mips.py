@@ -559,13 +559,13 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
 
         llvm_type = self.type.get_llvm_type()
-        v1 = self.value
+
         _type_table.mips_insert_variable(self.name, self.type, no_sp=True)
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
             print(".data", file=_file)
             print("\tg_" + self.name + ":", file=_file, end="")
-
+            v1 = str(self.children[0].value)
             if self.type == CHAR:
                 if v1 == 0 or v1 == "$0":
                     print("\t.space	1", file=_file)
