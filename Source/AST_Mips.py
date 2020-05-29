@@ -289,61 +289,31 @@ class ASTNodeFunction(ASTNode):
             symboltable.complete_function(fwd=True)
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
+
         print("c_" + self.name + ":", file=_file)
         _type_table.insert_function(self.name, self.type)
         _indent += 1
         _type_table.enter_scope()
+        _type_table.mips_insert_variable("$ra", INT)
+        _type_table.set_variable("$ra", "$ra")
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
 
-        if len(self.children) > 0:
-            if not isinstance(self.children[-1], ASTNodeReturn):
-                if isinstance(self.children[-1], ASTNodeCompound):
-                    if len(self.children[-1].children) > 0:
-                        if not isinstance(self.children[-1].children[-1], ASTNodeReturn):
-                            if self.name == "main":
-                                print("\tli $v0,10", file=_file)
-                                print("\tsyscall", file=_file)
-                                return
-                            v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                            print("\tmovz	$31,$31,$0\n" +
-                                  "\tjr	$31\n" +
-                                  "\tnop\n", file=_file)
-                    else:
-                        v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                        if self.name == "main":
-                            print("\tli $v0,10", file=_file)
-                            print("\tsyscall", file=_file)
-                            return
-                        print("\tli $a0, 0", file=_file)
-                        print("\tmovz	$31,$31,$0\n" +
-                              "\tjr	$31\n" +
-                              "\tnop\n", file=_file)
 
-                else:
-                    v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-                    if self.name == "main":
-                        print("\tli $v0,10", file=_file)
-                        print("\tsyscall", file=_file)
-                        return
-                    print("\tli $a0, 0", file=_file)
-                    print("\tmovz	$31,$31,$0\n" +
-                          "\tjr	$31\n" +
-                          "\tnop\n", file=_file)
-        else:
-            v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
-            if self.name == "main":
-                print("\tli $v0,10", file=_file)
-                print("\tsyscall", file=_file)
-                return
-            print("\tli $a0, 0", file=_file)
-            print("\tmovz	$31,$31,$0\n" +
-                  "\tjr	$31\n" +
-                  "\tnop\n", file=_file)
+        if self.name == "main":
+            print("\tli $v0,10", file=_file)
+            print("\tsyscall", file=_file)
+            return
+        #v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+        _type_table.get_variable("$ra", "$t1")
+        print("\tjr	$t1\n" +
+              "\tnop\n", file=_file)
 
         _type_table.leave_scope()
 
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None, _float_list=None):
+        if (len(self.children)):
+            return
         if prev_index < len(self.children) - 2:
             pass
         else:
@@ -359,8 +329,7 @@ class ASTNodeFunction(ASTNode):
                 print("\tlw $t0, " + str((len(self.param_names)-i)*4) + "($fp)", file=_file)
                 _type_table.set_variable(name, "$t0")
                 #print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
-            _type_table.mips_insert_variable("$ra", INT)
-            _type_table.set_variable("$ra", "$ra")
+
 
 
 # Base list of parameters node
