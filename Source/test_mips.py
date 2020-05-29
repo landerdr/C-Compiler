@@ -114,12 +114,14 @@ def compare(result_file: str, expected_result_file: str):
 #     assert run_command_prop("./Test/Deadline1.txt", "test.txt", "test_expected.txt") is True
 #
 #
-# def test_equality_operators():
-#     assert run_command("./Test/equality_operators.c", "test.txt", "test_expected.txt") is True
-#
-#
-# def test_equality_operators_prop():
-#     assert run_command_prop("./Test/equality_operators.c", "test.txt", "test_expected.txt") is True
+def test_equality_operators():
+    assert run_command("./Test/equality_operators.c") is True
+
+
+def test_equality_operators_prop():
+    assert run_command_prop("./Test/equality_operators.c") is True
+
+
 #
 #
 # def test_special_scope():
