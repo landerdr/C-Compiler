@@ -1135,7 +1135,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 t1 = 'double'
 
             new_v1 = "$t3"
-            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent)
+            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t1")
             converted = convert_types(llvm_type, t1, v0, v1, _file, _indent)
 
             v0 = converted[0]
