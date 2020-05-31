@@ -111,6 +111,8 @@ class Int(Char):
         super().__init__()
 
     def cast(self, value):
+        if isinstance(value, str):
+            return ord(value)
         return int(value)
 
     def __str__(self):
