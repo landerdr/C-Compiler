@@ -1113,7 +1113,11 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         entry.update_value(value, self.line_num)
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
-        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent)
+        t1 = self.children[1].type.get_llvm_type()
+        v1 = "$t0"
+        if t1 == "float":
+            v1 = "$f1"
+        v1 = self.children[1].load_if_necessary(_type_table, _file, _indent, v1)
         if not isinstance(self.children[0], ASTNodeLeftValue):
             if not isinstance(self.children[0], ASTNodeIndexingExpr):
                 var_name = self.children[0].get_without_load(_type_table)
@@ -1126,16 +1130,17 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         else:
             var_name = self.get_name()
             entry = _type_table.lookup_variable(var_name)
+
         llvm_type = entry.type.get_llvm_type_ptr()
         t1 = self.children[1].type.get_llvm_type()
 
         if self.equality != "=":
+            v0 = "$t1"
+            if llvm_type == "float":
+                v0 = "$f2"
+            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, v0)
 
-            if t1 == 'float' and isinstance(self.children[1], ASTNodeLiteral):
-                t1 = 'double'
-
-            v0 = self.children[0].load_if_necessary(_type_table, _file, _indent, "$t1")
-            converted = convert_types(llvm_type, t1, v0, v1, _file, _indent)
+            converted = convert_types(t1, llvm_type, v1, v0, _file, _indent)
 
             v0 = converted[0]
             v1 = converted[1]
@@ -1161,9 +1166,15 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 if t1 == 'double' or t1 == 'float':
                     raise ModuloException('Trying to use modulo on float type')
 
-            print(f"\t{opp} {v1}, {v0}, {v1}", file=_file)
             if self.equality == "%=":
+                print(f"\t{opp} {v1}, {v0}", file=_file)
                 print(f"\tmfhi {v1}", file=_file)
+            elif self.equality == "/=" and not (t1 == "float"):
+                print(f"\t{opp} {v1}, {v0}", file=_file)
+                print(f"\tmflo {v1}", file=_file)
+            else:
+                print(f"\t{opp} {v1}, {v1}, {v0}", file=_file)
+
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
         if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = v1
@@ -1869,14 +1880,16 @@ def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
         return v1
 
     if old_type != new_type:
-        if new_type == "float":
+        if new_type == "float" or new_type == "double":
             if not _save_as:
                 _save_as = "$f1"
             # print("# Int to float", file=_file)
             print("\tmtc1 " + v1 + "," + _save_as, file=_file)
             print("\tcvt.s.w " + _save_as + "," + _save_as, file=_file)
             return _save_as
-        if new_type == "i32":
+        if new_type == "i32" or new_type == "i8"or new_type == "bool" or new_type == 'i1':
+            if old_type == "i8" or old_type == "i32" or old_type == "bool" or old_type == 'i1':
+                return v1
             if not _save_as:
                 _save_as = "$t0"
             # print("# Float to int", file=_file)

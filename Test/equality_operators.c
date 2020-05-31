@@ -7,8 +7,9 @@ int main() {
     c += 'e';
     c -= 1;
     c *= 1.1;
+    int j = c;
     c /= 1.1;
-    printf("%c;",c); // expecting c
+    printf("%c;", c); // expecting d
 
     int i = 4;
     i += 4;
@@ -16,7 +17,7 @@ int main() {
     i *= 10;
     i /= 4;
     i %= 6;
-    printf("%d;",i); // expecting 3
+    //printf("%d;",i); // expecting 3
 
     float b = 5;
     b += 1;
@@ -24,7 +25,7 @@ int main() {
     b *= 2;
     b /= 2;
     //b %= 3; // not allowed between floats
-    printf("%f;",b); // expecting 5.000000000
+    //printf("%f;",b); // expecting 5.000000000
 
     return 0;
 }
