@@ -497,15 +497,20 @@ class ASTNodeExpressionStatement(ASTNodeStatement):
 class ASTNodeCompound(ASTNodeStatement):
     def __init__(self, _val="Compound statement"):
         super().__init__(_val)
+        self.canReplace = False
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
         if isinstance(self.parent, ASTNodeFunction):
             return
         _type_table.enter_scope()
+        _type_table.mips_insert_variable("$sp", INT)
+        _type_table.set_variable("$sp", "$sp")
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
         if isinstance(self.parent, ASTNodeFunction):
             return
+        _type_table.get_variable("$sp", "$t0")
+        print("\tmove $sp, $t0", file=_file)
         _type_table.leave_scope()
 
 
@@ -559,8 +564,9 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
 
         llvm_type = self.type.get_llvm_type()
+        sp = len(_type_table.tables) == 1 or self.array
+        _type_table.mips_insert_variable(self.name, self.type, no_sp=sp, array=self.array)
 
-        _type_table.mips_insert_variable(self.name, self.type, no_sp=True, array=self.array)
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
             print(".data", file=_file)
