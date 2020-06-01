@@ -35,6 +35,9 @@ class MipsStack(TypeTable):
         if type == FLOAT:
             print(f"\ts.s {register}, ($sp)", file=self.output)
             return
+        if type == CHAR:
+            print(f"\tsb {register}, ($sp)", file=self.output)
+            return
         print(f"\tsw {register}, ($sp)", file=self.output)
 
     def update_on_stack(self, register: str, offset: int, type = None):
@@ -46,6 +49,9 @@ class MipsStack(TypeTable):
         """
         if type == FLOAT:
             print(f"\ts.s {register}, {offset}($fp)", file=self.output)
+            return
+        if type == CHAR:
+            print(f"\tsb {register}, {offset}($fp)", file=self.output)
             return
         print(f"\tsw {register}, {offset}($fp)", file=self.output)
 
@@ -59,6 +65,9 @@ class MipsStack(TypeTable):
             if type == FLOAT:
                 print(f"\ts.s {register}, {adress}", file=self.output)
                 return
+            if type == CHAR:
+                print(f"\tsb {register}, {adress}", file=self.output)
+                return
             print(f"\tsw {register}, {adress}", file=self.output)
 
     def unload_from_stack(self, register: str, offset: int, type = None):
@@ -71,6 +80,9 @@ class MipsStack(TypeTable):
         if type == FLOAT:
             print(f"\tl.s {register}, {offset}($fp)", file=self.output)
             return
+        if type == CHAR:
+            print(f"\tlb {register}, {offset}($fp)", file=self.output)
+            return
         print(f"\tlw {register}, {offset}($fp)", file=self.output)
 
     def unload_global(self, register: str, global_name: str, type = None):
@@ -82,6 +94,9 @@ class MipsStack(TypeTable):
         """
         if type == FLOAT:
             print(f"\tl.s {register}, {global_name}", file=self.output)
+            return
+        if type == CHAR:
+            print(f"\tlb {register}, {global_name}", file=self.output)
             return
         print(f"\tlw {register}, {global_name}", file=self.output)
 

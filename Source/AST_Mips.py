@@ -574,13 +574,30 @@ class ASTNodeDefinition(ASTNodeStatement):
             v1 = 0
             if len(self.children):
                 v1 = str(self.children[0].value)
-            if self.type == CHAR:
+            if self.array:
+                s = 4
+                if self.type == CHAR:
+                    s = 2
+                if len(self.children) and isinstance(self.children[0], ASTNodeList):
+                    if self.type == CHAR:
+                        print("\t.byte ", file=_file, end="")
+                    else:
+                        print("\t.word ", file=_file, end="")
+                    for i in range(len(self.children[0].children)):
+                        k = self.children[0].children[i]
+                        if i == 0:
+                            print(str(k.value), file=_file, end="")
+                        else:
+                            print(", " + str(k.value), file=_file, end="")
+                else:
+                    print("\t.space " + str(int(self.array)*s) + " ", file=_file, end="")
+                print("", file=_file)
+
+            elif self.type == CHAR:
                 if v1 == 0 or v1 == "$0":
                     print("\t.space	1", file=_file)
                 else:
                     print("\t.byte	" + v1 + "\n", file=_file)
-            elif self.array:
-                print("\t.space " + str(int(self.array)*4), file=_file)
             else:
                 if v1 == 0 or v1 == "$0":
                     print("\t.space	4", file=_file)
@@ -1259,7 +1276,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                         target = "$f1"
                     value = self.children[j].load_if_necessary(_type_table, _file, _indent, target)
 
-                    if self.children[j].type.pointertype == CHAR:
+                    if self.children[j].type.pointertype == CHAR or self.children[j].type == CHAR and len(self.children[j].type.array):
                         print("\tli $v0, 4", file=_file)
                         print("\tmove $a0," + str(value), file=_file)
                     elif self.children[j].type == FLOAT:
@@ -1278,6 +1295,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     target = "$f1"
                 value = self.children[0].load_if_necessary(_type_table, _file, _indent, target)
 
+
                 if self.children[0].type.pointertype == CHAR:
                     print("\tli $v0, 4", file=_file)
                     print("\tmove $a0," + str(value), file=_file)
@@ -1285,7 +1303,11 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     print("\tli $v0, 2", file=_file)
                     print("\tmov.s $f12," + str(value), file=_file)
                 elif self.children[0].type == CHAR:
-                    print("\tli $v0, 11", file=_file)
+                    e = _type_table.lookup_variable(self.children[0].get_id())
+                    if e and e.array:
+                        print("\tli $v0, 4", file=_file)
+                    else:
+                        print("\tli $v0, 11", file=_file)
                     print("\tmove $a0," + str(value), file=_file)
                 else:
                     print("\tli $v0, 1", file=_file)
@@ -1313,10 +1335,6 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
         else:
             print("# Function call", file=_file)
-            #_type_table.mips_insert_variable("$fp", INT)
-            #print("\tmove $t0, $fp", file=_file)
-            #_type_table.set_variable("$fp", "$t0")
-
 
             for child in self.children:
                 t = "$t0"
@@ -1324,10 +1342,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                     t = "$f1"
                 l = child.load_if_necessary(_type_table, _file, _indent, t)
                 e = _type_table.lookup_variable(child.get_id())
-                #_type_table.get_variable(child.get_id(), "$t0")
-                #_type_table.unload_global("$t0", str(e.location) + "($t1)")
                 _type_table.store_to_stack(l, child.type)
-                #_type_table.store_on_adress("$t0", "($sp)")
 
             _type_table.store_and_update_fp()
 
@@ -1340,7 +1355,6 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             if f.type == FLOAT:
                 r = "$f12"
             _type_table.set_variable(self.get_id(), r)
-            # _type_table.insert_variable(self.get_llvm_addr(), entry.type)
 
 
 # TODO
@@ -1368,22 +1382,31 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         if self.value:
             _type_table.get_variable(self.value, "$t0")
             addr = "$t0"
+            m = "4"
+            if self.children[0].type == CHAR:
+                m = "1"
             index = str(self.children[0].load_if_necessary(_type_table, _file, _indent, "$t1"))
-            print("\tmul " + index + ", " + index + ", " + "4", file=_file)
+            print("\tmul " + index + ", " + index + ", " + m, file=_file)
             print("\taddu $t0, " + addr + ", " + index, file=_file)
             print("\tla " + "$t0" + ", " + "0($t0)", file=_file)
         else:
             addr = str(self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0"))
             index = str(self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1"))
-            print("\tmul " + index + ", " + index + ", " + "4", file=_file)
+            m = "4"
+            if self.children[0].type == CHAR:
+                m = "1"
+            print("\tmul " + index + ", " + index + ", " + m, file=_file)
             print("\taddu $t0, " + addr + ", " + index, file=_file)
             print("\tla " + "$t0" + ", " + "0($t0)", file=_file)
 
-        _type_table.mips_insert_variable(self.get_id(), self.type)
+        _type_table.mips_insert_variable(self.get_id(), Pointer(self.type))
         _type_table.set_variable(self.get_id(), "$t0")
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
         t = self._load(self.get_id(), _type_table, _file, _indent, _target)
+        if self.type == CHAR:
+            print("\tlb " + _target + ", (" + t + ")", file=_file)
+            return _target
         print("\tlw " + _target + ", (" + t + ")", file=_file)
         return _target
 
