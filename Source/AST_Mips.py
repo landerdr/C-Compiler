@@ -565,10 +565,13 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
 
         llvm_type = self.type.get_llvm_type()
-        if not self.array and isinstance(self.children[0], ASTNodeList):
+        if not self.array and len(self.children) > 0 and isinstance(self.children[0], ASTNodeList):
             self.array = len(self.children[0].children)
         sp = len(_type_table.tables) == 1 or self.array
-        _type_table.mips_insert_variable(self.name, Pointer(self.type), no_sp=sp, array=self.array)
+        t = self.type
+        if self.array:
+            t = Pointer(self.type)
+        _type_table.mips_insert_variable(self.name, t, no_sp=sp, array=self.array)
 
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
@@ -1209,7 +1212,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = v1
             e = _type_table.get_variable(var_name, "$t3")
-            if self.type == FLOAT:
+            if e.type == FLOAT:
                 print(f"\ts.s {register}, -0($t3)", file=_file)
                 return
 
@@ -1218,6 +1221,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
                 return
             print(f"\tsw {register}, -0($t3)", file=_file)
             return
+
         _type_table.set_variable(var_name, v1)
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
