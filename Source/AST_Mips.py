@@ -235,7 +235,6 @@ class ASTNode:
             v1 = _target
         elif self.type == FLOAT:
             v1 = "$f1"
-
         e = _type_table.get_variable(str(name), v1)
         return v1
 
@@ -564,8 +563,10 @@ class ASTNodeDefinition(ASTNodeStatement):
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
 
         llvm_type = self.type.get_llvm_type()
+        if not self.array and isinstance(self.children[0], ASTNodeList):
+            self.array = len(self.children[0].children)
         sp = len(_type_table.tables) == 1 or self.array
-        _type_table.mips_insert_variable(self.name, self.type, no_sp=sp, array=self.array)
+        _type_table.mips_insert_variable(self.name, Pointer(self.type), no_sp=sp, array=self.array)
 
         if len(_type_table.tables) == 1:
             print("# Global", file=_file)
@@ -617,6 +618,8 @@ class ASTNodeDefinition(ASTNodeStatement):
             name = "array_" +  str(array_counter)
             print(".data", file=_file)
             print("\t" +  name + ":", file=_file, end="")
+            if self.array == -1 and isinstance(self.children[0], ASTNodeList):
+                self.array = len(self.children[0].children)
             print("\t.space " + str(int(self.array)*4), file=_file)
             print(".text\n", file=_file)
 
@@ -631,7 +634,7 @@ class ASTNodeDefinition(ASTNodeStatement):
 
             else:
                 prev = None
-                for index in range(int(self.array)):
+                for index in range(min(int(self.array), len(self.children[0].children))):
                     if index < len(self.children[0].children):
                         k = self.children[0].children[index]
                         v1 = k.load_if_necessary(_type_table, _file, _indent)
@@ -1207,7 +1210,7 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
             if self.type == FLOAT:
                 print(f"\ts.s {register}, -0($t3)", file=_file)
                 return
-            print(e, self.type)
+
             if e.type.pointertype == CHAR:
                 print(f"\tsb {register}, -0($t3)", file=_file)
                 return
@@ -1289,7 +1292,7 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                         print("\tli $v0, 2", file=_file)
                         print("\tmov.s $f12," + str(value), file=_file)
                     elif self.children[j].type == CHAR:
-                        e = _type_table.lookup_variable(self.children[0].get_id())
+                        e = _type_table.lookup_variable(self.children[j].get_id())
                         if e and e.array:
                             print("\tli $v0, 4", file=_file)
                         else:
@@ -1389,25 +1392,23 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
         print("# Indexing expression", self.value, file=_file)
-        self.type = self.children[0].type
-
         if self.value:
-            _type_table.get_variable(self.value, "$t0")
+            e = _type_table.get_variable(self.value, "$t0")
             addr = "$t0"
-            m = "4"
-            if self.children[0].type == CHAR:
-                m = "1"
             index = str(self.children[0].load_if_necessary(_type_table, _file, _indent, "$t1"))
-            print("\tmul " + index + ", " + index + ", " + m, file=_file)
+
+            if e.type != CHAR and e.type.pointertype != CHAR:
+                print("here")
+                print("\tmul " + index + ", " + index + ", 4", file=_file)
             print("\taddu $t0, " + addr + ", " + index, file=_file)
             print("\tla " + "$t0" + ", " + "0($t0)", file=_file)
         else:
+
             addr = str(self.children[0].load_if_necessary(_type_table, _file, _indent, "$t0"))
             index = str(self.children[1].load_if_necessary(_type_table, _file, _indent, "$t1"))
-            m = "4"
-            if self.children[0].type == CHAR:
-                m = "1"
-            print("\tmul " + index + ", " + index + ", " + m, file=_file)
+            self.type = self.children[0].type
+            if self.children[0].type != CHAR and self.children[0].type.pointertype != CHAR:
+                print("\tmul " + index + ", " + index + ", 4", file=_file)
             print("\taddu $t0, " + addr + ", " + index, file=_file)
             print("\tla " + "$t0" + ", " + "0($t0)", file=_file)
 

@@ -3,10 +3,10 @@
 
 int main(){
 
-    int i;
-    int j;
-    scanf("%d%d", &i, &j);
-    printf("%d%d", i, j);
+    char c = 'c';
+    char j[] = {'c', 'b', 'c', 'd'};
+    j[2] = 'f';
+    printf("%c", j[2]);
 
     return 0;
 }

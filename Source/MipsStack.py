@@ -111,6 +111,7 @@ class MipsStack(TypeTable):
     def get_variable(self, variable_name: str, register: str):
         e = self.lookup_variable(variable_name)
         if self.is_global_variable(variable_name):
+            print(e)
             if e.array:
                 print("\tla " + register +  ", g_" + variable_name, file=self.output)
             else:
