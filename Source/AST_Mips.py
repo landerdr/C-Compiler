@@ -1400,7 +1400,6 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
             index = str(self.children[0].load_if_necessary(_type_table, _file, _indent, "$t1"))
 
             if e.type != CHAR and e.type.pointertype != CHAR:
-                print("here")
                 print("\tmul " + index + ", " + index + ", 4", file=_file)
             print("\taddu $t0, " + addr + ", " + index, file=_file)
             print("\tla " + "$t0" + ", " + "0($t0)", file=_file)
