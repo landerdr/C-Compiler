@@ -6,9 +6,9 @@ int main() {
     c %= c;
     c += 'e';
     c -= 1;
-    c *= 1.1;
+    c *= 2;
     int j = c;
-    c /= 1.1;
+    c /= 2;
     printf("%c;", c); // expecting d
 
     int i = 4;

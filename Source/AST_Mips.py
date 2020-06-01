@@ -1322,20 +1322,22 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
 
         elif self.name == 'scanf':
             print("# Scanf " + str(self.children[0].type), file=_file)
-            if self.children[1].type == FLOAT:
-                print("\tli $v0,6", file=_file)
-                print("\tsyscall", file=_file)
-                print("\tmov.s $f1,$f0", file=_file)
-                if len(self.children) > 0:
-                    entry = _type_table.get_variable(str(self.children[-1].get_id()), "$t1")
-                    print("\tswc1 $f1," + "0($t1)", file=_file)
-            else:
-                print("\tli $v0,5", file=_file)
-                print("\tsyscall", file=_file)
-                print("\tmove $t0,$v0", file=_file)
-                if len(self.children) > 0:
-                    entry = _type_table.get_variable(str(self.children[-1].get_id()), "$t1")
-                    print("\tsw $t0," + "0($t1)", file=_file)
+
+            for i in range(1, len(self.children)):
+                if self.children[i].type == FLOAT:
+                    print("\tli $v0,6", file=_file)
+                    print("\tsyscall", file=_file)
+                    print("\tmov.s $f1,$f0", file=_file)
+                    if len(self.children) > 0:
+                        entry = _type_table.get_variable(str(self.children[i].get_id()), "$t1")
+                        print("\tswc1 $f1," + "0($t1)", file=_file)
+                else:
+                    print("\tli $v0,5", file=_file)
+                    print("\tsyscall", file=_file)
+                    print("\tmove $t0,$v0", file=_file)
+                    if len(self.children) > 0:
+                        entry = _type_table.get_variable(str(self.children[i].get_id()), "$t1")
+                        print("\tsw $t0," + "0($t1)", file=_file)
 
 
 
