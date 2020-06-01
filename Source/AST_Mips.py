@@ -581,6 +581,8 @@ class ASTNodeDefinition(ASTNodeStatement):
                 if len(self.children) and isinstance(self.children[0], ASTNodeList):
                     if self.type == CHAR:
                         print("\t.byte ", file=_file, end="")
+                    elif self.type == FLOAT:
+                        print("\t.float ", file=_file, end="")
                     else:
                         print("\t.word ", file=_file, end="")
                     for i in range(len(self.children[0].children)):
@@ -1201,9 +1203,13 @@ class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
         v1 = convert_type(t1, llvm_type, v1, _file, _indent)
         if isinstance(self.children[0], ASTNodeDereference) or isinstance(self.children[0], ASTNodeIndexingExpr):
             register = v1
-            _type_table.get_variable(var_name, "$t3")
+            e = _type_table.get_variable(var_name, "$t3")
             if self.type == FLOAT:
                 print(f"\ts.s {register}, -0($t3)", file=_file)
+                return
+            print(e, self.type)
+            if e.type.pointertype == CHAR:
+                print(f"\tsb {register}, -0($t3)", file=_file)
                 return
             print(f"\tsw {register}, -0($t3)", file=_file)
             return
@@ -1403,9 +1409,12 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
         _type_table.set_variable(self.get_id(), "$t0")
 
     def load_if_necessary(self, _type_table, _file=None, _indent=0, _target=None):
-        t = self._load(self.get_id(), _type_table, _file, _indent, _target)
+        t = self._load(self.get_id(), _type_table, _file, _indent, "$t3")
         if self.type == CHAR:
             print("\tlb " + _target + ", (" + t + ")", file=_file)
+            return _target
+        if self.type == FLOAT:
+            print("\tl.s " + _target + ", (" + t + ")", file=_file)
             return _target
         print("\tlw " + _target + ", (" + t + ")", file=_file)
         return _target
