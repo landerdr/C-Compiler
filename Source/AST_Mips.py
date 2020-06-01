@@ -1282,14 +1282,18 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
                         target = "$f1"
                     value = self.children[j].load_if_necessary(_type_table, _file, _indent, target)
 
-                    if self.children[j].type.pointertype == CHAR or self.children[j].type == CHAR and len(self.children[j].type.array):
+                    if self.children[j].type.pointertype == CHAR:
                         print("\tli $v0, 4", file=_file)
                         print("\tmove $a0," + str(value), file=_file)
                     elif self.children[j].type == FLOAT:
                         print("\tli $v0, 2", file=_file)
                         print("\tmov.s $f12," + str(value), file=_file)
                     elif self.children[j].type == CHAR:
-                        print("\tli $v0, 11", file=_file)
+                        e = _type_table.lookup_variable(self.children[0].get_id())
+                        if e and e.array:
+                            print("\tli $v0, 4", file=_file)
+                        else:
+                            print("\tli $v0, 11", file=_file)
                         print("\tmove $a0," + str(value), file=_file)
                     elif value != '':
                         print("\tli $v0, 1", file=_file)
