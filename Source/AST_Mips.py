@@ -549,6 +549,8 @@ class ASTNodeDefinition(ASTNodeStatement):
                 value = chr(value)
         elif not compatible_types(self.type, self.children[0].type):
             raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
+        elif self.array and not isinstance(self.children[0], ASTNodeList):
+            raise ParserException("Trying to assign incompatible types at line %s" % self.line_num)
         else:
             value = "Unknown"
             if self.type < self.children[0].type:
