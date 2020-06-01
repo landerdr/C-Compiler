@@ -1920,6 +1920,12 @@ def convert_types(t0, t1, v0, v1, _file=None, _indent=0):
 
 
 def convert_type(old_type, new_type, v1, _file=None, _indent=0, _save_as=None):
+
+    if old_type[-1] == '*':
+        old_type = old_type[:-1]
+    if new_type[-1] == '*':
+        new_type = new_type[:-1]
+
     if new_type == 'void':
         return ''
 
