@@ -70,7 +70,6 @@ class AST:
             for i in reversed(item.children):
                 self.depthStack.append(i)
 
-    # ToDo: optimize if necessary
     # (Hopefully) Prints it's equivalent as llvm IR code
     def print_mips(self, _file_name=None):
         _file = open(_file_name, 'w+')
@@ -286,7 +285,7 @@ class ASTNodeFunction(ASTNode):
             symboltable.complete_function(fwd=True)
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
-        if (len(self.children) == 0):
+        if len(self.children) == 0:
             return
         print("c_" + self.name + ":", file=_file)
         _type_table.insert_function(self.name, self.type)
@@ -296,13 +295,11 @@ class ASTNodeFunction(ASTNode):
         _type_table.set_variable("$ra", "$ra")
 
     def print_mips_post(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
-
-
         if self.name == "main":
             print("\tli $v0,10", file=_file)
             print("\tsyscall", file=_file)
             return
-        #v = convert_type('i32', self.type.get_llvm_type_ptr(), '0')
+
         _type_table.get_variable("$ra", "$t1")
         print("\tjr	$t1\n" +
               "\tnop\n", file=_file)
@@ -310,7 +307,7 @@ class ASTNodeFunction(ASTNode):
         _type_table.leave_scope()
 
     def print_mips_in(self, _type_table, prev_index=0, _file=None, _indent=0, _string_list=None, _float_list=None):
-        if (len(self.children) == 0):
+        if len(self.children) == 0:
             return
         if prev_index < len(self.children) - 2:
             pass
@@ -334,7 +331,6 @@ class ASTNodeFunction(ASTNode):
                 print("\t" + o + t + ", " + str((len(self.param_names)-i)*4) + "($fp)", file=_file)
                 _type_table.set_variable(name, t)
                 #print("\tsw $"+ str(4+i)+  "," + str(_type_table.offset) + "($fp)", file=_file)
-
 
 
 # Base list of parameters node
@@ -373,7 +369,6 @@ class ASTNodeParam(ASTNode):
             self.parent.parent.param_names.append([self.name, t])
 
 
-# TODO arrays
 class ASTNodeLeftValue(ASTNode):
     def __init__(self):
         super().__init__("Left Value")
@@ -410,7 +405,6 @@ class ASTNodeLeftValue(ASTNode):
         return str(self.name)
 
 
-# TODO better printf/scanf inclusion
 class ASTNodeInclude(ASTNode):
 
     def __init__(self):
@@ -423,8 +417,6 @@ class ASTNodeInclude(ASTNode):
 
     def print_mips_pre(self, _type_table, _file=None, _indent=0, _string_list=None, _float_list=None):
         if self.name == 'stdio.h':
-            # print("\ndeclare i32 @printf(i8*, ...) #1", file=_file)
-            # print("declare i32 @__isoc99_scanf(i8*, ...) #1\n", file=_file)
             _type_table.insert_function('printf', 'i32')
             _type_table.insert_function('scanf', 'i32')
 
@@ -513,7 +505,6 @@ class ASTNodeCompound(ASTNodeStatement):
         _type_table.leave_scope()
 
 
-# TODO arrays
 # Definition statement node
 class ASTNodeDefinition(ASTNodeStatement):
     def __init__(self):
@@ -1085,7 +1076,6 @@ class ASTNodePrecrement(ASTNodeUnaryExpr):
         _type_table.set_variable(var_name, new_addr)
 
 
-# TODO +=, -=, *=, etc
 # Equality expression node
 class ASTNodeEqualityExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1378,7 +1368,6 @@ class ASTNodeFunctionCallExpr(ASTNodeUnaryExpr):
             _type_table.set_variable(self.get_id(), r)
 
 
-# TODO
 # Indexing expression node
 class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
     def __init__(self):
@@ -1433,6 +1422,7 @@ class ASTNodeIndexingExpr(ASTNodeUnaryExpr):
 
     def get_without_load(self, _type_table):
         return self.get_id()
+
 
 # Inverse expression node
 class ASTNodeInverseExpr(ASTNodeUnaryExpr):
@@ -1573,7 +1563,6 @@ class ASTNodeDereference(ASTNodeUnaryExpr):
         return self.children[0].get_id()
 
 
-# TODO
 class ASTNodeList(ASTNodeUnaryExpr):
     def __init__(self, tt="list"):
         super().__init__(tt)
