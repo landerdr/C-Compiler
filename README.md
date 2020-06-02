@@ -143,6 +143,7 @@ Compiler options:
 - `-dot <DOT OUTPUT>`: generates AST representation in dot language.
 - `-prop`: enables constant propagation
 - `-llvm <LLVM OUTPUT>`: generates llvm to output file
+- `-mips <MIPS OUTPUT>`: generates mips to output file
 
 Generate antlr files:
 _ONLY IF YOU WANT TO REGEN THE ANTLR FILES_
